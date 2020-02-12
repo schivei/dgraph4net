@@ -1,0 +1,27 @@
+{
+  "help": "https://go.microsoft.com/fwlink/?linkid=866610",
+  "root": false,
+  "dependentFileProviders": {
+    "add": {
+      "addedExtension": {},
+      "fileSuffixToExtension": {
+        "add": {
+          ".Development.json": [ ".json" ],
+          ".Homolog.json": [ ".json" ],
+          ".Tests.json": [ ".json" ],
+          ".Debug.json": [ ".json" ]
+        }
+      },
+      "pathSegment": {
+        "add": {
+          ".*": [ ".json" ]
+        }
+      },
+      "allExtensions": {
+        "add": {
+          ".*": [".json"]
+        }
+      }
+    }
+  }
+}
