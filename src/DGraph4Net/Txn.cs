@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
-using Api;
+using DGraph4Net.Services;
 using Grpc.Core;
-using DgraphClient = Api.Dgraph.DgraphClient;
+using static DGraph4Net.Services.Dgraph;
 
 namespace DGraph4Net
 {
@@ -145,8 +145,11 @@ namespace DGraph4Net
                 BestEffort = _bestEffort
             };
 
-            foreach (var v in vars)
-                req.Vars.Add(v.Key, v.Value);
+            if (vars != null)
+            {
+                foreach (var v in vars)
+                    req.Vars.Add(v.Key, v.Value);
+            }
 
             return Do(req);
         }
@@ -214,8 +217,11 @@ namespace DGraph4Net
             }
 
             var co = _dgraph.GetOptions();
-            request.StartTs = _context.StartTs;
-            Response resp;
+
+            if (request.StartTs == 0)
+                request.StartTs = _context.StartTs;
+
+            Response resp = null;
             try
             {
                 resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
@@ -226,28 +232,45 @@ namespace DGraph4Net
 
                 resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
             }
+#pragma warning disable CA1031 // Do not catch general exception types
+            catch
+            {
+                await Abort(resp?.Txn, request, true);
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
 
             if (request.CommitNow)
             {
                 _finished = true;
-                MergeContext(resp.Txn);
+                MergeContext(resp?.Txn ?? _context);
             }
 
-            if (request.Mutations.Count > 0)
-            {
-                try
-                {
-                    await Discard();
-                }
-                catch (RpcException err)
-                {
-                    if (err.StatusCode == StatusCode.Aborted)
-                        throw ErrAborted;
-                    throw;
-                }
-            }
+            await Abort(resp?.Txn, request);
 
             return resp;
+        }
+
+        private async Task Abort(TxnContext txn, Request request, bool force = false)
+        {
+            var finished = _finished;
+            try
+            {
+                await Discard(txn ?? _context, request);
+            }
+            catch (RpcException err)
+            {
+                if (err.StatusCode == StatusCode.Aborted)
+                    throw ErrAborted;
+                throw;
+            }
+            finally
+            {
+                if (force)
+                    _context.Aborted = true;
+
+                if (request.Mutations.Count == 0 || request.Mutations.All(x => !x.CommitNow))
+                    _finished = finished;
+            }
         }
 
         /// <summary>
@@ -270,13 +293,21 @@ namespace DGraph4Net
         /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
         /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
         /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
-        public Task Discard()
+        public Task Discard(TxnContext txn, Request request)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Txn));
 
-            _context.Aborted = true;
-            return CommitOrAbort();
+            if (txn != null)
+                _context = txn;
+
+            if (_context.StartTs != 0 && request.StartTs == 0)
+                request.StartTs = _context.StartTs;
+
+            if (request.CommitNow)
+                return CommitOrAbort();
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -360,14 +391,19 @@ namespace DGraph4Net
             if (_finished)
                 return;
 
-            _finished = true;
             if (!_mutated)
+            {
+                _finished = true;
                 return;
+            }
 
             try
             {
                 var co = _dgraph.GetOptions();
-                await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                var ctx = await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                _context.Aborted = ctx.Aborted;
+
+                _finished = true;
             }
             catch (RpcException err)
             {
@@ -376,7 +412,10 @@ namespace DGraph4Net
                     await _dgraph.RetryLogin();
 
                     var co = _dgraph.GetOptions();
-                    await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                    var ctx = await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                    _context.Aborted = ctx.Aborted;
+
+                    _finished = true;
                 }
                 throw;
             }
@@ -385,22 +424,31 @@ namespace DGraph4Net
         #region IDisposable Support
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            try
             {
-                _disposed = true;
-                _finished = true;
-
-                if (disposing)
+                if (!_disposed)
                 {
-                    _context = null;
-                    _dgraph = null;
-                    _dgraphClient = null;
-                    _cancellationTokenSource?.Cancel(false);
-                }
+                    _disposed = true;
+                    _finished = true;
 
-                _cancellationTokenSource?.Dispose();
-                _cancellationTokenSource = null;
+                    if (disposing)
+                    {
+                        _context = null;
+                        _dgraph = null;
+                        _dgraphClient = null;
+                        _cancellationTokenSource?.Cancel(false);
+                    }
+
+                    _cancellationTokenSource?.Dispose();
+                    _cancellationTokenSource = null;
+                }
             }
+#pragma warning disable CA1031 // Do not catch general exception types
+            catch
+            {
+                // ignore
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         ~Txn()

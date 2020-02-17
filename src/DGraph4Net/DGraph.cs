@@ -1,9 +1,10 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Api;
+using DGraph4Net.Services;
 using Grpc.Core;
-using static Api.Dgraph;
+using static DGraph4Net.Services.Dgraph;
 
 namespace DGraph4Net
 {
@@ -34,6 +35,17 @@ namespace DGraph4Net
         /// <param name="dgraphClients"></param>
         public DGraph(params DgraphClient[] dgraphClients) : this() =>
             _dgraphClients = dgraphClients;
+
+        /// <summary>
+        /// Creates a new Dgraph (client) for interacting with Alphas.
+        /// </summary>
+        /// <para>
+        /// The client is backed by multiple connections to the same or different
+        /// servers in a cluster.
+        /// </para>
+        /// <para>A single Dgraph (client) is thread safe for sharing with multiple routines.</para>
+        /// <param name="channels"></param>
+        public DGraph(params ChannelBase[] channels) : this(channels.Select(channel => new DgraphClient(channel)).ToArray()) { }
 
         /// <summary>
         /// Auth userid & password to retrieve Jwt
@@ -161,12 +173,15 @@ namespace DGraph4Net
 
             try
             {
-                var md = new Metadata();
-
-                if (!string.IsNullOrEmpty(_jwt.AccessJwt?.Trim()))
+                if (!string.IsNullOrEmpty(_jwt?.AccessJwt?.Trim()))
+                {
+                    var md = new Metadata();
                     md.Add("accessJwt", _jwt.AccessJwt);
 
-                return new CallOptions(md);
+                    return new CallOptions(md);
+                }
+
+                return new CallOptions();
             }
             finally
             {
@@ -202,7 +217,7 @@ namespace DGraph4Net
 
             try
             {
-                if (string.IsNullOrEmpty(_jwt.RefreshJwt?.Trim()))
+                if (string.IsNullOrEmpty(_jwt?.RefreshJwt?.Trim()))
                     throw new NotSupportedException("Refresh Jwt should not be empty.");
 
                 var dc = AnyClient();
@@ -224,10 +239,10 @@ namespace DGraph4Net
         /// <summary>
         /// Creates a new transaction.
         /// </summary>
-        /// <param name="dgraph"></param>
         /// <param name="readOnly"></param>
         /// <param name="bestEffort"></param>
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
+        /// <returns cref="Txn">Transaction</returns>
         public Txn NewTransaction(bool readOnly = false, bool bestEffort = false) =>
             new Txn(this, readOnly, bestEffort);
 

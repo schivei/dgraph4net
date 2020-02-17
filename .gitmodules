@@ -1,3 +1,0 @@
-[submodule "dgo"]
-	path = dgo
-	url = https://github.com/dgraph-io/dgo
