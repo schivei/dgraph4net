@@ -96,7 +96,7 @@ namespace DGraph4Net
         /// <exception cref="RpcException">If login has failed.</exception>
         /// <exception cref="NotSupportedException">If no Refresh Jwt are defined.</exception>
         /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
-        public async Task Alter(Operation operation)
+        public async Task<Payload> Alter(Operation operation)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DGraph));
@@ -107,16 +107,15 @@ namespace DGraph4Net
 
             try
             {
-                await dc.AlterAsync(operation, co);
+                return await dc.AlterAsync(operation, co);
             }
             catch (RpcException err)
             {
-                if (IsJwtExpired(err))
-                {
-                    await RetryLogin();
-                    co = GetOptions();
-                    await dc.AlterAsync(operation, co);
-                }
+                if (!IsJwtExpired(err)) throw;
+
+                await RetryLogin();
+                co = GetOptions();
+                return await dc.AlterAsync(operation, co);
             }
         }
 

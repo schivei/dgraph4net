@@ -1,30 +1,19 @@
-using System;
 using System.Data;
 using System.Threading.Tasks;
 using System.Transactions;
 using DGraph4Net.Services;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using Xunit;
 
 namespace DGraph4Net.Tests
 {
+    [Collection("DGraph4Net")]
     public class ErrorsTest : ExamplesTest
     {
         [Fact(DisplayName = "should have returned ErrFinished")]
         public async Task TestTxnErrFinished()
         {
-            using var dg = GetDgraphClient();
-
-            Txn txn = null;
-
-            var mu = new Mutation
-            {
-                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                CommitNow = true
-            };
-
-            await dg.Alter(new Operation { DropAll = true });
+            await using var dg = GetDgraphClient();
 
             var op = new Operation
             {
@@ -33,7 +22,13 @@ namespace DGraph4Net.Tests
 
             await dg.Alter(op);
 
-            txn = new Txn(dg);
+            var txn = new Txn(dg);
+
+            var mu = new Mutation
+            {
+                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                CommitNow = true
+            };
 
             await txn.Mutate(mu);
 
@@ -43,9 +38,7 @@ namespace DGraph4Net.Tests
         [Fact(DisplayName = "should have returned ErrReadOnly")]
         public async Task TestTxnErrReadOnly()
         {
-            using var dg = GetDgraphClient();
-
-            await dg.Alter(new Operation { DropAll = true });
+            await using var dg = GetDgraphClient();
 
             var op = new Operation { Schema = "email: string @index(exact) ." };
             await dg.Alter(op);
@@ -62,9 +55,7 @@ namespace DGraph4Net.Tests
         [Fact(DisplayName = "2nd transaction should have aborted")]
         public async Task TestTxnErrAborted()
         {
-            using var dg = GetDgraphClient();
-
-            await dg.Alter(new Operation { DropAll = true });
+            await using var dg = GetDgraphClient();
 
             var op = new Operation { Schema = "email: string @index(exact) ." };
             await dg.Alter(op);

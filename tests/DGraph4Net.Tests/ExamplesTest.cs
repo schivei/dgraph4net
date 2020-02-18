@@ -7,9 +7,10 @@ using Xunit;
 
 namespace DGraph4Net.Tests
 {
+    [Collection("DGraph4Net")]
     public abstract class ExamplesTest
     {
-        protected DGraph GetDgraphClient()
+        protected static DGraph GetDgraphClient()
         {
             // This switch must be set before creating the GrpcChannel/HttpClient.
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
@@ -19,24 +20,12 @@ namespace DGraph4Net.Tests
                 Credentials = ChannelCredentials.Insecure
             });
 
-            return new DGraph(channel);
+            var dg = new DGraph(channel);
+
+            dg.Alter(new Operation { DropAll = true }).ConfigureAwait(false)
+                .GetAwaiter().GetResult();
+
+            return dg;
         }
-
-        //func ExampleDgraph_Alter_dropAll()
-        //{
-        //    dg, cancel:= getDgraphClient()
-
-        //    defer cancel()
-
-        //    op:= api.Operation{ DropAll: true}
-        //ctx:= context.Background()
-
-        //    if err := dg.Alter(ctx, &op);
-        //    err != nil {
-        //        log.Fatal(err)
-
-        //    }
-        //    // Output:
-        //}
     }
 }

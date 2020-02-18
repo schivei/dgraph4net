@@ -5,16 +5,18 @@ using System.Threading.Tasks;
 using DGraph4Net.Services;
 using Google.Protobuf;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace DGraph4Net.Tests
 {
+    [Collection("DGraph4Net")]
     public class SchemaTest : ExamplesTest
     {
         [Fact]
         public async Task GetSchemaTest()
         {
-            using var dg = GetDgraphClient();
+            await using var dg = GetDgraphClient();
 
             await dg.Alter(new Operation { DropAll = true });
 
@@ -33,9 +35,12 @@ namespace DGraph4Net.Tests
             // Ask for the type of name and age.
             var resp = await dg.NewTransaction().Query("schema(pred: [name, age]) {type}");
 
-            var json = resp.Json.ToStringUtf8();
+            var json = JToken.Parse(resp.Json.ToStringUtf8());
+            var expected =
+                JToken.Parse(
+                    @"{""schema"":[{""predicate"":""age"",""type"":""int""},{""predicate"":""name"",""type"":""string""}]}");
 
-            Assert.Equal(@"{""schema"":[{""predicate"":""age"",""type"":""int""},{""predicate"":""name"",""type"":""string""}]}", json);
+            Assert.True(JToken.DeepEquals(expected, json));
         }
     }
 }
