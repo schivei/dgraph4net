@@ -4,6 +4,7 @@ using System.Transactions;
 using DGraph4Net.Services;
 using Google.Protobuf;
 using Xunit;
+using Assert = DGraph4Net.Tests.Assert;
 
 namespace DGraph4Net.Tests
 {
@@ -32,7 +33,7 @@ namespace DGraph4Net.Tests
 
             await txn.Mutate(mu);
 
-            await Assert.ThrowsAsync<TransactionException>(() => txn.Mutate(mu));
+            await ThrowsAsync<TransactionException>(() => txn.Mutate(mu));
         }
 
         [Fact(DisplayName = "should have returned ErrReadOnly")]
@@ -49,7 +50,7 @@ namespace DGraph4Net.Tests
                 CommitNow = true
             };
 
-            await Assert.ThrowsAsync<ReadOnlyException>(() => dg.NewTransaction(true).Mutate(mu));
+            await ThrowsAsync<ReadOnlyException>(() => dg.NewTransaction(true).Mutate(mu));
         }
 
         [Fact(DisplayName = "2nd transaction should have aborted")]
@@ -70,8 +71,8 @@ namespace DGraph4Net.Tests
             await dg.NewTransaction().Mutate(mu);
 
             const string q = @"{
-  v as var(func: eq(email, ""user1@company1.io""))
-}";
+                v as var(func: eq(email, ""user1@company1.io""))
+            }";
 
             mu = new Mutation
             {
@@ -93,7 +94,7 @@ namespace DGraph4Net.Tests
 
             await tx1.Commit();
 
-            await Assert.ThrowsAsync<TransactionAbortedException>(() => tx2.Commit());
+            await ThrowsAsync<TransactionAbortedException>(() => tx2.Commit());
         }
     }
 }

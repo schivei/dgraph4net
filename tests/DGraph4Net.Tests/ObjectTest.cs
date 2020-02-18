@@ -4,9 +4,11 @@ using System.Text;
 using System.Threading.Tasks;
 using DGraph4Net.Services;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
+using Assert = DGraph4Net.Tests.Assert;
 
 namespace DGraph4Net.Tests
 {
@@ -21,6 +23,9 @@ namespace DGraph4Net.Tests
 
             [JsonProperty("dgraph.type")]
             public string[] DTypes { get; set; }
+
+            [JsonProperty("since")]
+            public DateTime Since { get; internal set; }
         }
 
         private class Location
@@ -35,7 +40,7 @@ namespace DGraph4Net.Tests
         private class Person
         {
             [JsonProperty("uid")]
-            public string Uid { get; set; }
+            public Uid Uid { get; set; }
 
             [JsonProperty("name")]
             public string Name { get; set; }
@@ -63,6 +68,75 @@ namespace DGraph4Net.Tests
 
             [JsonProperty("dgraph.type")]
             public string[] DTypes { get; set; }
+
+            [JsonProperty("name_origin")]
+            public string NameOrigin { get; set; }
+
+            [JsonProperty("since")]
+            public DateTimeOffset Since { get; set; }
+
+            [JsonProperty("family")]
+            public string Family { get; set; }
+
+            [JsonProperty("close")]
+            public bool Close { get; set; }
+        }
+
+        private class SchoolFacet
+        {
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("dgraph.type")]
+            public string[] DTypes { get; set; }
+
+            [JsonProperty("school|since")]
+            public DateTime Since { get; internal set; }
+        }
+
+        private class PersonFacet
+        {
+            [JsonProperty("uid")]
+            public Uid Uid { get; set; }
+
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("dob")]
+            public DateTimeOffset Dob { get; set; }
+
+            [JsonProperty("married")]
+            public bool Married { get; set; }
+
+            [JsonProperty("raw_bytes")]
+            public byte[] Raw { get; set; }
+
+            [JsonProperty("friend")]
+            public PersonFacet[] Friends { get; set; }
+
+            [JsonProperty("loc")]
+            public Location Location { get; set; } = new Location();
+
+            [JsonProperty("school")]
+            public SchoolFacet[] Schools { get; set; }
+
+            [JsonProperty("dgraph.type")]
+            public string[] DTypes { get; set; }
+
+            [JsonProperty("name|origin")]
+            public string NameOrigin { get; set; }
+
+            [JsonProperty("friend|since")]
+            public DateTimeOffset Since { get; set; }
+
+            [JsonProperty("friend|family")]
+            public string Family { get; set; }
+
+            [JsonProperty("friend|age")]
+            public int Age { get; set; }
+
+            [JsonProperty("friend|close")]
+            public bool Close { get; set; }
         }
         #endregion
 
@@ -177,9 +251,7 @@ namespace DGraph4Net.Tests
 
             var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
-            var me = JToken.Parse(resp.Json.ToStringUtf8());
-
-            var expected = JToken.Parse(@"{
+            const string expected = @"{
              	""me"": [
              		{
              			""name"": ""Alice"",
@@ -216,30 +288,19 @@ namespace DGraph4Net.Tests
              			]
              		}
              	]
-             }");
+             }";
 
-            Assert.True(JToken.DeepEquals(expected, me));
+            Json(expected, resp.Json.ToStringUtf8());
         }
 
         [Fact]
         public async Task DropAllTest()
         {
-            try
-            {
-                var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
-                var op = new Operation { DropAll = true };
+            var op = new Operation { DropAll = true };
 
-                await dg.Alter(op);
-
-                Assert.True(true);
-            }
-#pragma warning disable CA1031 // Do not catch general exception types
-            catch (Exception ex)
-            {
-                Assert.True(false, ex.Message);
-            }
-#pragma warning restore CA1031 // Do not catch general exception types
+            await TaskAsync(dg.Alter, op);
         }
 
         [Fact]
@@ -287,11 +348,11 @@ namespace DGraph4Net.Tests
 
             var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
-            var me = JToken.Parse(resp.Json.ToStringUtf8());
+            var me = resp.Json.ToStringUtf8();
 
-            var expected = JToken.Parse(@"{""me"":[{""name"":""Alice"",""dgraph.type"":[""Person""]}]}");
+            const string expected = @"{""me"":[{""name"":""Alice"",""dgraph.type"":[""Person""]}]}";
 
-            Assert.True(JToken.DeepEquals(expected, me));
+            Json(expected, me);
         }
 
         [Fact]
@@ -380,9 +441,9 @@ namespace DGraph4Net.Tests
 
             var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
-            var me = JToken.Parse(resp.Json.ToStringUtf8());
+            var me = resp.Json.ToStringUtf8();
 
-            var expected = JToken.Parse(@"{
+            const string expected = @"{
 	        	""me"": [
 	        		{
 	        			""name"": ""Alice"",
@@ -418,9 +479,9 @@ namespace DGraph4Net.Tests
 	        			]
 	        		}
 	        	]
-	        }");
+	        }";
 
-            Assert.True(JToken.DeepEquals(expected, me));
+            Json(expected, me);
         }
 
         [Fact]
@@ -474,444 +535,440 @@ namespace DGraph4Net.Tests
 
             var resp = await dg.NewTransaction().Query(q);
 
-            var me = JToken.Parse(resp.Json.ToStringUtf8());
+            var me = resp.Json.ToStringUtf8();
 
-            var expected = JToken.Parse(@"{""q"":[{""name"":""Alice-new"",""dgraph.type"":[""Person""],""raw_bytes"":""cmF3X2J5dGVz""}]}");
+            const string expected = @"{""q"":[{""name"":""Alice-new"",""dgraph.type"":[""Person""],""raw_bytes"":""cmF3X2J5dGVz""}]}";
 
-            Assert.True(JToken.DeepEquals(expected, me));
-
-            // Output: Me: [{Uid: Name:Alice-new Bytes:[114 97 119 95 98 121 116 101 115] DType:[Person]}]
+            Json(expected, me);
         }
 
-        //        func ExampleTxn_Query_unmarshal()
-        //{
-        //    type School struct {
-
-        //                Name string   `json:"name,omitempty"`
-        //		        DType[] string `json:"dgraph.type,omitempty"`
-        //	        }
-
-        //	        type Person struct {
-
-        //                Uid string   `json:"uid,omitempty"`
-        //		        Name string   `json:"name,omitempty"`
-        //		        Age int      `json:"age,omitempty"`
-        //		        Married bool     `json:"married,omitempty"`
-        //		        Raw[] byte   `json:"raw_bytes,omitempty"`
-        //		        Friends[] Person `json:"friends,omitempty"`
-        //		        School[] School `json:"school,omitempty"`
-        //		        DType[] string `json:"dgraph.type,omitempty"`
-        //	        }
-
-        //	        dg, cancel := getDgraphClient()
-
-        //            defer cancel()
-
-        //            op := &api.Operation{}
-        //	        op.Schema = `
-        //		        name: string @index(exact) .
-        //		        age: int .
-        //		        married: bool .
-        //		        Friends: [uid] .
-        //		        type Person
-        //{
-        //    name
-        //                    age
-        //                    married
-        //                    Friends
-        //}
-        //type Institution
-        //{
-        //    name
-        //}
-        //	        `
-
-        //	        ctx := context.Background()
-        //            err := dg.Alter(ctx, op)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        p := Person{
-        //		        Uid:   "_:bob",
-        //		        Name:  "Bob",
-        //		        Age:   24,
-        //		        DType: [] string{"Person"},
-        //	        }
-
-        //	        txn := dg.NewTxn()
-        //            pb, err := json.Marshal(p)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        mu := &api.Mutation{
-        //		        CommitNow: true,
-        //		        SetJson:   pb,
-        //	        }
-        //	        response, err := txn.Mutate(ctx, mu)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-        //	        bob := response.Uids["bob"]
-
-        //            // While setting an object if a struct has a Uid then its properties
-        //            // in the graph are updated else a new node is created.
-        //            // In the example below new nodes for Alice and Charlie and school are created
-        //            // (since they dont have a Uid).  Alice is also connected via the friend edge
-        //            // to an existing node Bob.
-        //            p = Person{
-        //		        Uid:     "_:alice",
-        //		        Name:    "Alice",
-        //		        Age:     26,
-        //		        Married: true,
-        //		        DType:   [] string{"Person"},
-        //		        Raw:     [] byte ("raw_bytes"),
-        //		        Friends: [] Person{{
-        //			        Uid: bob,
-        //		        }, {
-        //			        Name:  "Charlie",
-        //			        Age:   29,
-        //			        DType: [] string{"Person"},
-        //		        }},
-        //		        School: [] School{{
-        //			        Name:  "Crown Public School",
-        //			        DType: [] string{"Institution"},
-        //		        }},
-        //	        }
-
-        //	        txn = dg.NewTxn()
-        //            mu = &api.Mutation{}
-        //	        pb, err = json.Marshal(p)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        mu.SetJson = pb
-        //            mu.CommitNow = true
-        //	        response, err = txn.Mutate(ctx, mu)
-        //	        if err != nil {
-        //    log.Fatal(err)
-
-        //            }
-
-        //// Assigned uids for nodes which were created would be returned in the response.Uids map.
-        //puid := response.Uids["alice"]
-        //variables := make(map[string]string)
-
-        //            variables["$id"] = puid
-        //            const q = `
-        //		        query Me($id: string)
-        //{
-        //    me(func: uid($id)) {
-        //        name
-        //        age
-
-        //                        loc
-        //                        raw_bytes
-
-        //                        married
-
-        //                        dgraph.type
-        //                        friends @filter(eq(name, "Bob")) {
-        //            name
-        //            age
-
-        //                            dgraph.type
-
-        //                        }
-        //        school {
-        //            name
-
-        //                            dgraph.type
-
-        //                        }
-        //    }
-        //}
-        //	        `
-
-        //	        resp, err := dg.NewTxn().QueryWithVars(ctx, q, variables)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        type Root struct {
-
-        //                Me[] Person `json:"me"`
-        //	        }
-
-        //	        var r Root
-        //            err = json.Unmarshal(resp.Json, &r)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        out, _ := json.MarshalIndent(r, "", "\t")
-        //	        fmt.Printf("%s\n", out)
-        //	        // Output: {
-        //	        // 	"me": [
-        //	        // 		{
-        //	        // 			"name": "Alice",
-        //	        // 			"age": 26,
-        //	        // 			"married": true,
-        //	        // 			"raw_bytes": "cmF3X2J5dGVz",
-        //	        // 			"friends": [
-        //	        // 				{
-        //	        // 					"name": "Bob",
-        //	        // 					"age": 24,
-        //	        // 					"dgraph.type": [
-        //	        // 						"Person"
-        //	        // 					]
-        //	        // 				}
-        //	        // 			],
-        //	        // 			"school": [
-        //	        // 				{
-        //	        // 					"name": "Crown Public School",
-        //	        // 					"dgraph.type": [
-        //	        // 						"Institution"
-        //	        // 					]
-        //	        // 				}
-        //	        // 			],
-        //	        // 			"dgraph.type": [
-        //	        // 				"Person"
-        //	        // 			]
-        //	        // 		}
-        //	        // 	]
-        //	        // }
-        //        }
-
-        //        func ExampleTxn_Query_besteffort()
-        //{
-        //    dg, cancel:= getDgraphClient()
-
-        //            defer cancel()
-
-        //            // NOTE: Best effort only works with read-only queries.
-        //txn:= dg.NewReadOnlyTxn().BestEffort()
-
-        //            resp, err:= txn.Query(context.Background(), `{ q(func: uid(0x1)) { uid } }`)
-        //	        if err != nil {
-        //        log.Fatal(err)
-
-        //            }
-
-        //    fmt.Println(string(resp.Json))
-        //	        // Output: {"q":[{"uid":"0x1"}]}
-        //        }
-
-        //func ExampleTxn_Mutate_facets()
-        //{
-        //    dg, cancel:= getDgraphClient()
-
-        //            defer cancel()
-        //            // Doing a dropAll isn't required by the user. We do it here so that
-        //            // we can verify that the example runs as expected.
-        //op:= api.Operation{ DropAll: true}
-        //ctx:= context.Background()
-
-        //            if err := dg.Alter(ctx, &op);
-        //    err != nil {
-        //        log.Fatal(err)
-
-        //            }
-
-        //    op = api.Operation{ }
-        //    op.Schema = `
-        //		        name:
-        //    string @index(exact) .
-        //		        age:
-        //    int.
-        //married: bool.
-        //NameOrigin: string.
-        //Since: string.
-        //Family: string.
-        //Age: bool.
-        //Close: bool.
-        //Friends: [uid] .
-        //		        type Person
-        //{
-        //    name
-        //                    age
-        //                    married
-        //                    NameOrigin
-        //                    Since
-        //                    Family
-        //                    Age
-        //                    Close
-        //                    Friends
-        //}
-        //type Institution
-        //{
-        //    name
-        //    Since
-        //}
-        //	        `
-
-        //	        err := dg.Alter(ctx, &op)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        // This example shows example for SetObject using facets.
-        //	        type School struct {
-
-        //                Name string    `json:"name,omitempty"`
-        //		        Since time.Time `json:"school|since,omitempty"`
-
-        //                DType[]string  `json:"dgraph.type,omitempty"`
-        //	        }
-
-        //	        type Person struct {
-
-        //                Uid string   `json:"uid,omitempty"`
-        //		        Name string   `json:"name,omitempty"`
-        //		        NameOrigin string   `json:"name|origin,omitempty"`
-        //		        Friends[] Person `json:"friends,omitempty"`
-
-        //		        // These are facets on the friend edge.
-        //		        Since time.Time `json:"friends|since,omitempty"`
-
-        //                Family string    `json:"friends|family,omitempty"`
-
-        //                Age float64   `json:"friends|age,omitempty"`
-
-        //                Close  bool      `json:"friends|close,omitempty"`
-
-
-        //                School[] School `json:"school,omitempty"`
-
-        //                DType[]string `json:"dgraph.type,omitempty"`
-        //	        }
-
-        //	        ti := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-        //	        p := Person{
-        //		        Uid:        "_:alice",
-        //		        Name:       "Alice",
-        //		        NameOrigin: "Indonesia",
-        //		        DType:      [] string{"Person"},
-        //		        Friends: [] Person{
-        //			        Person{
-        //				        Name:   "Bob",
-        //				        Since:  ti,
-        //				        Family: "yes",
-        //				        Age:    13,
-        //				        Close:  true,
-        //				        DType:  [] string{"Person"},
-        //			        },
-        //			        Person{
-        //				        Name:   "Charlie",
-        //				        Family: "maybe",
-        //				        Age:    16,
-        //				        DType:  [] string{"Person"},
-        //			        },
-        //		        },
-        //		        School: [] School{School{
-        //			        Name:  "Wellington School",
-        //			        Since: ti,
-        //			        DType: [] string{"Institution"},
-        //		        }},
-        //	        }
-
-        //	        mu := &api.Mutation{}
-        //	        pb, err := json.Marshal(p)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        mu.SetJson = pb
-        //            mu.CommitNow = true
-        //	        response, err := dg.NewTxn().Mutate(ctx, mu)
-        //	        if err != nil {
-        //    log.Fatal(err)
-
-        //            }
-
-        //auid := response.Uids["alice"]
-        //variables := make(map[string]string)
-
-        //            variables["$id"] = auid
-
-        //            const q = `
-        //		        query Me($id: string)
-        //{
-        //    me(func: uid($id)) {
-        //        name @facets
-
-        //                        dgraph.type
-        //                        friends @filter(eq(name, "Bob")) @facets {
-        //            name
-
-        //                            dgraph.type
-
-        //                        }
-        //        school @facets {
-        //            name
-
-        //                            dgraph.type
-
-        //                        }
-        //    }
-        //}
-        //	        `
-
-        //	        resp, err := dg.NewTxn().QueryWithVars(ctx, q, variables)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        type Root struct {
-        //		        Me []json.RawMessage `json:"me"`
-        //	        }
-
-        //	        var r Root
-        //	        err = json.Unmarshal(resp.Json, &r)
-        //	        if err != nil {
-        //		        log.Fatal(err)
-        //	        }
-
-        //	        out, _ := json.MarshalIndent(r.Me, "", "\t")
-        //	        fmt.Printf("%s\n", out)
-        //	        // Output: [
-        //	        // 	{
-        //	        // 		"name|origin": "Indonesia",
-        //	        // 		"name": "Alice",
-        //	        // 		"dgraph.type": [
-        //	        // 			"Person"
-        //	        // 		],
-        //	        // 		"friends": [
-        //	        // 			{
-        //	        // 				"name": "Bob",
-        //	        // 				"dgraph.type": [
-        //	        // 					"Person"
-        //	        // 				]
-        //	        // 			}
-        //	        // 		],
-        //	        // 		"friends|age": {
-        //	        // 			"0": 13
-        //	        // 		},
-        //	        // 		"friends|close": {
-        //	        // 			"0": true
-        //	        // 		},
-        //	        // 		"friends|family": {
-        //	        // 			"0": "yes"
-        //	        // 		},
-        //	        // 		"friends|since": {
-        //	        // 			"0": "2009-11-10T23:00:00Z"
-        //	        // 		},
-        //	        // 		"school": [
-        //	        // 			{
-        //	        // 				"name": "Wellington School",
-        //	        // 				"dgraph.type": [
-        //	        // 					"Institution"
-        //	        // 				]
-        //	        // 			}
-        //	        // 		],
-        //	        // 		"school|since": {
-        //	        // 			"0": "2009-11-10T23:00:00Z"
-        //	        // 		}
-        //	        // 	}
-        //	        // ]
-        //        }
+        [Fact]
+        public async Task TxnQueryUnmarshalTest()
+        {
+            await using var dg = GetDgraphClient();
+
+            var op = new Operation
+            {
+                Schema = @"
+        		name: string @index(exact) .
+        		age: int .
+        		married: bool .
+        		friend: [uid] .
+        		type Person {
+                    name: string
+                    age: int
+                    married: bool
+                    friend: [uid]
+                }
+                type Institution {
+                    name: string
+                }
+        	    "
+            };
+
+            await dg.Alter(op);
+
+            var p = new Person
+            {
+                Uid = "_:bob",
+                Name = "Bob",
+                Age = 24,
+                DTypes = new[] { "Person" },
+            };
+
+            var txn = dg.NewTransaction();
+            var pb = JsonConvert.SerializeObject(p);
+
+            var mu = new Mutation
+            {
+                CommitNow = true,
+                SetJson = ByteString.CopyFromUtf8(pb)
+            };
+            var response = await txn.Mutate(mu);
+            var bob = response.Uids["bob"];
+
+            // While setting an object if a struct has a Uid then its properties
+            // in the graph are updated else a new node is created.
+            // In the example below new nodes for Alice and Charlie and school are created
+            // (since they dont have a Uid).  Alice is also connected via the friend edge
+            // to an existing node Bob.
+            p = new Person
+            {
+                Uid = "_:alice",
+                Name = "Alice",
+                Age = 26,
+                Married = true,
+                DTypes = new[] { "Person" },
+                Raw = Encoding.UTF8.GetBytes("raw_bytes"),
+                Friends = new[]{
+                    new Person{Uid = bob,Age=24},
+                    new Person{Name = "Charlie", Age = 29, DTypes = new[]{ "Person"}}
+                },
+                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+            };
+
+            txn = dg.NewTransaction();
+            mu = new Mutation();
+            pb = JsonConvert.SerializeObject(p);
+            mu.SetJson = ByteString.CopyFromUtf8(pb);
+            mu.CommitNow = true;
+            response = await txn.Mutate(mu);
+
+            // Assigned uids for nodes which were created would be returned in the response.Uids map.
+            var puid = response.Uids["alice"];
+            var variables = new Dictionary<string, string> { { "$id", puid } };
+            const string q = @"
+                query Me($id: string) {
+                    me(func: uid($id)) {
+                        name
+                        age
+                        loc
+                        raw_bytes
+                        married
+                        dgraph.type
+                        friend @filter(eq(name, ""Bob"")) {
+                            name
+                            age
+                            dgraph.type
+                        }
+                        school {
+                            name
+                            dgraph.type
+                        }
+                    }
+                }";
+
+            var resp = await dg.NewTransaction().QueryWithVars(q, variables);
+
+            var me = resp.Json.ToStringUtf8();
+
+            const string expected = @"{
+        	    ""me"": [
+        	        {
+        	        	""name"": ""Alice"",
+        	        	""age"": 26,
+        	        	""married"": true,
+        	        	""raw_bytes"": ""cmF3X2J5dGVz"",
+        	        	""friend"": [
+        	        		{
+        	        			""name"": ""Bob"",
+        	        			""age"": 24,
+        	        			""dgraph.type"": [
+        	        				""Person""
+        	        			]
+        	        		}
+        	        	],
+        	        	""school"": [
+        	        		{
+        	        			""name"": ""Crown Public School"",
+        	        			""dgraph.type"": [
+        	        				""Institution""
+        	        			]
+        	        		}
+        	        	],
+        	        	""dgraph.type"": [
+        	        		""Person""
+        	        	]
+        	        }
+        	    ]
+        	}";
+
+            Json(expected, me);
+        }
+
+        [Fact]
+        public async Task TxnQueryBestEffortTest()
+        {
+            await using var dg = GetDgraphClient();
+
+            var txn = dg.NewTransaction(true, true);
+            var resp = await txn.Query("{ q(func: uid(0x1)) { uid } }");
+
+            Json(@"{""q"":[{""uid"":""0x1""}]}", resp.Json.ToStringUtf8());
+        }
+
+        [Fact]
+        public async Task TxnMutateFacetsTest()
+        {
+            await using var dg = GetDgraphClient();
+
+            var op = new Operation
+            {
+                Schema = @"
+                name: string @index(exact) .
+                age: int .
+                married: bool .
+                name_origin: string .
+                since: datetime .
+                family: string .
+                age: int .
+                close: bool .
+                friend: [uid] .
+                school: [uid] .
+                type Person {
+                    name: strng
+                    age: int
+                    married: bool
+                    name_origin: string
+                    since: datetime
+                    family: string
+                    close: bool
+                    friend: [Person]
+                    school: [Institution]
+                }
+                type Institution {
+                    name: string
+                    since: date
+                }
+                "
+            };
+
+            await dg.Alter(op);
+
+            var ti = new DateTime(2009, 11, 10, 23, 0, 0, 0, DateTimeKind.Utc);
+
+            var p = new PersonFacet
+            {
+                Uid = "_:alice",
+                Name = "Alice",
+                NameOrigin = "Indonesia",
+                DTypes = new[] { "Person" },
+                Friends = new[]
+                {
+                    new PersonFacet{Name="Bob",Since=ti,Family="yes",Age=13,Close=true,DTypes=new[]{"Person"}},
+                    new PersonFacet{Name="Charlie",Family="maybe",Age=16,DTypes=new[]{"Person"}}
+                },
+                Schools = new[] { new SchoolFacet { Name = "Wellington School", Since = ti, DTypes = new[] { "Institution" } } }
+            };
+
+            var mu = new Mutation { SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(p)), CommitNow = true };
+
+            var response = await dg.NewTransaction().Mutate(mu);
+
+            var auid = response.Uids["alice"];
+            var variables = new Dictionary<string, string> { { "$id", auid } };
+
+            const string q = @"
+            query Me($id: string) {
+                me(func: uid($id)) {
+                    name @facets
+                    dgraph.type
+                    friend @filter(eq(name, ""Bob"")) @facets {
+                        name
+                        dgraph.type
+                    }
+                    school @facets {
+                        name
+                        dgraph.type
+                    }
+                }
+            }
+            ";
+
+            var resp = await dg.NewTransaction().QueryWithVars(q, variables);
+
+            var me = resp.Json.ToStringUtf8();
+
+            const string expected = @"
+            {
+                ""me"": [
+                    {
+        	            ""name|origin"": ""Indonesia"",
+        	            ""name"": ""Alice"",
+        	            ""dgraph.type"": [
+        		            ""Person""
+        	            ],
+        	            ""friend"": [
+        		            {
+        			            ""name"": ""Bob"",
+        			            ""dgraph.type"": [
+        				            ""Person""
+        			            ]
+        		            }
+        	            ],
+        	            ""friend|age"": {
+        		            ""0"": 13
+        	            },
+        	            ""friend|close"": {
+        		            ""0"": true
+        	            },
+        	            ""friend|family"": {
+        		            ""0"": ""yes""
+        	            },
+        	            ""friend|since"": {
+        		            ""0"": ""2009-11-10T23:00:00Z""
+        	            },
+        	            ""school"": [
+        		            {
+        			            ""name"": ""Wellington School"",
+        			            ""dgraph.type"": [
+        				            ""Institution""
+        			            ]
+        		            }
+        	            ],
+        	            ""school|since"": {
+        		            ""0"": ""2009-11-10T23:00:00Z""
+        	            }
+                    }
+                ]
+            }";
+
+            Json(expected, me);
+        }
+
+        [Fact]
+        public async Task TxnMutateVarsTest()
+        {
+            await using var dg = GetDgraphClient();
+
+            // While setting an object if a struct has a Uid then its properties in the
+            // graph are updated else a new node is created.
+            // In the example below new nodes for Alice, Bob and Charlie and school
+            // are created (since they don't have a Uid).
+            var p = new Person
+            {
+                Uid = "_:alice",
+                Name = "Alice",
+                Age = 26,
+                Married = true,
+                DTypes = new[] { "Person" },
+                Location = new Location { Type = "Point", Coordinates = new[] { 1.1d, 2d }, },
+                Raw = Encoding.UTF8.GetBytes("raw_bytes"),
+                Friends = new[]
+                {
+                    new Person {Name = "Bob", Age = 24, DTypes = new[] {"Person"}},
+                    new Person {Name = "Charlie", Age = 29, DTypes = new[] {"Person"}}
+                },
+                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+            };
+
+            var op = new Operation
+            {
+                Schema = @"
+		        name: string @index(exact) .
+		        age: int .
+		        married: bool .
+		        friend: [uid] .
+		        loc: geo .
+                type: string .
+		        coords: float .
+		        type Person {
+                    name: name
+                    age: int
+                    married: bool
+                    friend: [Person]
+                    loc: geo
+                }
+                type Institution {
+                    name: string
+                }
+	        "
+            };
+
+            await dg.Alter(op);
+
+            var mu = new Mutation { CommitNow = true, };
+            var pb = JsonConvert.SerializeObject(p,
+                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+
+            mu.SetJson = ByteString.CopyFromUtf8(pb);
+            var response = await dg.NewTransaction().Mutate(mu);
+
+            // Assigned uids for nodes which were created would be returned in the response.Uids map.
+            var puid = response.Uids["alice"];
+
+            var variables = new Dictionary<string, string> { { "$id", puid } };
+
+            var q = @"
+		        query Me($id: string){
+			        me(func: uid($id)) {
+				        friend {
+                            name
+                        }
+                    }
+		        }
+            ";
+
+            var resp = await dg.NewTransaction().QueryWithVars(q, variables);
+
+            var me = resp.Json.ToStringUtf8();
+
+            var expected = @"{
+	        	""me"": [
+	        		{
+	        			""friend"": [
+	        				{
+	        					""name"": ""Bob""
+	        				},
+	        				{
+	        					""name"": ""Charlie""
+	        				}
+	        			]
+	        		}
+	        	]
+	        }";
+
+            Json(expected, me, "First verifiation. Alice has 2 friends.");
+
+            q = @"
+		        {
+			        charlie(func: eq(name, ""Charlie"")) {
+                        uid
+                    }
+		        }
+            ";
+
+            resp = await dg.NewTransaction().Query(q);
+
+            var charlie = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>[]>>(resp.Json.ToStringUtf8())["charlie"][0]["uid"];
+
+            const string nq = "uid(a) <friend> uid(c) .";
+
+            mu = new Mutation { CommitNow = true, DelNquads = ByteString.CopyFromUtf8(nq) };
+            
+            q = @"
+            query Q($charlie: string, $alice: string) {
+                c as var(func: uid($charlie))
+                a as var(func: uid($alice))
+            }";
+
+            var req = new Request { Query = q, CommitNow = true };
+            req.Vars.Add("$charlie", charlie);
+            req.Vars.Add("$alice", puid);
+            mu.Cond = "@if(eq(len(a), 1) AND eq(len(c), 1))";
+            req.Mutations.Add(mu);
+
+            var tx = dg.NewTransaction();
+            await tx.Do(req);
+
+            q = @"
+		        query Me($id: string){
+			        me(func: uid($id)) {
+				        friend {
+                            name
+                        }
+                    }
+		        }
+            ";
+
+            resp = await dg.NewTransaction().QueryWithVars(q, variables);
+
+            me = resp.Json.ToStringUtf8();
+
+            expected = @"{
+	        	""me"": [
+	        		{
+	        			""friend"": [
+	        				{
+	        					""name"": ""Bob""
+	        				}
+	        			]
+	        		}
+	        	]
+	        }";
+
+            Json(expected, me, "Second verification. Now Alice has only one friend.");
+        }
 
         //        func ExampleTxn_Mutate_list() {
         //	        dg, cancel := getDgraphClient()

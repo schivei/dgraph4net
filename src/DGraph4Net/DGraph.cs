@@ -240,10 +240,11 @@ namespace DGraph4Net
         /// </summary>
         /// <param name="readOnly"></param>
         /// <param name="bestEffort"></param>
+        /// <param name="cancellationToken"></param>
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
         /// <returns cref="Txn">Transaction</returns>
-        public Txn NewTransaction(bool readOnly = false, bool bestEffort = false) =>
-            new Txn(this, readOnly, bestEffort);
+        public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) =>
+            new Txn(this, readOnly, bestEffort, cancellationToken);
 
         #region IDisposable Support
         protected virtual void Dispose(bool disposing)

@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using DGraph4Net.Services;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -8,7 +7,7 @@ using Xunit;
 namespace DGraph4Net.Tests
 {
     [Collection("DGraph4Net")]
-    public abstract class ExamplesTest
+    public class ExamplesTest : Assert
     {
         protected static DGraph GetDgraphClient()
         {
@@ -16,7 +15,8 @@ namespace DGraph4Net.Tests
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
             // The port number(5000) must match the port of the gRPC server.
-            var channel = GrpcChannel.ForAddress("http://dev-360-es01beta.eastus2.cloudapp.azure.com:9080", new GrpcChannelOptions {
+            var channel = GrpcChannel.ForAddress("http://dev-360-es01beta.eastus2.cloudapp.azure.com:9080", new GrpcChannelOptions
+            {
                 Credentials = ChannelCredentials.Insecure
             });
 

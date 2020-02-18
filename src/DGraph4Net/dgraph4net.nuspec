@@ -20,6 +20,7 @@
         <dependency id="Google.Protobuf.Tools" Version="3.11.3" />
         <dependency id="Grpc.Net.ClientFactory" Version="2.27.0" />
         <dependency id="Grpc.Tools" Version="2.27.0"/>
+        <dependency i="Newtonsoft.Json" Version="12.0.3" />
       </group>
     </dependencies>
   </metadata>

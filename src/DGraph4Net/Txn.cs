@@ -65,16 +65,26 @@ namespace DGraph4Net
         /// <param name="dgraph"></param>
         /// <param name="readOnly"></param>
         /// <param name="bestEffort"></param>
+        /// <param name="cancellationToken"></param>
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
-        public Txn(DGraph dgraph, bool readOnly = false, bool bestEffort = false)
+        public Txn(DGraph dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) : this(dgraph, cancellationToken)
         {
-            _dgraph = dgraph;
-            LinkTokens(dgraph.GetTokenSource());
             _dgraphClient = _dgraph.AnyClient();
             _context = new TxnContext();
             _readOnly = readOnly;
             if (bestEffort)
                 BestEffort();
+        }
+
+        public Txn(DGraph dgraph, CancellationToken? cancellationToken)
+        {
+            _dgraph = dgraph;
+            LinkTokens(dgraph.GetTokenSource());
+
+            if (cancellationToken != null)
+                return;
+
+            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken.Value);
         }
 
         /// <summary>
