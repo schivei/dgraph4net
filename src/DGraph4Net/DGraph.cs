@@ -16,6 +16,11 @@ namespace DGraph4Net
         private bool _disposed;
         private Jwt _jwt;
 
+        /// <summary>
+        /// Check if context is disposed
+        /// </summary>
+        public bool Disposed => _disposed;
+
         private DGraph()
         {
             _cancellationTokenSource = new CancellationTokenSource();

@@ -28,7 +28,8 @@ namespace DGraph4Net.Identity
         /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
         public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
-            base(context, logger, describer) { }
+            base(context, logger, describer)
+        { }
     }
 
     /// <summary>
@@ -45,7 +46,8 @@ namespace DGraph4Net.Identity
         /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
         public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
-            base(context, logger, describer) { }
+            base(context, logger, describer)
+        { }
     }
 
     /// <summary>
@@ -54,8 +56,8 @@ namespace DGraph4Net.Identity
     /// <typeparam name="TUser">The type representing a user.</typeparam>
     /// <typeparam name="TRole">The type representing a role.</typeparam>
     public class UserStore<TUser, TRole> : UserStore<TUser, TRole, DUserClaim, DUserRole, DUserLogin, DUserToken, DRoleClaim>
-        where TUser : DUser
-        where TRole : DRole
+        where TUser : DUser, new()
+        where TRole : DRole, new()
     {
         /// <summary>
         /// Constructs a new instance of <see cref="UserStore{TUser, TRole}"/>.
@@ -64,7 +66,8 @@ namespace DGraph4Net.Identity
         /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
         public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
-            base(context, logger, describer) { }
+            base(context, logger, describer)
+        { }
     }
 
     /// <summary>
@@ -78,11 +81,11 @@ namespace DGraph4Net.Identity
     /// <typeparam name="TUserToken">The type representing a user token.</typeparam>
     /// <typeparam name="TRoleClaim">The type representing a role claim.</typeparam>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
-    public class UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim> :
+    public partial class UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim> :
         UserStoreBase<TUser, TRole, Uid, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim>,
         IProtectedUserStore<TUser>
-        where TUser : DUser
-        where TRole : DRole
+        where TUser : DUser, new()
+        where TRole : DRole, new()
         where TUserClaim : DUserClaim, new()
         where TUserRole : DUserRole, new()
         where TUserLogin : DUserLogin, new()
@@ -90,6 +93,14 @@ namespace DGraph4Net.Identity
         where TRoleClaim : DRoleClaim, new()
     {
         private readonly ILogger<UserStore> _logger;
+
+        /// <summary>
+        /// Gets the database context for this store.
+        /// </summary>
+        public virtual DGraph Context { get; }
+
+        private Txn GetTransaction(CancellationToken cancellationToken = default) =>
+            Context.NewTransaction(cancellationToken: cancellationToken);
 
         /// <summary>
         /// Creates a new instance of the store.
@@ -104,172 +115,16 @@ namespace DGraph4Net.Identity
         private UserStore(ILogger<UserStore> logger, IdentityErrorDescriber describer) : base(describer) => _logger = logger;
 
         /// <summary>
-        /// Gets the database context for this store.
+        /// Throws if this class or context has been disposed.
         /// </summary>
-        public virtual DGraph Context { get; }
-
-        /// <summary>Saves the current store.</summary>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        protected Task SaveChanges(CancellationToken cancellationToken)
-        {
-            // return AutoSaveChanges ? Context.SaveChangesAsync(cancellationToken) :
-            return Task.Run(delegate
-            { }, cancellationToken);
-        }
-
-        private Txn GetTransaction(CancellationToken cancellationToken = default) =>
-            Context.NewTransaction(cancellationToken: cancellationToken);
-
-        /// <summary>
-        /// Creates the specified <paramref name="user"/> in the user store.
-        /// </summary>
-        /// <param name="user">The user to create.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the creation operation.</returns>
-        public override async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
+        /// <param name="cancellationToken"></param>
+        protected void ThrowIfDisposed(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (Context?.Disposed == true)
+                throw new ObjectDisposedException(nameof(Context));
+
             ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            const string q = @"
-            query Q($userName: string) {
-                u as var(func: eq(username.normalized, $userName))
-            }";
-
-            var req = new Request {
-                CommitNow = true,
-                Query = q
-            };
-            req.Vars.Add("$userName", user.NormalizedUserName);
-
-            var mu = new Mutation
-            {
-                CommitNow = true,
-                Cond = "@if(eq(len(u), 0))",
-                SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user))
-            };
-
-            req.Mutations.Add(mu);
-
-            await using var txn = GetTransaction(cancellationToken);
-
-            try
-            {
-                await txn.Do(req);
-
-                return IdentityResult.Success;
-            }
-            catch (Exception ex)
-            {
-                var e = ErrorDescriber.DefaultError();
-                _logger.LogError(ex, e.Description);
-
-                return IdentityResult.Failed(e);
-            }
-        }
-
-
-        /// <summary>
-        /// Updates the specified <paramref name="user"/> in the user store.
-        /// </summary>
-        /// <param name="user">The user to update.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
-        public override async Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            user.ConcurrencyStamp = Guid.NewGuid().ToString();
-
-            const string q = @"
-            query Q($id: string) {
-                u as var(func: eq(uid, uid($id)))
-            }";
-
-            var req = new Request
-            {
-                CommitNow = true,
-                Query = q
-            };
-
-            var mu = new Mutation
-            {
-                CommitNow = true,
-                Cond = "@if(eq(len(uid(u), 1)))",
-                SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user))
-            };
-
-            req.Mutations.Add(mu);
-
-            var txn = GetTransaction(cancellationToken);
-
-            try
-            {
-                await txn.Do(req);
-            }
-            catch (Exception ex)
-            {
-                var e = ErrorDescriber.ConcurrencyFailure();
-                _logger.LogError(ex, e.Description);
-
-                return IdentityResult.Failed(e);
-            }
-            return IdentityResult.Success;
-        }
-
-        /// <summary>
-        /// Deletes the specified <paramref name="user"/> from the user store.
-        /// </summary>
-        /// <param name="user">The user to delete.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
-        public override async Task<IdentityResult> DeleteAsync(TUser user, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            var mu = new Mutation {CommitNow = true, DelNquads = ByteString.CopyFromUtf8("uid(u) * * .")};
-
-            const string q = @"
-            query Q($id: string) {
-                u as var(func: eq(uid, uid($id)))
-            }";
-
-            var req = new Request
-            {
-                CommitNow = true,
-                Query = q
-            };
-
-            req.Mutations.Add(mu);
-
-            var txn = GetTransaction(cancellationToken);
-            try
-            {
-                await txn.Do(req);
-            }
-            catch (Exception ex)
-            {
-                var e = ErrorDescriber.ConcurrencyFailure();
-                _logger.LogError(ex, e.Description);
-
-                return IdentityResult.Failed(e);
-            }
-            return IdentityResult.Success;
         }
 
         /// <summary>
@@ -358,7 +213,7 @@ namespace DGraph4Net.Identity
         /// <summary>
         /// A navigation property for the users the store contains.
         /// </summary>
-        public override IQueryable<TUser> Users => null;
+        public override IQueryable<TUser> Users => default;
 
         /// <summary>
         /// Return a role with the normalized name if it exists.
@@ -480,7 +335,7 @@ namespace DGraph4Net.Identity
                 .Logins.FirstOrDefault(ul => ul.LoginProvider == loginProvider &&
                                                       ul.ProviderKey == providerKey);
 
-            if(userLogin != null)
+            if (userLogin != null)
                 userLogin.UserId = userId;
 
             return userLogin as TUserLogin;
@@ -514,101 +369,6 @@ namespace DGraph4Net.Identity
                 .First(x => x.Key == "userLogin").Value?.FirstOrDefault();
 
             return userLogin;
-        }
-
-
-        /// <summary>
-        /// Adds the given <paramref name="normalizedRoleName"/> to the specified <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">The user to add the role to.</param>
-        /// <param name="normalizedRoleName">The role to add.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override async Task AddToRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            if (string.IsNullOrWhiteSpace(normalizedRoleName))
-            {
-                throw new ArgumentException("{0} can not be null.", nameof(normalizedRoleName));
-            }
-            var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken);
-            if (roleEntity == null)
-            {
-                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role '{0}' not found.", normalizedRoleName));
-            }
-
-            var userRole = CreateUserRole(user, roleEntity);
-
-            var mu = new Mutation { CommitNow = true,
-                SetNquads = ByteString.CopyFromUtf8("uid(u) <roles> uid(r) ."),
-                Cond = "@if(eq(len(u), 1) AND eq(len(r), 1))"
-            };
-
-            const string q = @"
-            query Q($userId: string, $roleId: string) {
-                u as var(func: eq(uid, uid($userId)))
-                r as var(func: eq(uid, uid($roleId)))
-            }";
-
-            var req = new Request
-            {
-                CommitNow = true,
-                Query = q
-            };
-
-            req.Mutations.Add(mu);
-            req.Vars.Add("$userId", userRole.UserId);
-            req.Vars.Add("$roleId", userRole.RoleId);
-
-            var txn = GetTransaction(cancellationToken);
-
-            try
-            {
-                await txn.Do(req);
-
-                user.Roles?.Add(roleEntity);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, ex.Message);
-
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Removes the given <paramref name="normalizedRoleName"/> from the specified <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">The user to remove the role from.</param>
-        /// <param name="normalizedRoleName">The role to remove.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override async Task RemoveFromRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            if (string.IsNullOrWhiteSpace(normalizedRoleName))
-            {
-                throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, nameof(normalizedRoleName));
-            }
-            var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken);
-            if (roleEntity != null)
-            {
-                var userRole = await FindUserRoleAsync(user.Id, roleEntity.Id, cancellationToken);
-                if (userRole != null)
-                {
-                    UserRoles.Remove(userRole);
-                }
-            }
         }
 
         /// <summary>
@@ -677,139 +437,6 @@ namespace DGraph4Net.Identity
             }
 
             return await UserClaims.Where(uc => uc.UserId.Equals(user.Id)).Select(c => c.ToClaim()).ToListAsync(cancellationToken);
-        }
-
-        /// <summary>
-        /// Adds the <paramref name="claims"/> given to the specified <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">The user to add the claim to.</param>
-        /// <param name="claims">The claim to add to the user.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override Task AddClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            if (claims == null)
-            {
-                throw new ArgumentNullException(nameof(claims));
-            }
-            foreach (var claim in claims)
-            {
-                UserClaims.Add(CreateUserClaim(user, claim));
-            }
-            return Task.FromResult(false);
-        }
-
-        /// <summary>
-        /// Replaces the <paramref name="claim"/> on the specified <paramref name="user"/>, with the <paramref name="newClaim"/>.
-        /// </summary>
-        /// <param name="user">The user to replace the claim on.</param>
-        /// <param name="claim">The claim replace.</param>
-        /// <param name="newClaim">The new claim replacing the <paramref name="claim"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public async override Task ReplaceClaimAsync(TUser user, Claim claim, Claim newClaim, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            if (claim == null)
-            {
-                throw new ArgumentNullException(nameof(claim));
-            }
-            if (newClaim == null)
-            {
-                throw new ArgumentNullException(nameof(newClaim));
-            }
-
-            var matchedClaims = await UserClaims.Where(uc => uc.UserId.Equals(user.Id) && uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type).ToListAsync(cancellationToken);
-            foreach (var matchedClaim in matchedClaims)
-            {
-                matchedClaim.ClaimValue = newClaim.Value;
-                matchedClaim.ClaimType = newClaim.Type;
-            }
-        }
-
-        /// <summary>
-        /// Removes the <paramref name="claims"/> given from the specified <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">The user to remove the claims from.</param>
-        /// <param name="claims">The claim to remove.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public async override Task RemoveClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
-        {
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            if (claims == null)
-            {
-                throw new ArgumentNullException(nameof(claims));
-            }
-            foreach (var claim in claims)
-            {
-                var matchedClaims = await UserClaims.Where(uc => uc.UserId.Equals(user.Id) && uc.ClaimValue == claim.Value && uc.ClaimType == claim.Type).ToListAsync(cancellationToken);
-                foreach (var c in matchedClaims)
-                {
-                    UserClaims.Remove(c);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Adds the <paramref name="login"/> given to the specified <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">The user to add the login to.</param>
-        /// <param name="login">The login to add to the user.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override Task AddLoginAsync(TUser user, UserLoginInfo login,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            if (login == null)
-            {
-                throw new ArgumentNullException(nameof(login));
-            }
-            UserLogins.Add(CreateUserLogin(user, login));
-            return Task.FromResult(false);
-        }
-
-        /// <summary>
-        /// Removes the <paramref name="loginProvider"/> given from the specified <paramref name="user"/>.
-        /// </summary>
-        /// <param name="user">The user to remove the login from.</param>
-        /// <param name="loginProvider">The login to remove from the user.</param>
-        /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-            var entry = await FindUserLoginAsync(user.Id, loginProvider, providerKey, cancellationToken);
-            if (entry != null)
-            {
-                UserLogins.Remove(entry);
-            }
         }
 
         /// <summary>
@@ -938,29 +565,5 @@ namespace DGraph4Net.Identity
         /// <returns>The user token if it exists.</returns>
         protected override Task<TUserToken> FindTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
             => UserTokens.FindAsync(new object[] { user.Id, loginProvider, name }, cancellationToken).AsTask();
-
-        /// <summary>
-        /// Add a new user token.
-        /// </summary>
-        /// <param name="token">The token to be added.</param>
-        /// <returns></returns>
-        protected override Task AddUserTokenAsync(TUserToken token)
-        {
-            UserTokens.Add(token);
-            return Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// Remove a new user token.
-        /// </summary>
-        /// <param name="token">The token to be removed.</param>
-        /// <returns></returns>
-        protected override Task RemoveUserTokenAsync(TUserToken token)
-        {
-            UserTokens.Remove(token);
-            return Task.CompletedTask;
-        }
     }
-}
 }

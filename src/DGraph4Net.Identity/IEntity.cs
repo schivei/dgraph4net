@@ -1,12 +1,12 @@
-﻿using System;
-using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
 
 namespace DGraph4Net.Identity
 {
     public interface IEntity
     {
         Uid Id { get; }
+
+        ICollection<string> DType { get; }
     }
-
-
 }

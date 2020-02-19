@@ -32,19 +32,19 @@ namespace DGraph4Net
         /// <summary>
         /// Is returned when an operation is performed on already committed or discarded transaction.
         /// </summary>
-        public TransactionException ErrFinished =>
+        public static TransactionException ErrFinished =>
             new TransactionException("Transaction has already been committed or discarded");
 
         /// <summary>
         /// Is returned when a write/update is performed on a readonly transaction.
         /// </summary>
-        public ReadOnlyException ErrReadOnly =>
+        public static ReadOnlyException ErrReadOnly =>
             new ReadOnlyException("Readonly transaction cannot run mutations or be committed");
 
         /// <summary>
         /// Is returned when an operation is performed on an aborted transaction.
         /// </summary>
-        public TransactionAbortedException ErrAborted =>
+        public static TransactionAbortedException ErrAborted =>
             new TransactionAbortedException("Transaction has been aborted. Please retry");
 
         private readonly bool _readOnly;
@@ -201,6 +201,92 @@ namespace DGraph4Net
         }
 
         /// <summary>
+        /// Executes many queries followed by one or more than one mutations.
+        /// </summary>
+        /// <param name="requests"></param>
+        /// <returns><see cref="Response"/></returns>
+        /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
+        /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
+        /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
+        /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+        /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
+        /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
+        public async Task<IEnumerable<Response>> Do(IEnumerable<Request> requests)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(Txn));
+
+            if (_finished)
+                throw ErrFinished;
+
+            if (!requests.Any())
+            {
+                _finished = true;
+                return new[] { new Response { Txn = _context, Latency = new Latency(), Metrics = new Metrics() } };
+            }
+
+            if (requests.Any(x => x.CommitNow))
+            {
+                if (_readOnly)
+                    throw ErrReadOnly;
+
+                foreach (var req in requests)
+                {
+                    req.CommitNow = true;
+                }
+
+                _mutated = true;
+            }
+
+            var co = _dgraph.GetOptions();
+
+            foreach (var req in requests.Where(r => r.StartTs == 0))
+            {
+                req.StartTs = _context.StartTs;
+            }
+
+            var responses = await Task.WhenAll(requests.Select(async request =>
+            {
+                Response resp = null;
+                try
+                {
+                    resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                }
+                catch (RpcException err) when (_dgraph.IsJwtExpired(err))
+                {
+                    await _dgraph.RetryLogin();
+
+                    resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                }
+#pragma warning disable CA1031 // Do not catch general exception types
+                catch
+                {
+                    _finished = false;
+                    await Abort(resp?.Txn, request, true);
+                }
+#pragma warning restore CA1031 // Do not catch general exception types
+                finally
+                {
+                    _finished = false;
+                }
+
+                if (requests.All(r => r.CommitNow))
+                {
+                    MergeContext(resp?.Txn ?? _context);
+                }
+
+                await Abort(resp?.Txn, request);
+
+                return resp;
+            }));
+
+            if (requests.All(r => r.CommitNow))
+                _finished = true;
+
+            return responses;
+        }
+
+        /// <summary>
         /// Executes a query followed by one or more than one mutations.
         /// </summary>
         /// <param name="request"></param>
@@ -213,51 +299,9 @@ namespace DGraph4Net
         /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
         public async Task<Response> Do(Request request)
         {
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(Txn));
+            var responses = await Do(new [] { request });
 
-            if (_finished)
-                throw ErrFinished;
-
-            if (request.Mutations.Count > 0)
-            {
-                if (_readOnly)
-                    throw ErrReadOnly;
-                _mutated = true;
-            }
-
-            var co = _dgraph.GetOptions();
-
-            if (request.StartTs == 0)
-                request.StartTs = _context.StartTs;
-
-            Response resp = null;
-            try
-            {
-                resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
-            }
-            catch (RpcException err) when (_dgraph.IsJwtExpired(err))
-            {
-                await _dgraph.RetryLogin();
-
-                resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
-            }
-#pragma warning disable CA1031 // Do not catch general exception types
-            catch
-            {
-                await Abort(resp?.Txn, request, true);
-            }
-#pragma warning restore CA1031 // Do not catch general exception types
-
-            if (request.CommitNow)
-            {
-                _finished = true;
-                MergeContext(resp?.Txn ?? _context);
-            }
-
-            await Abort(resp?.Txn, request);
-
-            return resp;
+            return responses.First();
         }
 
         private async Task Abort(TxnContext txn, Request request, bool force = false)

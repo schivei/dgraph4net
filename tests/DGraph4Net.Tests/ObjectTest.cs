@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using DGraph4Net.Services;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
+using JsonLD.Core;
+using JsonLD.Impl;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;

@@ -7,55 +7,27 @@ using Newtonsoft.Json;
 // ReSharper disable once CheckNamespace
 namespace System
 {
-    internal class UidConverter : JsonConverter
-    {
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(Uid) ||
-                objectType == typeof(string) ||
-                objectType == typeof(ulong);
-        }
-
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-        {
-            if (objectType == typeof(Uid) && reader.Value is Uid uid)
-            {
-                return uid;
-            }
-            else if (objectType == typeof(string) && reader.Value is string str)
-            {
-                return new Uid(str);
-            }
-            else if (objectType == typeof(ulong) && reader.Value is ulong ul)
-            {
-                return new Uid(ul);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-        {
-            writer.WriteValue((value as Uid?)?.ToString());
-        }
-    }
-
     [JsonConverter(typeof(UidConverter))]
     public readonly struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>
     {
         private readonly string _uid;
 
+        public bool IsReferenceOnly => _uid.StartsWith("_:");
+
+        public bool IsEmpty => string.IsNullOrEmpty(_uid);
+
         [JsonConstructor]
         public Uid(string uid) =>
-            _uid = uid;
+            _uid = Clear(uid);
 
         public Uid(Guid uid) =>
-            _uid = Clear($"{uid:N}".Substring(16));
+            _uid = Clear($"0x{uid:N}".Substring(16));
 
         public Uid(ulong uid) =>
             _uid = Clear($"0x{uid:X}");
+
+        private Uid(bool _) =>
+            _uid = string.Empty;
 
         public static bool operator ==(Uid? uid, object? other) =>
             string.Equals(uid?.ToString(), other?.ToString());
@@ -117,22 +89,25 @@ namespace System
         public override int GetHashCode() =>
             _uid.GetHashCode();
 
+        /// <inheritdoc/>
         public override string ToString() =>
             _uid;
 
-        private static string Clear(string uid)
+        private static string Clear(string uid, bool @throw = true)
         {
-            var reg = new Regex("^(0x)?([a-fA-F0-9]{1,16})$");
-            if (!reg.IsMatch(uid))
+            var reg = new Regex("^(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})$");
+            if (!reg.IsMatch(uid) && @throw)
                 throw new InvalidCastException($"Can't convert uid '{uid}' to Uid.");
 
-            if (!uid.EndsWith("0x"))
-                uid = $"0x{uid}";
+            if (!reg.IsMatch(uid))
+                return string.Empty;
 
             return uid.ToLowerInvariant();
         }
 
         public static Uid NewUid() =>
             Guid.NewGuid();
+
+        public Uid Empty => new Uid(true);
     }
 }
