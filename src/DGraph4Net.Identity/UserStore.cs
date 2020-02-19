@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,8 +25,10 @@ namespace DGraph4Net.Identity
         /// Constructs a new instance of <see cref="UserStore"/>.
         /// </summary>
         /// <param name="context">The <see cref="DGraph"/>.</param>
+        /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        public UserStore(DGraph context, IdentityErrorDescriber describer = null) : base(context, describer) { }
+        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
+            base(context, logger, describer) { }
     }
 
     /// <summary>
@@ -37,8 +42,10 @@ namespace DGraph4Net.Identity
         /// Constructs a new instance of <see cref="UserStore{TUser}"/>.
         /// </summary>
         /// <param name="context">The <see cref="DGraph"/>.</param>
+        /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        public UserStore(DGraph context, IdentityErrorDescriber describer = null) : base(context, describer) { }
+        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
+            base(context, logger, describer) { }
     }
 
     /// <summary>
@@ -51,11 +58,13 @@ namespace DGraph4Net.Identity
         where TRole : DRole
     {
         /// <summary>
-        /// Constructs a new instance of <see cref="UserStore{TUser, TRole"/>.
+        /// Constructs a new instance of <see cref="UserStore{TUser, TRole}"/>.
         /// </summary>
         /// <param name="context">The <see cref="DGraph"/>.</param>
+        /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        public UserStore(DGraph context, IdentityErrorDescriber describer = null) : base(context, describer) { }
+        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
+            base(context, logger, describer) { }
     }
 
     /// <summary>
@@ -68,6 +77,7 @@ namespace DGraph4Net.Identity
     /// <typeparam name="TUserLogin">The type representing a user external login.</typeparam>
     /// <typeparam name="TUserToken">The type representing a user token.</typeparam>
     /// <typeparam name="TRoleClaim">The type representing a role claim.</typeparam>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     public class UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim> :
         UserStoreBase<TUser, TRole, Uid, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim>,
         IProtectedUserStore<TUser>
@@ -85,8 +95,10 @@ namespace DGraph4Net.Identity
         /// Creates a new instance of the store.
         /// </summary>
         /// <param name="context">The context used to access the store.</param>
+        /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/> used to describe store errors.</param>
-        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) : this(logger, describer ?? new IdentityErrorDescriber()) =>
+        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
+            this(logger, describer ?? new IdentityErrorDescriber()) =>
             Context = context ?? throw new ArgumentNullException(nameof(context));
 
         private UserStore(ILogger<UserStore> logger, IdentityErrorDescriber describer) : base(describer) => _logger = logger;
@@ -95,14 +107,6 @@ namespace DGraph4Net.Identity
         /// Gets the database context for this store.
         /// </summary>
         public virtual DGraph Context { get; }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if changes should be persisted after CreateAsync, UpdateAsync and DeleteAsync are called.
-        /// </summary>
-        /// <value>
-        /// True if changes should be automatically persisted, otherwise false.
-        /// </value>
-        public bool AutoSaveChanges { get; set; } = true;
 
         /// <summary>Saves the current store.</summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
@@ -123,7 +127,7 @@ namespace DGraph4Net.Identity
         /// <param name="user">The user to create.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the creation operation.</returns>
-        public async override Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
+        public override async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -134,7 +138,7 @@ namespace DGraph4Net.Identity
 
             const string q = @"
             query Q($userName: string) {
-                u as var(func: eq(normalized_username, $userName))
+                u as var(func: eq(username.normalized, $userName))
             }";
 
             var req = new Request {
@@ -169,13 +173,14 @@ namespace DGraph4Net.Identity
             }
         }
 
+
         /// <summary>
         /// Updates the specified <paramref name="user"/> in the user store.
         /// </summary>
         /// <param name="user">The user to update.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
-        public async override Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken = default)
+        public override async Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -184,16 +189,40 @@ namespace DGraph4Net.Identity
                 throw new ArgumentNullException(nameof(user));
             }
 
-            Context.Attach(user);
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
-            Context.Update(user);
+
+            const string q = @"
+            query Q($id: string) {
+                u as var(func: eq(uid, uid($id)))
+            }";
+
+            var req = new Request
+            {
+                CommitNow = true,
+                Query = q
+            };
+
+            var mu = new Mutation
+            {
+                CommitNow = true,
+                Cond = "@if(eq(len(uid(u), 1)))",
+                SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user))
+            };
+
+            req.Mutations.Add(mu);
+
+            var txn = GetTransaction(cancellationToken);
+
             try
             {
-                await SaveChanges(cancellationToken);
+                await txn.Do(req);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
+                var e = ErrorDescriber.ConcurrencyFailure();
+                _logger.LogError(ex, e.Description);
+
+                return IdentityResult.Failed(e);
             }
             return IdentityResult.Success;
         }
@@ -204,7 +233,7 @@ namespace DGraph4Net.Identity
         /// <param name="user">The user to delete.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
-        public async override Task<IdentityResult> DeleteAsync(TUser user, CancellationToken cancellationToken = default)
+        public override async Task<IdentityResult> DeleteAsync(TUser user, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -213,14 +242,32 @@ namespace DGraph4Net.Identity
                 throw new ArgumentNullException(nameof(user));
             }
 
-            Context.Remove(user);
+            var mu = new Mutation {CommitNow = true, DelNquads = ByteString.CopyFromUtf8("uid(u) * * .")};
+
+            const string q = @"
+            query Q($id: string) {
+                u as var(func: eq(uid, uid($id)))
+            }";
+
+            var req = new Request
+            {
+                CommitNow = true,
+                Query = q
+            };
+
+            req.Mutations.Add(mu);
+
+            var txn = GetTransaction(cancellationToken);
             try
             {
-                await SaveChanges(cancellationToken);
+                await txn.Do(req);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                return IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
+                var e = ErrorDescriber.ConcurrencyFailure();
+                _logger.LogError(ex, e.Description);
+
+                return IdentityResult.Failed(e);
             }
             return IdentityResult.Success;
         }
@@ -233,12 +280,38 @@ namespace DGraph4Net.Identity
         /// <returns>
         /// The <see cref="Task"/> that represents the asynchronous operation, containing the user matching the specified <paramref name="userId"/> if it exists.
         /// </returns>
-        public override Task<TUser> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
+        public override async Task<TUser> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
             var id = ConvertIdFromString(userId);
-            return UsersSet.FindAsync(new object[] { id }, cancellationToken).AsTask();
+
+            var userResp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($userId string) {
+                    user(func: eq(uid, uid($userId))) {
+                        uid
+                        expand(_all_)
+                        claims {
+                            uid
+                            expand(_all_)
+                        }
+                        roles {
+                            uid
+                            expand(_all_)
+                        }
+                        logins {
+                            uid
+                            expand(_all_)
+                        }
+                        tokens {
+                            uid
+                            expand(_all_)
+                        }
+                    }
+                }", new Dictionary<string, string> { { "$userId", id } });
+
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
+                .First(x => x.Key == "user").Value?.FirstOrDefault();
         }
 
         /// <summary>
@@ -249,21 +322,43 @@ namespace DGraph4Net.Identity
         /// <returns>
         /// The <see cref="Task"/> that represents the asynchronous operation, containing the user matching the specified <paramref name="normalizedUserName"/> if it exists.
         /// </returns>
-        public override Task<TUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
+        public override async Task<TUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
-            return Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalizedUserName, cancellationToken);
+            var userResp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($userName string) {
+                    user(func: eq(username.normalized, $userName)) {
+                        uid
+                        expand(_all_)
+                        claims {
+                            uid
+                            expand(_all_)
+                        }
+                        roles {
+                            uid
+                            expand(_all_)
+                        }
+                        logins {
+                            uid
+                            expand(_all_)
+                        }
+                        tokens {
+                            uid
+                            expand(_all_)
+                        }
+                    }
+                }", new Dictionary<string, string> { { "$userName", normalizedUserName } });
+
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
+                .First(x => x.Key == "user").Value?.FirstOrDefault();
         }
 
         /// <summary>
         /// A navigation property for the users the store contains.
         /// </summary>
-        public override IQueryable<TUser> Users
-        {
-            get { return UsersSet; }
-        }
+        public override IQueryable<TUser> Users => null;
 
         /// <summary>
         /// Return a role with the normalized name if it exists.
@@ -271,9 +366,21 @@ namespace DGraph4Net.Identity
         /// <param name="normalizedRoleName">The normalized role name.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The role if it exists.</returns>
-        protected override Task<TRole> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
+        protected override async Task<TRole> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
         {
-            return Roles.SingleOrDefaultAsync(r => r.NormalizedName == normalizedRoleName, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            var resp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($roleName string) {
+                    role(func: eq(rolename.normalized, $roleName)) {
+                        uid
+                        expand(_all_)
+                    }
+                }", new Dictionary<string, string> { { "$roleName", normalizedRoleName } });
+
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TRole>>>(resp.Json.ToStringUtf8())
+                .First(x => x.Key == "role").Value?.FirstOrDefault();
         }
 
         /// <summary>
@@ -283,9 +390,27 @@ namespace DGraph4Net.Identity
         /// <param name="roleId">The role's id.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user role if it exists.</returns>
-        protected override Task<TUserRole> FindUserRoleAsync(Uid userId, Uid roleId, CancellationToken cancellationToken)
+        protected override async Task<TUserRole> FindUserRoleAsync(Uid userId, Uid roleId, CancellationToken cancellationToken)
         {
-            return UserRoles.FindAsync(new object[] { userId, roleId }, cancellationToken).AsTask();
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            var resp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($userId string, $roleId string) {
+                    userRole(func: uid($userId)) @normalize {
+                        userId: uid
+                        roles @filter(uid($roleId)) {
+                            roleId: uid
+                        }
+                    }
+                }", new Dictionary<string, string>
+                {
+                    { "$userId", userId },
+                    { "$roleId", roleId }
+            });
+
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TUserRole>>>(resp.Json.ToStringUtf8())
+                .First(x => x.Key == "userRole").Value?.FirstOrDefault();
         }
 
         /// <summary>
@@ -294,9 +419,37 @@ namespace DGraph4Net.Identity
         /// <param name="userId">The user's id.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user if it exists.</returns>
-        protected override Task<TUser> FindUserAsync(Uid userId, CancellationToken cancellationToken)
+        protected override async Task<TUser> FindUserAsync(Uid userId, CancellationToken cancellationToken)
         {
-            return Users.SingleOrDefaultAsync(u => u.Id.Equals(userId), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            var userResp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($userId string) {
+                    user(func: uid($userId)) {
+                        uid
+                        expand(_all_)
+                        claims {
+                            uid
+                            expand(_all_)
+                        }
+                        roles {
+                            uid
+                            expand(_all_)
+                        }
+                        logins {
+                            uid
+                            expand(_all_)
+                        }
+                        tokens {
+                            uid
+                            expand(_all_)
+                        }
+                    }
+                }", new Dictionary<string, string> { { "$userId", userId } });
+
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
+                .First(x => x.Key == "user").Value?.FirstOrDefault();
         }
 
         /// <summary>
@@ -307,9 +460,30 @@ namespace DGraph4Net.Identity
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user login if it exists.</returns>
-        protected override Task<TUserLogin> FindUserLoginAsync(Uid userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
+        protected override async Task<TUserLogin> FindUserLoginAsync(Uid userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
         {
-            return UserLogins.SingleOrDefaultAsync(userLogin => userLogin.UserId.Equals(userId) && userLogin.LoginProvider == loginProvider && userLogin.ProviderKey == providerKey, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            var userResp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($userId string) {
+                    user(func: uid($userId)) {
+                        logins {
+                            uid
+                            expand(_all_)
+                        }
+                    }
+                }", new Dictionary<string, string> { { "$userId", userId } });
+
+            var userLogin = JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
+                .First(x => x.Key == "user").Value?.FirstOrDefault()?
+                .Logins.FirstOrDefault(ul => ul.LoginProvider == loginProvider &&
+                                                      ul.ProviderKey == providerKey);
+
+            if(userLogin != null)
+                userLogin.UserId = userId;
+
+            return userLogin as TUserLogin;
         }
 
         /// <summary>
@@ -319,9 +493,27 @@ namespace DGraph4Net.Identity
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user login if it exists.</returns>
-        protected override Task<TUserLogin> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
+        protected override async Task<TUserLogin> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
         {
-            return UserLogins.SingleOrDefaultAsync(userLogin => userLogin.LoginProvider == loginProvider && userLogin.ProviderKey == providerKey, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            var userResp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($loginProvider string, $providerKey string) {
+                    userLogin(func: eq(login.provider, $loginProvider)) @filter(eq(provider.key, $providerKey)) {
+                        uid
+                        expand(_all_)
+                    }
+                }", new Dictionary<string, string>
+                {
+                    { "$loginProvider", loginProvider },
+                    { "$providerKey", providerKey }
+                });
+
+            var userLogin = JsonConvert.DeserializeObject<Dictionary<string, List<TUserLogin>>>(userResp.Json.ToStringUtf8())
+                .First(x => x.Key == "userLogin").Value?.FirstOrDefault();
+
+            return userLogin;
         }
 
 
@@ -332,7 +524,7 @@ namespace DGraph4Net.Identity
         /// <param name="normalizedRoleName">The role to add.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public async override Task AddToRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
+        public override async Task AddToRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -342,14 +534,51 @@ namespace DGraph4Net.Identity
             }
             if (string.IsNullOrWhiteSpace(normalizedRoleName))
             {
-                throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, nameof(normalizedRoleName));
+                throw new ArgumentException("{0} can not be null.", nameof(normalizedRoleName));
             }
             var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken);
             if (roleEntity == null)
             {
-                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resources.RoleNotFound, normalizedRoleName));
+                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role '{0}' not found.", normalizedRoleName));
             }
-            UserRoles.Add(CreateUserRole(user, roleEntity));
+
+            var userRole = CreateUserRole(user, roleEntity);
+
+            var mu = new Mutation { CommitNow = true,
+                SetNquads = ByteString.CopyFromUtf8("uid(u) <roles> uid(r) ."),
+                Cond = "@if(eq(len(u), 1) AND eq(len(r), 1))"
+            };
+
+            const string q = @"
+            query Q($userId: string, $roleId: string) {
+                u as var(func: eq(uid, uid($userId)))
+                r as var(func: eq(uid, uid($roleId)))
+            }";
+
+            var req = new Request
+            {
+                CommitNow = true,
+                Query = q
+            };
+
+            req.Mutations.Add(mu);
+            req.Vars.Add("$userId", userRole.UserId);
+            req.Vars.Add("$roleId", userRole.RoleId);
+
+            var txn = GetTransaction(cancellationToken);
+
+            try
+            {
+                await txn.Do(req);
+
+                user.Roles?.Add(roleEntity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+
+                throw;
+            }
         }
 
         /// <summary>
@@ -359,7 +588,7 @@ namespace DGraph4Net.Identity
         /// <param name="normalizedRoleName">The role to remove.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public async override Task RemoveFromRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
+        public override async Task RemoveFromRoleAsync(TUser user, string normalizedRoleName, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
