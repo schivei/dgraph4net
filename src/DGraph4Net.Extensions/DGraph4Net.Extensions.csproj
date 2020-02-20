@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="GeoJSON.Net" Version="1.2.14" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DGraph4Net\DGraph4Net.csproj" />
   </ItemGroup>
 

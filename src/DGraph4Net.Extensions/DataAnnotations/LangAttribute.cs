@@ -3,23 +3,10 @@ using System;
 namespace DGraph4Net.Extensions.DataAnnotations
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public sealed class LangAttribute : Attribute, IDGraphAnnotationAttribute
+    public sealed class LangAttribute : ADGraphAnnotationAttribute
     {
-        public DGraphType DGraphType { get; }
+        public LangAttribute() : base(DGraphType.Lang) { }
 
-        public string Name { get; }
-
-        public bool Initialized { get; internal set; }
-
-        public LangAttribute()
-        {
-            DGraphType = DGraphType.Lang;
-        }
-
-        public LangAttribute(string name) : this()
-        {
-            Name = name;
-            Initialized = true;
-        }
+        public LangAttribute(string name) : base(name, DGraphType.Lang) { }
     }
 }

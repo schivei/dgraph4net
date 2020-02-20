@@ -3,23 +3,10 @@ using System;
 namespace DGraph4Net.Extensions.DataAnnotations
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public sealed class PredicateAttribute : Attribute, IDGraphAnnotationAttribute
+    public sealed class PredicateAttribute : ADGraphAnnotationAttribute
     {
-        public DGraphType DGraphType { get; }
+        public PredicateAttribute() : base(DGraphType.Predicate) { }
 
-        public string Name { get; }
-
-        public bool Initialized { get; internal set; }
-
-        public PredicateAttribute()
-        {
-            DGraphType = DGraphType.Predicate;
-        }
-
-        public PredicateAttribute(string name) : this()
-        {
-            Name = name;
-            Initialized = true;
-        }
+        public PredicateAttribute(string name) : base(name, DGraphType.Predicate) { }
     }
 }

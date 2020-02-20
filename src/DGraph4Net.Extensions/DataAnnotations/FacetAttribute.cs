@@ -3,23 +3,10 @@ using System;
 namespace DGraph4Net.Extensions.DataAnnotations
 {
     [AttributeUsage(AttributeTargets.Property)]
-    public sealed class FacetAttribute : Attribute, IDGraphAnnotationAttribute
+    public sealed class FacetAttribute : ADGraphAnnotationAttribute
     {
-        public DGraphType DGraphType { get; }
+        public FacetAttribute() : base(DGraphType.Facet) { }
 
-        public string Name { get; }
-
-        public bool Initialized { get; internal set; }
-
-        public FacetAttribute()
-        {
-            DGraphType = DGraphType.Facet;
-        }
-
-        public FacetAttribute(string name) : this()
-        {
-            Name = name;
-            Initialized = true;
-        }
+        public FacetAttribute(string name) : base(name, DGraphType.Facet) { }
     }
 }

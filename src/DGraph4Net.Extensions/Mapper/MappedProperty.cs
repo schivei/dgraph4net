@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Reflection;
+using DGraph4Net.Extensions.DataAnnotations;
 
 namespace DGraph4Net.Extensions.Mapper
 {
@@ -7,7 +8,7 @@ namespace DGraph4Net.Extensions.Mapper
     {
         public PropertyInfo Property { get; set; }
 
-        public CustomAttributeData Attribute { get; set; }
+        public IDGraphAnnotationAttribute Attribute { get; set; }
 
         public Type OriginType => typeof(T);
 
