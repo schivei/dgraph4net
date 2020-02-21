@@ -16,6 +16,9 @@ namespace System
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
+            if (reader.Value is null)
+                return null;
+
             if (objectType == typeof(Uid) && reader.Value is Uid uid)
             {
                 return uid;
@@ -24,9 +27,17 @@ namespace System
             {
                 return new Uid(str);
             }
-            else if (objectType == typeof(ulong) && reader.Value is ulong ul)
+            else if (objectType == typeof(int) ||
+                objectType == typeof(uint) ||
+                objectType == typeof(long) ||
+                objectType == typeof(ulong) ||
+                objectType == typeof(byte) ||
+                objectType == typeof(char) ||
+                objectType == typeof(sbyte) ||
+                objectType == typeof(short) ||
+                objectType == typeof(ushort))
             {
-                return new Uid(ul);
+                return new Uid(Convert.ToUInt64(reader.Value), true);
             }
             else
             {

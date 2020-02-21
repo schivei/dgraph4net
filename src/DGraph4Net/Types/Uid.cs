@@ -21,13 +21,12 @@ namespace System
             _uid = Clear(uid);
 
         public Uid(Guid uid) =>
-            _uid = Clear($"0x{uid:N}".Substring(16));
+            _uid = Clear($"_:{uid:N}".Substring(16));
 
-        public Uid(ulong uid) =>
-            _uid = Clear($"0x{uid:X}");
+        public Uid(ulong uid, bool real) =>
+            _uid = Clear($"{(real ? "0x" : "_:")}{uid:X}");
 
-        private Uid(bool _) =>
-            _uid = string.Empty;
+        public Uid(ulong uid) : this(uid, false) { }
 
         public static bool operator ==(Uid? uid, object? other) =>
             string.Equals(uid?.ToString(), other?.ToString());
@@ -41,17 +40,35 @@ namespace System
         public static implicit operator Uid(string uid) =>
             new Uid(uid);
 
-        public static implicit operator Guid(Uid _) =>
-            throw new InvalidCastException("Can't cast Uid to Guid because the Uid is too small.");
-
         public static implicit operator Uid(Guid uid) =>
             new Uid(uid);
 
-        public static implicit operator ulong(Uid uid) =>
-            ulong.Parse(uid.ToString().Substring(2), NumberStyles.HexNumber);
-
         public static implicit operator Uid(ulong uid) =>
             new Uid(uid);
+
+        public static implicit operator Uid(uint uid) =>
+            new Uid(uid);
+
+        public static implicit operator Uid(ushort uid) =>
+            new Uid(Convert.ToUInt64(uid));
+
+        public static implicit operator Uid(byte uid) =>
+            new Uid(uid);
+
+        public static implicit operator Uid(char uid) =>
+            new Uid(uid);
+
+        public static implicit operator Uid(long uid) =>
+            uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+        public static implicit operator Uid(int uid) =>
+            uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+        public static implicit operator Uid(short uid) =>
+            uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+        public static implicit operator Uid(sbyte uid) =>
+            uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
         public static bool operator <(Uid left, Uid right)
         {
@@ -97,7 +114,7 @@ namespace System
         {
             var reg = new Regex("^(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})$");
             if (!reg.IsMatch(uid) && @throw)
-                throw new InvalidCastException($"Can't convert uid '{uid}' to Uid.");
+                throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
             if (!reg.IsMatch(uid))
                 return string.Empty;
@@ -107,7 +124,5 @@ namespace System
 
         public static Uid NewUid() =>
             Guid.NewGuid();
-
-        public Uid Empty => new Uid(true);
     }
 }

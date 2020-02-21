@@ -76,8 +76,8 @@ namespace DGraph4Net.Identity
 
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            var req = new Request { CommitNow = true, Query = "query Q($id: string) { u as var(func: eq(uid, uid($id))) }" };
-            var mu = new Mutation { CommitNow = true, Cond = "@if(eq(len(uid(u), 1)))", SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user)) };
+            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}"")) }}" };
+            var mu = new Mutation { CommitNow = true, Cond = "@if(eq(len(u, 1)))", SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user)) };
             req.Mutations.Add(mu);
             await using var txn = GetTransaction(cancellationToken);
             try
@@ -106,17 +106,19 @@ namespace DGraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            const string q = @"
-            query Q($userName: string) {
-                u as var(func: eq(username.normalized, $userName))
-            }";
+            var q = $@"
+            query Q($userName: string, $email: string) {{
+                u as var(func: eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}"")) @filter(eq(normalized_username, $userName) OR eq(normalized_email, $email))
+            }}";
 
             var req = new Request
             {
                 CommitNow = true,
                 Query = q
             };
+
             req.Vars.Add("$userName", user.NormalizedUserName);
+            req.Vars.Add("$email", user.NormalizedEmail);
 
             var mu = new Mutation
             {
@@ -131,7 +133,10 @@ namespace DGraph4Net.Identity
 
             try
             {
-                await txn.Do(req);
+                var response = await txn.Do(req);
+
+                if (response.Uids.Count == 0)
+                    return IdentityResult.Failed(ErrorDescriber.DuplicateUserName(user.UserName));
 
                 return IdentityResult.Success;
             }
@@ -156,27 +161,21 @@ namespace DGraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            var mu = new Mutation { CommitNow = true, DelNquads = ByteString.CopyFromUtf8("uid(u) * * .") };
-
-            const string q = @"
-            query Q($userId: string) {
-                u as var(func: uid($userId))
-            }";
-
-            var req = new Request
+            var mu = new Mutation
             {
                 CommitNow = true,
-                Query = q
+                DeleteJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user))
             };
 
-            req.Mutations.Add(mu);
-            req.Vars.Add("$userId", user.Id);
-
-           await using var txn = GetTransaction(cancellationToken);
+            await using var txn = GetTransaction(cancellationToken);
 
             try
             {
-                await txn.Do(req);
+                var response = await txn.Mutate(mu);
+                var resp = JsonConvert.DeserializeObject<Dictionary<string, object>>(response.Json.ToStringUtf8());
+
+                if (!resp.TryGetValue("code", out var s) || s?.ToString() != "Success")
+                    return IdentityResult.Failed(ErrorDescriber.DefaultError());
             }
             catch (Exception ex)
             {
@@ -199,9 +198,11 @@ namespace DGraph4Net.Identity
             CheckUser(user, cancellationToken);
             CheckString(normalizedRoleName, nameof(normalizedRoleName));
 
-            var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken);
-            if (roleEntity == null)
-                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role '{0}' not found.", normalizedRoleName));
+            var q = $@"
+            query Q($userId: string, $roleName: string) {{
+                u as var(func: uid($userId)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}""))
+                r as var(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}""))
+            }}";
 
             var mu = new Mutation
             {
@@ -209,12 +210,6 @@ namespace DGraph4Net.Identity
                 SetNquads = ByteString.CopyFromUtf8("uid(u) <roles> uid(r) ."),
                 Cond = "@if(eq(len(u), 1) AND eq(len(r), 1))"
             };
-
-            const string q = @"
-            query Q($userId: string, $roleId: string) {
-                u as var(func: eq(uid, uid($userId)))
-                r as var(func: eq(uid, uid($roleId)))
-            }";
 
             var req = new Request
             {
@@ -224,15 +219,21 @@ namespace DGraph4Net.Identity
 
             req.Mutations.Add(mu);
             req.Vars.Add("$userId", user.Id);
-            req.Vars.Add("$roleId", roleEntity.Id);
+            req.Vars.Add("$roleName", normalizedRoleName);
 
             await using var txn = GetTransaction(cancellationToken);
 
             try
             {
-                await txn.Do(req);
+                var response = await txn.Do(req);
+                var resp = JsonConvert.DeserializeObject<Dictionary<string, object>>(response.Json.ToStringUtf8());
 
-                user.Roles?.Add(roleEntity);
+                if (!resp.TryGetValue("code", out var s) || s?.ToString() != "Success")
+                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role '{0}' or User '{1}' not found.", normalizedRoleName, user.Id));
+
+                var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken);
+                if (roleEntity != null)
+                    user.Roles?.Add(roleEntity);
             }
             catch (Exception ex)
             {
@@ -254,13 +255,11 @@ namespace DGraph4Net.Identity
             CheckUser(user, cancellationToken);
             CheckString(normalizedRoleName, nameof(normalizedRoleName));
 
-            var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken);
-            if (roleEntity == null)
-                return;
-
-            var userRole = await FindUserRoleAsync(user.Id, roleEntity.Id, cancellationToken);
-            if (userRole is null)
-                return;
+            var q = $@"
+            query Q($userId: string, $roleName: string) {{
+                u as var(func: uid($userId)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}""))
+                r as var(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}""))
+            }}";
 
             var mu = new Mutation
             {
@@ -268,16 +267,6 @@ namespace DGraph4Net.Identity
                 DelNquads = ByteString.CopyFromUtf8("uid(u) <roles> uid(r) ."),
                 Cond = "@if(eq(len(u), 1) AND eq(len(r), 1))"
             };
-
-            const string q = @"
-            query Q($userId: string, $roleId: string) {
-                var(func: uid($userId)) {
-                    u as uid
-                    roles @filter(uid($roleId)) {
-                        r as uid
-                    }
-                }
-            }";
 
             var req = new Request
             {
@@ -287,15 +276,22 @@ namespace DGraph4Net.Identity
 
             req.Mutations.Add(mu);
             req.Vars.Add("$userId", user.Id);
-            req.Vars.Add("$roleId", roleEntity.Id);
+            req.Vars.Add("$roleName", normalizedRoleName);
 
-           await using var txn = GetTransaction(cancellationToken);
+            await using var txn = GetTransaction(cancellationToken);
 
             try
             {
-                await txn.Do(req);
+                var response = await txn.Do(req);
+                var resp = JsonConvert.DeserializeObject<Dictionary<string, object>>(response.Json.ToStringUtf8());
 
-                user.Roles?.Add(roleEntity);
+                if (!resp.TryGetValue("code", out var s) || s?.ToString() != "Success")
+                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Role '{0}' or User '{1}' not found.", normalizedRoleName, user.Id));
+
+                var ur = user.Roles?.FirstOrDefault(x => x.NormalizedName == normalizedRoleName);
+
+                if(ur != null)
+                    user.Roles?.Remove(ur);
             }
             catch (Exception ex)
             {
@@ -307,59 +303,46 @@ namespace DGraph4Net.Identity
 
         private Request CreateClaimRequest(TUser user, Claim claim)
         {
-            const string q = @"
-            query Q($user: string, $claimType: string, $claimValue) {
-                u as var(func: uid($user))
-                c as var(func: eq(claim.value, $claimValue)) @filter(eq(claim.type, $claimType))
-            }";
+            var q = $@"
+            query Q($userId: string, $claimType: string) {{
+                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserClaimTypeName}"") AND eq(user_id, uid($userId))))
+            }}";
 
-            var mu1 = new Mutation
+            var uc = DUserClaim.InitializeFrom<TUserClaim>(user, claim);
+
+            var mu = new Mutation
             {
-                SetNquads = ByteString.CopyFromUtf8(@"
-                    uid(c) <claim.type> $claimType .
-                    uid(c) <claim.value> $claimValue .
-                    uid(c) <dgraph.type> Claim .
-                "),
+                SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(uc)),
                 CommitNow = true,
-                Cond = "@if(eq(len(u), 1) AND eq(len(c), 0))"
-            };
-
-            var mu2 = new Mutation
-            {
-                SetNquads = ByteString.CopyFromUtf8("uid(u) <claims> uid(c) ."),
-                CommitNow = false,
-                Cond = "@if(eq(len(u), 1))"
+                Cond = "@if(eq(len(c), 0))"
             };
 
             var req = new Request { Query = q, CommitNow = true };
-            req.Mutations.AddRange(new[] { mu1, mu2 });
-            req.Vars.Add("$user", user.Id);
+            req.Mutations.Add(mu);
+            req.Vars.Add("$userId", user.Id);
             req.Vars.Add("$claimType", claim.Type);
-            req.Vars.Add("$claimValue", claim.Value);
 
             return req;
         }
 
         private Request RemoveClaimRequest(TUser user, Claim claim)
         {
-            const string q = @"
-            query Q($user: string, $claimType: string, $claimValue) {
-                u as var(func: uid($user))
-                c as var(func: eq(claim.value, $claimValue)) @filter(eq(claim.type, $claimType))
-            }";
+            var q = $@"
+            query Q($userId: string, $claimType: string) {{
+                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserClaimTypeName}"") AND eq(user_id, uid($userId))))
+            }}";
 
             var mu = new Mutation
             {
-                DelNquads = ByteString.CopyFromUtf8("uid(u) <claims> uid(c) ."),
+                DelNquads = ByteString.CopyFromUtf8("uid(c) * * ."),
                 CommitNow = true,
-                Cond = "@if(eq(len(u), 1) AND eq(len(c), 1))"
+                Cond = "@if(eq(len(c), 1))"
             };
 
             var req = new Request { Query = q, CommitNow = true };
             req.Mutations.Add(mu);
-            req.Vars.Add("$user", user.Id);
+            req.Vars.Add("$userId", user.Id);
             req.Vars.Add("$claimType", claim.Type);
-            req.Vars.Add("$claimValue", claim.Value);
 
             return req;
         }
@@ -372,7 +355,7 @@ namespace DGraph4Net.Identity
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task AddClaimAsync(TUser user, Claim claim, CancellationToken cancellationToken) =>
-            AddClaimsAsync(user, new [] { claim }, cancellationToken);
+            AddClaimsAsync(user, new[] { claim }, cancellationToken);
 
         /// <summary>
         /// Adds the <paramref name="claims"/> given to the specified <paramref name="user"/>.
@@ -388,7 +371,16 @@ namespace DGraph4Net.Identity
 
             await using var txn = GetTransaction(cancellationToken);
 
-            await txn.Do(claims.Select(claim => CreateClaimRequest(user, claim)));
+            try
+            {
+                await txn.Do(claims.Select(claim => CreateClaimRequest(user, claim)));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+
+                throw;
+            }
         }
 
         /// <summary>
@@ -405,7 +397,7 @@ namespace DGraph4Net.Identity
             CheckNull(claim, nameof(claim));
             CheckNull(newClaim, nameof(newClaim));
 
-            await Task.WhenAll(RemoveClaimsAsync(user, new [] { claim }, cancellationToken), AddClaimAsync(user, newClaim, cancellationToken));
+            await Task.WhenAll(RemoveClaimsAsync(user, new[] { claim }, cancellationToken), AddClaimAsync(user, newClaim, cancellationToken));
         }
 
         /// <summary>
@@ -423,7 +415,16 @@ namespace DGraph4Net.Identity
 
             await using var txn = GetTransaction(cancellationToken);
 
-            await txn.Do(claims.Select(claim => RemoveClaimRequest(user, claim)));
+            try
+            {
+                await txn.Do(claims.Select(claim => RemoveClaimRequest(user, claim)));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+
+                throw;
+            }
         }
 
         /// <summary>
@@ -436,48 +437,41 @@ namespace DGraph4Net.Identity
         public override async Task AddLoginAsync(TUser user, UserLoginInfo login, CancellationToken cancellationToken = default)
         {
             CheckUser(user, cancellationToken);
-            CheckNull(user, nameof(login));
+            CheckNull(login, nameof(login));
 
             var userLogin = CreateUserLogin(user, login);
 
-            var tUser = new TUser {
-                Id = user.Id,
-                Logins = new [] { userLogin }
-            };
+            var q = $@"
+            query Q($userId: string, $providerKey: string, $providerName: string) {{
+                p as var(func: eq(provider_key, $providerKey)) @filter(eq(login_provider, $providerName) AND eq(dgraph.type, ""{IdentityTypeNameOptions.UserLoginTypeName}"") AND eq(user_id, uid($userId)))
+            }}";
 
-            const string q = @"
-            query Q($user: string, $providerKey: string, $providerName: string, $loginProvider) {
-                u as var(func: uid($user))
-                p as var(func: eq(provider.key, $providerKey)) @filter(eq(provider.name, $providerName))
-            }";
-
-            var mu1 = new Mutation
+            var mu = new Mutation
             {
-                SetNquads = ByteString.CopyFromUtf8(@"
-                    uid(p) <provider.name> $providerName .
-                    uid(p) <provider.key> $providerKey .
-                    uid(p) <dgraph.type> Claim .
-                    uid(p) <dgraph.type> Claim .
-                "),
+                SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(userLogin)),
                 CommitNow = true,
-                Cond = "@if(eq(len(u), 1) AND eq(len(p), 0))"
-            };
-
-            var mu2 = new Mutation
-            {
-                SetNquads = ByteString.CopyFromUtf8("uid(u) <claims> uid(c) ."),
-                CommitNow = false,
-                Cond = "@if(eq(len(u), 1))"
+                Cond = "@if(eq(len(p), 0))"
             };
 
             var req = new Request { Query = q, CommitNow = true };
-            req.Mutations.AddRange(new[] { mu1, mu2 });
-            req.Vars.Add("$user", user.Id);
-            req.Vars.Add("$claimType", claim.Type);
-            req.Vars.Add("$claimValue", claim.Value);
+            req.Mutations.Add(mu);
+            req.Vars.Add("$userId", user.Id);
+            req.Vars.Add("$providerKey", userLogin.ProviderKey);
+            req.Vars.Add("$providerName", userLogin.LoginProvider);
 
             await using var txn = GetTransaction(cancellationToken);
-            await txn.Mutate(new Mutation { CommitNow = true, SetJson = ByteString.FromBase64(JsonConvert.SerializeObject(tUser)) });
+
+            try
+            {
+                await txn.Do(req);
+                FindUserLoginAsync(user.Id, userLogin.LoginProvider, userLogin.ProviderKey, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+
+                throw;
+            }
         }
 
         /// <summary>
@@ -488,20 +482,32 @@ namespace DGraph4Net.Identity
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey,
-            CancellationToken cancellationToken = default)
+        public override async Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey, CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
-            if (user == null)
+            CheckUser(user, cancellationToken);
+            CheckNull(loginProvider, nameof(loginProvider));
+            CheckNull(providerKey, nameof(providerKey));
+
+            var q = $@"
+            query Q($userId: string, $providerKey: string, $providerName: string) {{
+                p as var(func: eq(provider_key, $providerKey)) @filter(eq(login_provider, $providerName) AND eq(dgraph.type, ""{IdentityTypeNameOptions.UserLoginTypeName}"") AND eq(user_id, uid($userId)))
+            }}";
+
+            var mu = new Mutation
             {
-                throw new ArgumentNullException(nameof(user));
-            }
-            var entry = await FindUserLoginAsync(user.Id, loginProvider, providerKey, cancellationToken);
-            if (entry != null)
-            {
-                UserLogins.Remove(entry);
-            }
+                DelNquads = ByteString.CopyFromUtf8("uid(p) * * ."),
+                CommitNow = true,
+                Cond = "@if(eq(len(p), 1))"
+            };
+
+            var req = new Request { Query = q, CommitNow = true };
+            req.Mutations.Add(mu);
+            req.Vars.Add("$userId", user.Id);
+            req.Vars.Add("$providerKey", providerKey);
+            req.Vars.Add("$providerName", loginProvider);
+
+            await using var txn = GetTransaction(cancellationToken);
+            await txn.Do(req);
         }
 
         /// <summary>
