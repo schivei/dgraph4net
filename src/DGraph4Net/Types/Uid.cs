@@ -92,10 +92,10 @@ namespace System
 
         /// <inheritdoc/>
         public int CompareTo(Uid other) =>
-            string.Compare(_uid, other.ToString());
+            string.CompareOrdinal(_uid, other.ToString());
 
         public int CompareTo(object obj) =>
-            string.Compare(_uid, obj.ToString());
+            string.CompareOrdinal(_uid, obj.ToString());
 
         public bool Equals(Uid other) =>
             string.Equals(_uid, other.ToString());
@@ -112,14 +112,16 @@ namespace System
 
         private static string Clear(string uid, bool @throw = true)
         {
-            var reg = new Regex("^(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})$");
+            var reg = new Regex("^((<)?(0x[a-fA-F0-9]{1,16})(>)?|_:[a-zA-Z0-9_]{1,32})$");
             if (!reg.IsMatch(uid) && @throw)
                 throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
             if (!reg.IsMatch(uid))
                 return string.Empty;
 
-            return uid.ToLowerInvariant();
+            var matches = reg.Matches(uid);
+
+            return matches[0].Groups[3].Value.ToLowerInvariant();
         }
 
         public static Uid NewUid() =>

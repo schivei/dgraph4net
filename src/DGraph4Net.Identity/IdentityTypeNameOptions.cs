@@ -1,17 +1,26 @@
+using System.Reflection;
+using DGraph4Net.Annotations;
+
 namespace DGraph4Net.Identity
 {
-    public static class IdentityTypeNameOptions
+    internal sealed class IdentityTypeNameOptions<TUser, TRole, TUserToken, TUserClaim, TUserLogin, TRoleClaim>
+    where TUser : DUser
+    where TRole : DRole
+    where TUserClaim : DUserClaim
+    where TUserLogin : DUserLogin
+    where TUserToken : DUserToken
+    where TRoleClaim : DRoleClaim
     {
-        public static string UserTypeName { get; set; } = "AspNetUser";
+        public string UserTypeName => typeof(TUser).GetCustomAttribute<DGraphTypeAttribute>().Name;
 
-        public static string RoleTypeName { get; set; } = "AspNetRole";
+        public string RoleTypeName => typeof(TRole).GetCustomAttribute<DGraphTypeAttribute>().Name;
 
-        public static string UserTokenTypeName { get; set; } = "AspNetUserToken";
+        public string UserTokenTypeName => typeof(TUserToken).GetCustomAttribute<DGraphTypeAttribute>().Name;
 
-        public static string UserClaimTypeName { get; set; } = "AspNetUserClaim";
+        public string UserClaimTypeName => typeof(TUserClaim).GetCustomAttribute<DGraphTypeAttribute>().Name;
 
-        public static string RoleClaimTypeName { get; set; } = "AspNetRoleClaim";
+        public string RoleClaimTypeName => typeof(TRoleClaim).GetCustomAttribute<DGraphTypeAttribute>().Name;
 
-        public static string UserLoginTypeName { get; set; } = "AspNetUserLogin";
+        public string UserLoginTypeName => typeof(TUserLogin).GetCustomAttribute<DGraphTypeAttribute>().Name;
     }
 }

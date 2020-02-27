@@ -16,38 +16,37 @@ namespace System
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
-            if (reader.Value is null)
-                return null;
+            if (reader.Value is null || objectType != typeof(Uid))
+                return existingValue;
 
-            if (objectType == typeof(Uid) && reader.Value is Uid uid)
+            switch (reader.Value)
             {
-                return uid;
+                case Uid uid:
+                    return uid;
+                case string str:
+                    return new Uid(str);
             }
-            else if (objectType == typeof(string) && reader.Value is string str)
-            {
-                return new Uid(str);
-            }
-            else if (objectType == typeof(int) ||
-                objectType == typeof(uint) ||
-                objectType == typeof(long) ||
-                objectType == typeof(ulong) ||
-                objectType == typeof(byte) ||
-                objectType == typeof(char) ||
-                objectType == typeof(sbyte) ||
-                objectType == typeof(short) ||
-                objectType == typeof(ushort))
+
+            if (reader.Value is int ||
+                reader.Value is uint ||
+                reader.Value is long ||
+                reader.Value is ulong ||
+                reader.Value is byte ||
+                reader.Value is char ||
+                reader.Value is sbyte ||
+                reader.Value is short ||
+                reader.Value is ushort)
             {
                 return new Uid(Convert.ToUInt64(reader.Value), true);
             }
-            else
-            {
-                return null;
-            }
+
+            return existingValue;
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            writer.WriteValue((value as Uid?)?.ToString());
+            var uid = (value as Uid?)?.ToString();
+            writer.WriteValue(uid?.StartsWith("0x") == true ? $"<{uid}>" : uid);
         }
     }
 }

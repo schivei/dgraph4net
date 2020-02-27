@@ -15,7 +15,7 @@ namespace DGraph4Net.Tests
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
             // The port number(5000) must match the port of the gRPC server.
-            var channel = GrpcChannel.ForAddress("http://dev-360-es01beta.eastus2.cloudapp.azure.com:9080", new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress("http://localhost:9080", new GrpcChannelOptions
             {
                 Credentials = ChannelCredentials.Insecure
             });

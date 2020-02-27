@@ -80,21 +80,17 @@ namespace DGraph4Net.Tests
                 CommitNow = false
             };
 
-            var tx1 = dg.NewTransaction();
-
-            var tx2 = dg.NewTransaction();
+            var txn = dg.NewTransaction();
 
             var req = new Request { Query = q };
 
             req.Mutations.Add(mu);
 
-            await tx1.Do(req);
+            await txn.Do(req);
 
-            await tx2.Do(req);
+            await txn.Abort(req);
 
-            await tx1.Commit();
-
-            await ThrowsAsync<TransactionAbortedException>(() => tx2.Commit());
+            await ThrowsAsync<TransactionAbortedException>(() => txn.Commit());
         }
     }
 }

@@ -81,7 +81,7 @@ namespace DGraph4Net
             _dgraph = dgraph;
             LinkTokens(dgraph.GetTokenSource());
 
-            if (cancellationToken != null)
+            if (cancellationToken is null)
                 return;
 
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken.Value);
@@ -219,35 +219,33 @@ namespace DGraph4Net
             if (_finished)
                 throw ErrFinished;
 
-            if (!requests.Any())
+            var reqs = requests as Request[] ?? requests.ToArray();
+            if (!reqs.Any())
             {
                 _finished = true;
                 return new[] { new Response { Txn = _context, Latency = new Latency(), Metrics = new Metrics() } };
             }
 
-            if (requests.Any(x => x.CommitNow))
+            if (reqs.Any(x => x.CommitNow))
             {
                 if (_readOnly)
                     throw ErrReadOnly;
 
-                foreach (var req in requests)
-                {
+                foreach (var req in reqs)
                     req.CommitNow = true;
-                }
 
                 _mutated = true;
             }
 
             var co = _dgraph.GetOptions();
 
-            foreach (var req in requests.Where(r => r.StartTs == 0))
-            {
+            foreach (var req in reqs.Where(r => r.StartTs == 0))
                 req.StartTs = _context.StartTs;
-            }
 
-            var responses = await Task.WhenAll(requests.Select(async request =>
+            var responses = await Task.WhenAll(reqs.Select(async request =>
             {
                 Response resp = null;
+
                 try
                 {
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
@@ -263,6 +261,7 @@ namespace DGraph4Net
                 {
                     _finished = false;
                     await Abort(resp?.Txn, request, true);
+                    throw;
                 }
 #pragma warning restore CA1031 // Do not catch general exception types
                 finally
@@ -270,7 +269,7 @@ namespace DGraph4Net
                     _finished = false;
                 }
 
-                if (requests.All(r => r.CommitNow))
+                if (reqs.All(r => r.CommitNow))
                 {
                     MergeContext(resp?.Txn ?? _context);
                 }
@@ -280,7 +279,7 @@ namespace DGraph4Net
                 return resp;
             }));
 
-            if (requests.All(r => r.CommitNow))
+            if (reqs.All(r => r.CommitNow))
                 _finished = true;
 
             return responses;
@@ -299,9 +298,15 @@ namespace DGraph4Net
         /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
         public async Task<Response> Do(Request request)
         {
-            var responses = await Do(new [] { request });
+            var responses = await Do(new[] { request });
 
             return responses.First();
+        }
+
+        public Task Abort(Request req)
+        {
+            _context.Aborted = true;
+            return Abort(_context, req, true);
         }
 
         private async Task Abort(TxnContext txn, Request request, bool force = false)
@@ -358,10 +363,7 @@ namespace DGraph4Net
             if (_context.StartTs != 0 && request.StartTs == 0)
                 request.StartTs = _context.StartTs;
 
-            if (request.CommitNow)
-                return CommitOrAbort();
-
-            return Task.CompletedTask;
+            return request.CommitNow ? CommitOrAbort() : Task.CompletedTask;
         }
 
         /// <summary>
@@ -391,6 +393,9 @@ namespace DGraph4Net
 
             if (_finished)
                 throw ErrFinished;
+
+            if (_context.Aborted)
+                throw ErrAborted;
 
             try
             {
@@ -461,16 +466,16 @@ namespace DGraph4Net
             }
             catch (RpcException err)
             {
-                if (_dgraph.IsJwtExpired(err))
-                {
-                    await _dgraph.RetryLogin();
+                if (!_dgraph.IsJwtExpired(err))
+                    throw;
 
-                    var co = _dgraph.GetOptions();
-                    var ctx = await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
-                    _context.Aborted = ctx.Aborted;
+                await _dgraph.RetryLogin();
 
-                    _finished = true;
-                }
+                var co = _dgraph.GetOptions();
+                var ctx = await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+                _context.Aborted = ctx.Aborted;
+
+                _finished = true;
                 throw;
             }
         }

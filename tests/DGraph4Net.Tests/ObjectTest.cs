@@ -4,13 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 using DGraph4Net.Services;
 using Google.Protobuf;
-using Google.Protobuf.Collections;
-using JsonLD.Core;
-using JsonLD.Impl;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Xunit;
-using Assert = DGraph4Net.Tests.Assert;
 
 namespace DGraph4Net.Tests
 {
