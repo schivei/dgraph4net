@@ -48,7 +48,7 @@ namespace DGraph4Net.Identity
             }
         }
 
-        [JsonProperty("claims")]
+        [JsonProperty("claims"), JsonIgnore]
         public virtual ICollection<DRoleClaim> Claims { get; set; } = new List<DRoleClaim>();
 
         /// <summary>

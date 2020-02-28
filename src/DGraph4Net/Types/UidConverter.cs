@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 #nullable enable
 
@@ -45,8 +47,19 @@ namespace System
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            var uid = (value as Uid?)?.ToString();
-            writer.WriteValue(uid?.StartsWith("0x") == true ? $"<{uid}>" : uid);
+            var uid = (value as Uid?)?.ToString() ?? string.Empty;
+            if (writer.Path != "uid")
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("uid");
+            }
+
+            writer.WriteValue(uid);
+
+            if (writer.Path != "uid")
+            {
+                writer.WriteEndObject();
+            }
         }
     }
 }

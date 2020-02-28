@@ -27,16 +27,16 @@ namespace DGraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        [JsonProperty("claims")]
+        [JsonProperty("claims"), JsonIgnore]
         public virtual ICollection<DUserClaim> Claims { get; set; } = new List<DUserClaim>();
 
-        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole))]
+        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole)), JsonIgnore]
         public virtual ICollection<DRole> Roles { get; set; } = new List<DRole>();
 
-        [JsonProperty("logins")]
+        [JsonProperty("logins"), JsonIgnore]
         public virtual ICollection<DUserLogin> Logins { get; set; } = new List<DUserLogin>();
 
-        [JsonProperty("tokens")]
+        [JsonProperty("tokens"), JsonIgnore]
         public virtual ICollection<DUserToken> Tokens { get; set; } = new List<DUserToken>();
 
         private ICollection<string> _dType = new[] { "User" };
