@@ -7,37 +7,35 @@ using Newtonsoft.Json;
 
 namespace DGraph4Net.Identity
 {
-    [DGraphType("User")]
-    public class DUser : IdentityUser<Uid>, IEntity
+    [DGraphType("AspNetUser")]
+    public class DUser : DUser<DRole, DUserClaim, DUserLogin, DUserToken>
     {
-        protected bool Equals(DUser other)
-        {
-            return Id.Equals(other.Id);
-        }
+        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole)), JsonIgnore]
+        public override ICollection<DRole> Roles { get; set; } = new List<DRole>();
+    }
 
-        public override bool Equals(object obj)
-        {
-            if (obj is null) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((DUser) obj);
-        }
-
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S4035:Classes implementing \"IEquatable<T>\" should be sealed", Justification = "<Pending>")]
+    public abstract class DUser<TRole, TUserClaim, TUserLogin, TUserToken> : IdentityUser<Uid>, IEntity, IEquatable<DUser<TRole, TUserClaim, TUserLogin, TUserToken>>
+        where TRole : DRole
+        where TUserClaim : DUserClaim
+        where TUserLogin : DUserLogin
+        where TUserToken : DUserToken
+    {
         public override int GetHashCode()
         {
             return HashCode.Combine(Id);
         }
 
         [JsonProperty("claims"), JsonIgnore]
-        public virtual ICollection<DUserClaim> Claims { get; set; } = new List<DUserClaim>();
+        public virtual ICollection<TUserClaim> Claims { get; set; } = new List<TUserClaim>();
 
-        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole)), JsonIgnore]
-        public virtual ICollection<DRole> Roles { get; set; } = new List<DRole>();
+        public abstract ICollection<TRole> Roles { get; set; }
 
         [JsonProperty("logins"), JsonIgnore]
-        public virtual ICollection<DUserLogin> Logins { get; set; } = new List<DUserLogin>();
+        public virtual ICollection<TUserLogin> Logins { get; set; } = new List<TUserLogin>();
 
         [JsonProperty("tokens"), JsonIgnore]
-        public virtual ICollection<DUserToken> Tokens { get; set; } = new List<DUserToken>();
+        public virtual ICollection<TUserToken> Tokens { get; set; } = new List<TUserToken>();
 
         private ICollection<string> _dType = new[] { "User" };
 
@@ -120,10 +118,22 @@ namespace DGraph4Net.Identity
                 .ForEach(prop => prop.SetValue(this, prop.GetValue(usr)));
         }
 
-        public static bool operator ==(DUser usr, object other) =>
-            usr != null && usr.Equals(other);
+        public override bool Equals(object obj)
+        {
+            if (obj is null)
+                return false;
+            if (ReferenceEquals(this, obj))
+                return true;
+            return obj.GetType() == GetType() && Equals((DUser<TRole, TUserClaim, TUserLogin, TUserToken>)obj);
+        }
 
-        public static bool operator !=(DUser usr, object other) =>
-            !usr?.Equals(other) == true;
+        public bool Equals(DUser<TRole, TUserClaim, TUserLogin, TUserToken> other) =>
+            Id.Equals(other.Id);
+
+        public static bool operator ==(DUser<TRole, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
+            usr?.Equals(other) == true;
+
+        public static bool operator !=(DUser<TRole, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
+            usr?.Equals(other) != true;
     }
 }

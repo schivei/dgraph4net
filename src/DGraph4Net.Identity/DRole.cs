@@ -8,9 +8,9 @@ using Newtonsoft.Json;
 namespace DGraph4Net.Identity
 {
     [DGraphType("Role")]
-    public class DRole : IdentityRole<Uid>, IEntity
+    public class DRole : IdentityRole<Uid>, IEntity, IEquatable<DRole>
     {
-        protected bool Equals(DRole other)
+        public bool Equals(DRole other)
         {
             return Id.Equals(other.Id);
         }
