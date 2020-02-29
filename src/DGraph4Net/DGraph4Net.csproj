@@ -7,7 +7,7 @@
     <Company>Elton Schivei Costa</Company>
     <Product>DGraph for .NET Standard 2.1</Product>
     <Description>DGraph4Net is based on dgo (https://github.com/dgraph-io/dgo), a dgraph client for GoLang.</Description>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseFile></PackageLicenseFile>
     <PackageLicenseExpression>
     </PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/schivei/dgraph4net</PackageProjectUrl>
@@ -15,8 +15,8 @@
     <PackageIconUrl />
     <RepositoryUrl>https://github.com/schivei/dgraph4net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>dgraph client dotnet standard</PackageTags>
-    <PackageReleaseNotes>Initial Release</PackageReleaseNotes>
+    <PackageTags>dgraph,client,dotnet,standard</PackageTags>
+    <PackageReleaseNotes>DGraph 4 Net</PackageReleaseNotes>
     <DebugType>Full</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -38,11 +38,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\logo.png">
-      <Pack>True</Pack>
-      <PackagePath>
-      </PackagePath>
-    </None>
-    <None Include="..\..\LICENSE">
       <Pack>True</Pack>
       <PackagePath>
       </PackagePath>

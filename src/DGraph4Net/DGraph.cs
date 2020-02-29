@@ -119,7 +119,7 @@ namespace DGraph4Net
                 if (!IsJwtExpired(err))
                     throw;
 
-                await RetryLogin();
+                await RetryLogin().ConfigureAwait(false);
                 co = GetOptions();
                 return await dc.AlterAsync(operation, co);
             }

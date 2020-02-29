@@ -10,7 +10,7 @@
     <licenseUrl>https://github.com/schivei/dgraph4net/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/schivei/dgraph4net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/schivei/dgraph4net/master/logo.png</iconUrl>
-    <description>DGraph4Net is based on dgo (https://github.com/dgraph-io/dgo), a dgraph client for GoLang.</description>
+    <description>DGraph4Net Identity.</description>
     <releaseNotes>Added new dotnet features</releaseNotes>
     <copyright>Copyright 2020, Ciência em Cena</copyright>
     <tags>dgraph,client,dotnet</tags>
@@ -21,6 +21,8 @@
         <dependency id="Grpc.Net.ClientFactory" Version="2.27.0" />
         <dependency id="Grpc.Tools" Version="2.27.0"/>
         <dependency id="Newtonsoft.Json" Version="12.0.3" />
+        <dependency id="DGraph4Net" Version="0.2.0"/>
+        <dependency id="DGraph4Net.Annotations" Version="0.2.0"/>
       </group>
     </dependencies>
   </metadata>

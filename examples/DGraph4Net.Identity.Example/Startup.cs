@@ -40,7 +40,7 @@ namespace DGraph4Net.Identity.Example
             var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
             var dgraph = new DGraph(channel);
             // sends mapping to dgraph
-            var types = dgraph.Map();
+            var types = dgraph.Map(typeof(DUser).Assembly);
 
             services.AddIdentity<DUser, DRole>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoleStore<RoleStore>()

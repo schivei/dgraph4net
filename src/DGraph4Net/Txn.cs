@@ -255,7 +255,7 @@ namespace DGraph4Net
                     if (!_dgraph.IsJwtExpired(err))
                         throw;
 
-                    await _dgraph.RetryLogin();
+                    await _dgraph.RetryLogin().ConfigureAwait(false);
 
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
                 }
@@ -263,7 +263,7 @@ namespace DGraph4Net
                 catch
                 {
                     _finished = false;
-                    await Abort(resp?.Txn, request, true);
+                    await Abort(resp?.Txn, request, true).ConfigureAwait(false);
                     throw;
                 }
 #pragma warning restore CA1031 // Do not catch general exception types
@@ -277,10 +277,10 @@ namespace DGraph4Net
                     MergeContext(resp?.Txn ?? _context);
                 }
 
-                await Abort(resp?.Txn, request);
+                await Abort(resp?.Txn, request).ConfigureAwait(false);
 
                 return resp;
-            }));
+            })).ConfigureAwait(false);
 
             if (reqs.All(r => r.CommitNow))
                 _finished = true;
@@ -301,7 +301,8 @@ namespace DGraph4Net
         /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
         public async Task<Response> Do(Request request)
         {
-            var responses = await Do(new[] { request });
+            var responses = await Do(new[] { request })
+                .ConfigureAwait(false);
 
             return responses.First();
         }
@@ -317,7 +318,7 @@ namespace DGraph4Net
             var finished = _finished;
             try
             {
-                await Discard(txn ?? _context, request);
+                await Discard(txn ?? _context, request).ConfigureAwait(false);
             }
             catch (RpcException err)
             {
@@ -402,7 +403,7 @@ namespace DGraph4Net
 
             try
             {
-                await CommitOrAbort();
+                await CommitOrAbort().ConfigureAwait(false);
             }
             catch (RpcException err)
             {
@@ -472,7 +473,7 @@ namespace DGraph4Net
                 if (!_dgraph.IsJwtExpired(err))
                     throw;
 
-                await _dgraph.RetryLogin();
+                await _dgraph.RetryLogin().ConfigureAwait(false);
 
                 var co = _dgraph.GetOptions();
                 var ctx = await _dgraphClient.CommitOrAbortAsync(_context, co.Headers, cancellationToken: _cancellationTokenSource.Token);
@@ -488,22 +489,21 @@ namespace DGraph4Net
         {
             try
             {
-                if (!_disposed)
+                if (_disposed) return;
+
+                _disposed = true;
+                _finished = true;
+
+                if (disposing)
                 {
-                    _disposed = true;
-                    _finished = true;
-
-                    if (disposing)
-                    {
-                        _context = null;
-                        _dgraph = null;
-                        _dgraphClient = null;
-                        _cancellationTokenSource?.Cancel(false);
-                    }
-
-                    _cancellationTokenSource?.Dispose();
-                    _cancellationTokenSource = null;
+                    _context = null;
+                    _dgraph = null;
+                    _dgraphClient = null;
+                    _cancellationTokenSource?.Cancel(false);
                 }
+
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
             }
 #pragma warning disable CA1031 // Do not catch general exception types
             catch

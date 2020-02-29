@@ -19,10 +19,8 @@ namespace DGraph4Net
         /// <summary>
         /// Generates mapping
         /// </summary>
-        public static StringBuilder Map(this DGraph dGraph)
+        public static StringBuilder Map(this DGraph dGraph, params Assembly[] assemblies)
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
             var types = assemblies
                 .SelectMany(assembly => assembly.GetTypes()
                     .Where(t => t.GetCustomAttributes()
@@ -277,7 +275,7 @@ namespace DGraph4Net
                 Schema = schema
             };
 
-            dGraph.Alter(op).GetAwaiter().GetResult();
+            dGraph.Alter(op).ConfigureAwait(false).GetAwaiter().GetResult();
 
             return sb;
         }
