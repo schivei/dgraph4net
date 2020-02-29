@@ -7,19 +7,29 @@ using Newtonsoft.Json;
 
 namespace DGraph4Net.Identity
 {
-    [DGraphType("UserToken")]
-    public class DUserToken : IdentityUserToken<Uid>, IEntity
+    [DGraphType("AspNetUserToken")]
+    public class DUserToken : DUserToken<DUserToken, DUser>
     {
-        protected bool Equals(DUserToken other)
+        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
+        public override Uid UserId { get; set; }
+    }
+
+    public abstract class DUserToken<TUserToken, TUser> : IdentityUserToken<Uid>, IEntity, IEquatable<DUserToken<TUserToken, TUser>>
+        where TUser : class, new()
+        where TUserToken : DUserToken<TUserToken, TUser>, new()
+    {
+        public bool Equals(DUserToken<TUserToken, TUser> other)
         {
-            return Id.Equals(other.Id);
+            return Id.Equals(other?.Id);
         }
 
         public override bool Equals(object obj)
         {
-            if (obj is null) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((DUserToken) obj);
+            if (obj is null)
+                return false;
+            if (ReferenceEquals(this, obj))
+                return true;
+            return obj.GetType() == GetType() && Equals((DUserToken<TUserToken, TUser>)obj);
         }
 
         public override int GetHashCode()
@@ -27,22 +37,29 @@ namespace DGraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        private ICollection<string> _dType = new[] { "UserToken" };
+        protected DUserToken()
+        {
+            _dType = new[] { this.GetDType() };
+        }
+
+        private ICollection<string> _dType;
 
         [JsonProperty("dgraph.type")]
         public ICollection<string> DType
         {
             get
             {
-                if (_dType.All(dt => dt != "UserToken"))
-                    _dType.Add("UserToken");
+                var dtype = this.GetDType();
+                if (_dType.All(dt => dt != dtype))
+                    _dType.Add(dtype);
 
                 return _dType;
             }
             set
             {
-                if (value.All(dt => dt != "UserToken"))
-                    value.Add("UserToken");
+                var dtype = this.GetDType();
+                if (value.All(dt => dt != dtype))
+                    value.Add(dtype);
 
                 _dType = value;
             }
@@ -51,8 +68,7 @@ namespace DGraph4Net.Identity
         [JsonProperty("uid")]
         public virtual Uid Id { get; set; }
 
-        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
-        public override Uid UserId { get; set; }
+        public abstract override Uid UserId { get; set; }
 
         [JsonProperty("login_provider"), StringPredicate(Token = StringToken.Exact)]
         public override string LoginProvider { get; set; }
@@ -64,23 +80,23 @@ namespace DGraph4Net.Identity
         [ProtectedPersonalData]
         public override string Value { get; set; }
 
-        internal static TUserToken Initialize<TUserToken>(DUserToken userToken) where TUserToken : DUserToken, new()
+        internal static TUserToken Initialize(DUserToken<TUserToken, TUser> userToken)
         {
             var t = new TUserToken();
             t.Populate(userToken);
             return t;
         }
 
-        internal void Populate(DUserToken usr)
+        internal void Populate(DUserToken<TUserToken, TUser> usr)
         {
             GetType().GetProperties().ToList()
                 .ForEach(prop => prop.SetValue(this, prop.GetValue(usr)));
         }
 
-        public static bool operator ==(DUserToken usr, object other) =>
+        public static bool operator ==(DUserToken<TUserToken, TUser> usr, object other) =>
             usr != null && usr.Equals(other);
 
-        public static bool operator !=(DUserToken usr, object other) =>
+        public static bool operator !=(DUserToken<TUserToken, TUser> usr, object other) =>
             !usr?.Equals(other) == true;
     }
 }

@@ -18,48 +18,10 @@ namespace DGraph4Net.Identity
     /// Represents a new instance of a persistence store for users, using the default implementation
     /// of <see cref="IdentityUser{Uid}"/> with a string as a primary key.
     /// </summary>
-    public class UserStore : UserStore<DUser>
+    public class UserStore : UserStore<DUser, DRole, DUserClaim, DUserRole, DUserLogin, DUserToken, DRoleClaim>
     {
         /// <summary>
         /// Constructs a new instance of <see cref="UserStore"/>.
-        /// </summary>
-        /// <param name="context">The <see cref="DGraph"/>.</param>
-        /// <param name="logger"></param>
-        /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
-            base(context, logger, describer)
-        { }
-    }
-
-    /// <summary>
-    /// Creates a new instance of a persistence store for the specified user type.
-    /// </summary>
-    /// <typeparam name="TUser">The type representing a user.</typeparam>
-    public class UserStore<TUser> : UserStore<TUser, DRole>
-        where TUser : DUser, new()
-    {
-        /// <summary>
-        /// Constructs a new instance of <see cref="UserStore{TUser}"/>.
-        /// </summary>
-        /// <param name="context">The <see cref="DGraph"/>.</param>
-        /// <param name="logger"></param>
-        /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
-            base(context, logger, describer)
-        { }
-    }
-
-    /// <summary>
-    /// Represents a new instance of a persistence store for the specified user and role types.
-    /// </summary>
-    /// <typeparam name="TUser">The type representing a user.</typeparam>
-    /// <typeparam name="TRole">The type representing a role.</typeparam>
-    public class UserStore<TUser, TRole> : UserStore<TUser, TRole, DUserClaim, DUserRole, DUserLogin, DUserToken, DRoleClaim>
-        where TUser : DUser, new()
-        where TRole : DRole, new()
-    {
-        /// <summary>
-        /// Constructs a new instance of <see cref="UserStore{TUser, TRole}"/>.
         /// </summary>
         /// <param name="context">The <see cref="DGraph"/>.</param>
         /// <param name="logger"></param>
@@ -95,24 +57,21 @@ namespace DGraph4Net.Identity
         IUserTwoFactorRecoveryCodeStore<TUser>,
         IProtectedUserStore<TUser>,
         IAsyncDisposable
-        where TUser : DUser, new()
-        where TRole : DRole, new()
-        where TUserClaim : DUserClaim, new()
+        where TUser : DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>, new()
+        where TRole : DRole<TRole, TRoleClaim>, new()
+        where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
         where TUserRole : DUserRole, new()
-        where TUserLogin : DUserLogin, new()
-        where TUserToken : DUserToken, new()
-        where TRoleClaim : DRoleClaim, new()
+        where TUserLogin : DUserLogin<TUserLogin>, new()
+        where TUserToken : DUserToken<TUserToken, TUser>, new()
+        where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
     {
-        private readonly ILogger<UserStore> _logger;
+        private readonly ILogger<UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim>> _logger;
         private bool _disposed;
 
         /// <summary>
         /// Gets the database context for this store.
         /// </summary>
         public virtual DGraph Context { get; }
-
-        private static IdentityTypeNameOptions<TUser, TRole, TUserToken, TUserClaim, TUserLogin, TRoleClaim>
-            IdentityTypeNameOptions => new IdentityTypeNameOptions<TUser, TRole, TUserToken, TUserClaim, TUserLogin, TRoleClaim>();
 
         private Txn GetTransaction(CancellationToken cancellationToken = default) =>
             Context.NewTransaction(cancellationToken: cancellationToken);
@@ -123,7 +82,8 @@ namespace DGraph4Net.Identity
         /// <param name="context">The context used to access the store.</param>
         /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/> used to describe store errors.</param>
-        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
+        public UserStore(DGraph context, ILogger<UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin,
+            TUserToken, TRoleClaim>> logger, IdentityErrorDescriber describer = null) :
             this(logger, describer ?? new IdentityErrorDescriber()) =>
             Context = context ?? throw new ArgumentNullException(nameof(context));
 
@@ -132,12 +92,14 @@ namespace DGraph4Net.Identity
 
         public IdentityErrorDescriber ErrorDescriber { get; }
 
-        private UserStore(ILogger<UserStore> logger, IdentityErrorDescriber describer) : this(describer) => _logger = logger;
+        private UserStore(ILogger<UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin,
+            TUserToken, TRoleClaim>> logger, IdentityErrorDescriber describer) :
+            this(describer) => _logger = logger;
 
         private void ThrowIfDisposed()
         {
             if (_disposed)
-                throw new ObjectDisposedException(nameof(UserStore));
+                throw new ObjectDisposedException(nameof(UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim>));
         }
 
         /// <summary>
@@ -167,12 +129,16 @@ namespace DGraph4Net.Identity
             return Task.FromResult(user.UserName);
         }
 
-        public virtual Task SetUserNameAsync(TUser user, string userName, CancellationToken cancellationToken)
+        public virtual async Task SetUserNameAsync(TUser user, string userName, CancellationToken cancellationToken)
         {
             CheckUser(user, cancellationToken);
 
+            var usr = await FindByNameAsync(userName.ToUpperInvariant(), cancellationToken);
+
+            if (!(usr is null) && usr != user)
+                throw new AmbiguousMatchException("Name already exists.");
+
             user.UserName = userName;
-            return Task.CompletedTask;
         }
 
         public virtual Task<string> GetNormalizedUserNameAsync(TUser user, CancellationToken cancellationToken)
@@ -182,12 +148,16 @@ namespace DGraph4Net.Identity
             return Task.FromResult(user.NormalizedUserName);
         }
 
-        public virtual Task SetNormalizedUserNameAsync(TUser user, string normalizedName, CancellationToken cancellationToken)
+        public virtual async Task SetNormalizedUserNameAsync(TUser user, string normalizedName, CancellationToken cancellationToken)
         {
             CheckUser(user, cancellationToken);
 
+            var usr = await FindByNameAsync(normalizedName, cancellationToken);
+
+            if (!(usr is null) && usr != user)
+                throw new AmbiguousMatchException("Name already exists.");
+
             user.NormalizedUserName = normalizedName;
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -256,7 +226,7 @@ namespace DGraph4Net.Identity
         /// <param name="normalizedRoleName">The normalized role name.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The role if it exists.</returns>
-        protected virtual async Task<TRole> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
+        public virtual async Task<TRole> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -281,7 +251,7 @@ namespace DGraph4Net.Identity
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user role if it exists.</returns>
         // ReSharper disable once UnusedMember.Global
-        protected virtual async Task<TUserRole> FindUserRoleAsync(Uid userId, Uid roleId, CancellationToken cancellationToken)
+        public virtual async Task<TUserRole> FindUserRoleAsync(Uid userId, Uid roleId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -310,7 +280,7 @@ namespace DGraph4Net.Identity
         /// <param name="userId">The user's id.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user if it exists.</returns>
-        protected virtual async Task<TUser> FindUserAsync(Uid userId, CancellationToken cancellationToken)
+        public virtual async Task<TUser> FindUserAsync(Uid userId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -339,7 +309,7 @@ namespace DGraph4Net.Identity
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user login if it exists.</returns>
-        protected virtual async Task<TUserLogin> FindUserLoginAsync(Uid userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
+        public virtual async Task<TUserLogin> FindUserLoginAsync(Uid userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -362,7 +332,7 @@ namespace DGraph4Net.Identity
             if (userLogin != null)
                 userLogin.UserId = userId;
 
-            return userLogin as TUserLogin;
+            return userLogin;
         }
 
         /// <summary>
@@ -372,7 +342,7 @@ namespace DGraph4Net.Identity
         /// <param name="providerKey">The key provided by the <paramref name="loginProvider"/> to identify a user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user login if it exists.</returns>
-        protected virtual async Task<TUserLogin> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
+        public virtual async Task<TUserLogin> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -414,12 +384,12 @@ namespace DGraph4Net.Identity
             CheckUser(user, cancellationToken);
 
             if (!(user.Roles is null))
-                return user.Roles.Select(DRole.Initialize<TRole>).ToList();
+                return user.Roles.Select(DRole<TRole, TRoleClaim>.Initialize).ToList();
 
             var usr = await FindByIdAsync(user.Id, cancellationToken);
             user.Populate(usr);
 
-            return user.Roles?.Select(DRole.Initialize<TRole>).ToList() ?? new List<TRole>();
+            return user.Roles?.Select(DRole<TRole, TRoleClaim>.Initialize).ToList() ?? new List<TRole>();
         }
 
         /// <summary>
@@ -454,17 +424,19 @@ namespace DGraph4Net.Identity
             if (!(user.Claims is null))
                 return user.Claims.Select(c => c.ToClaim()).ToList();
 
+            var uctn = new TUserClaim().GetDType();
+
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($userId: string) {{
-                    claims(func: eq(dgraph.type, ""{IdentityTypeNameOptions.UserClaimTypeName}"")) @filter(uid_in(user_id, $userId)) {{
+                    claims(func: eq(dgraph.type, ""{uctn}"")) @filter(uid_in(user_id, $userId)) {{
                         uid
                         expand(_all_)
                     }}
                 }}", new Dictionary<string, string> { { "$userId", user.Id } });
 
-            user.Claims = JsonConvert.DeserializeObject<Dictionary<string, List<DUserClaim>>>
+            user.Claims = JsonConvert.DeserializeObject<Dictionary<string, List<TUserClaim>>>
                     (userResp.Json.ToStringUtf8())
-                .First(x => x.Key == "claims").Value ?? new List<DUserClaim>();
+                .First(x => x.Key == "claims").Value ?? new List<TUserClaim>();
 
             return user.Claims.Select(c => c.ToClaim()).ToList();
         }
@@ -484,18 +456,20 @@ namespace DGraph4Net.Identity
             if (!(user.Logins is null))
                 return user.Logins.Select(c => new UserLoginInfo(c.LoginProvider, c.ProviderKey, c.ProviderDisplayName)).ToList();
 
+            var ultn = new TUserLogin().GetDType();
+
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($userId: string) {{
-                    logins(func: eq(dgraph.type, ""{IdentityTypeNameOptions.UserLoginTypeName}"")) @filter(uid_in(user_id, $userId)) {{
+                    logins(func: eq(dgraph.type, ""{ultn}"")) @filter(uid_in(user_id, $userId)) {{
                         uid
                         expand(_all_)
                     }}
                 }}", new Dictionary<string, string> { { "$userId", user.Id } });
 
-            user.Logins = JsonConvert.DeserializeObject<Dictionary<string, List<DUserLogin>>>
+            user.Logins = JsonConvert.DeserializeObject<Dictionary<string, List<TUserLogin>>>
                                   (userResp.Json.ToStringUtf8())
                               .First(x => x.Key == "logins").Value ??
-                          new List<DUserLogin>();
+                          new List<TUserLogin>();
 
             return user.Logins.Select(c => new UserLoginInfo(c.LoginProvider, c.ProviderKey, c.ProviderDisplayName)).ToList();
         }
@@ -528,11 +502,10 @@ namespace DGraph4Net.Identity
 
             var usr = await FindByEmailAsync(email.ToUpperInvariant(), cancellationToken);
 
-            if (usr != null && usr != user)
+            if (!(usr is null) && usr != user)
                 throw new AmbiguousMatchException("Email already exists.");
 
             user.Email = email;
-
         }
 
         public virtual async Task<string> GetEmailAsync(TUser user, CancellationToken cancellationToken)
@@ -577,17 +550,19 @@ namespace DGraph4Net.Identity
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
+            var utn = new TUser().GetDType();
+
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
-                .QueryWithVars(@"query Q($userEmail: string) {
-                    user(func: eq(normalized_email, $userEmail)) {
+                .QueryWithVars($@"query Q($userEmail: string) {{
+                    user(func: eq(normalized_email, $userEmail)) @filter(eq(dgraph.type, ""{utn}"")) {{
                         uid
                         expand(_all_)
-                        roles {
+                        roles {{
                               uid
                               expand(_all_)
-                        }
-                    }
-                }", new Dictionary<string, string> { { "$userEmail", normalizedEmail } });
+                        }}
+                    }}
+                }}", new Dictionary<string, string> { { "$userEmail", normalizedEmail } });
 
             return JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
                 .First(x => x.Key == "user").Value?.FirstOrDefault();
@@ -612,7 +587,7 @@ namespace DGraph4Net.Identity
 
             var usr = await FindByEmailAsync(normalizedEmail, cancellationToken);
 
-            if (usr != null && usr != user)
+            if (!(usr is null) && usr != user)
                 throw new AmbiguousMatchException("Email already exists.");
 
             user.NormalizedEmail = normalizedEmail;
@@ -620,9 +595,11 @@ namespace DGraph4Net.Identity
 
         private async Task<IList<TUser>> GetUsersById(IEnumerable<Uid> uids, CancellationToken cancellationToken)
         {
+            var utn = new TUser().GetDType();
+
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .Query($@"{{
-                    users(func: uid({string.Join(',', uids)})) {{
+                    users(func: uid({string.Join(',', uids)})) @filter(eq(dgraph.type, ""{utn}"")) {{
                         uid
                         expand(_all_)
                         roles {{
@@ -651,9 +628,11 @@ namespace DGraph4Net.Identity
             ThrowIfDisposed();
             CheckNull(claim, nameof(claim));
 
+            var uctn = new TUserClaim().GetDType();
+
             var q = $@"
             query Q($claimType: string, $claimValue: string) {{
-                claims(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserClaimTypeName}"") AND eq(claim_value, $claimValue))) @normalize {{
+                claims(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{uctn}"") AND eq(claim_value, $claimValue))) @normalize {{
                     user_id {{
                         user_id: uid
                     }}
@@ -690,9 +669,11 @@ namespace DGraph4Net.Identity
             ThrowIfDisposed();
             CheckNull(normalizedRoleName, nameof(normalizedRoleName));
 
+            var rtn = new TRole().GetDType();
+
             var q = $@"
             query Q($normalizedRoleName: string) {{
-                uids(func: eq(normalized_rolename, $normalizedRoleName)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}"")) @normalize {{
+                uids(func: eq(normalized_rolename, $normalizedRoleName)) @filter(eq(dgraph.type, ""{rtn}"")) @normalize {{
                     ~roles {{
                         user_id: uid
                     }}
@@ -722,23 +703,25 @@ namespace DGraph4Net.Identity
         /// <param name="name">The name of the token.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The user token if it exists.</returns>
-        protected virtual async Task<TUserToken> FindTokenAsync(TUser user, string loginProvider, string name,
+        public virtual async Task<TUserToken> FindTokenAsync(TUser user, string loginProvider, string name,
             CancellationToken cancellationToken)
         {
             CheckUser(user, cancellationToken);
 
-            DUserToken token;
+            TUserToken token;
             if (user.Tokens?.Count > 0)
             {
                 token = user.Tokens
                     .LastOrDefault(x => x.LoginProvider == loginProvider && x.Name == name);
 
-                return token is null ? null : DUserToken.Initialize<TUserToken>(token);
+                return token is null ? null : DUserToken<TUserToken, TUser>.Initialize(token);
             }
+
+            var uttn = new TUserToken().GetDType();
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($userId: string) {{
-                    tokens(func: eq(dgraph.type, ""{IdentityTypeNameOptions.UserTokenTypeName}"")) @filter(uid_in(user_id, $userId)) @normalize {{
+                    tokens(func: eq(dgraph.type, ""{uttn}"")) @filter(uid_in(user_id, $userId)) @normalize {{
                         uid
                         user_id {{ user_id: uid }}
                         login_provider: login_provider
@@ -747,16 +730,16 @@ namespace DGraph4Net.Identity
                     }}
                 }}", new Dictionary<string, string> { { "$userId", user.Id } });
 
-            user.Tokens = JsonConvert.DeserializeObject<Dictionary<string, List<DUserToken>>>
+            user.Tokens = JsonConvert.DeserializeObject<Dictionary<string, List<TUserToken>>>
                                   (userResp.Json.ToStringUtf8())
                               .First(x => x.Key == "tokens").Value ??
-                          new List<DUserToken>();
+                          new List<TUserToken>();
 
             token = user.Tokens
                 .OrderByDescending(x => x.Id)
                 .FirstOrDefault(x => x.LoginProvider == loginProvider && x.Name == name);
 
-            return token is null ? null : DUserToken.Initialize<TUserToken>(token);
+            return token is null ? null : DUserToken<TUserToken, TUser>.Initialize(token);
         }
 
         public virtual Task SetPasswordHashAsync(TUser user, string passwordHash, CancellationToken cancellationToken)
@@ -945,7 +928,7 @@ namespace DGraph4Net.Identity
 
             foreach (var ut in tokens)
             {
-                await RemoveUserTokenAsync(ut as TUserToken);
+                await RemoveUserTokenAsync(ut);
 
                 user.Tokens?.Remove(ut);
             }
@@ -962,7 +945,7 @@ namespace DGraph4Net.Identity
 
             if (!token.Id.IsReferenceOnly && !token.Id.IsEmpty)
             {
-                user.Tokens ??= new List<DUserToken>();
+                user.Tokens ??= new List<TUserToken>();
                 user.Tokens.Add(token);
             }
         }
@@ -1103,7 +1086,9 @@ namespace DGraph4Net.Identity
 
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}"")) }}" };
+            var utn = new TUser().GetDType();
+
+            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(eq(dgraph.type, ""{utn}"")) }}" };
             var mu = new Mutation { CommitNow = true, Cond = "@if(eq(len(u), 1))", SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(user)) };
             req.Mutations.Add(mu);
             req.Vars.Add("$id", user.Id);
@@ -1134,9 +1119,11 @@ namespace DGraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
+            var utn = new TUser().GetDType();
+
             var q = $@"
             query Q($userName: string) {{
-                u as var(func: eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}"")) @filter(eq(normalized_username, $userName))
+                u as var(func: eq(dgraph.type, ""{utn}"")) @filter(eq(normalized_username, $userName))
             }}";
 
             var req = new Request
@@ -1229,10 +1216,13 @@ namespace DGraph4Net.Identity
             CheckUser(user, cancellationToken);
             CheckString(normalizedRoleName, nameof(normalizedRoleName));
 
+            var utn = new TUser().GetDType();
+            var rtn = new TRole().GetDType();
+
             var q = $@"
             query Q($userId: string, $roleName: string) {{
-                u as var(func: uid($userId)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}""))
-                r as var(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}""))
+                u as var(func: uid($userId)) @filter(eq(dgraph.type, ""{utn}""))
+                r as var(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{rtn}""))
             }}";
 
             var mu = new Mutation
@@ -1287,10 +1277,13 @@ namespace DGraph4Net.Identity
             CheckUser(user, cancellationToken);
             CheckString(normalizedRoleName, nameof(normalizedRoleName));
 
+            var utn = new TUser().GetDType();
+            var rtn = new TRole().GetDType();
+
             var q = $@"
             query Q($userId: string, $roleName: string) {{
-                u as var(func: uid($userId)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserTypeName}""))
-                r as var(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}""))
+                u as var(func: uid($userId)) @filter(eq(dgraph.type, ""{utn}""))
+                r as var(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{rtn}""))
             }}";
 
             var mu = new Mutation
@@ -1335,12 +1328,13 @@ namespace DGraph4Net.Identity
 
         private static Request CreateClaimRequest(TUser user, Claim claim)
         {
+            var uctn = new TUserClaim().GetDType();
             var q = $@"
             query Q($userId: string, $claimType: string) {{
-                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserClaimTypeName}"") AND uid_in(user_id, $userId))
+                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{uctn}"") AND uid_in(user_id, $userId))
             }}";
 
-            var uc = DUserClaim.InitializeFrom<TUserClaim>(user, claim);
+            var uc = DUserClaim<TUserClaim, TUser>.InitializeFrom(user, claim);
 
             var mu = new Mutation
             {
@@ -1359,9 +1353,11 @@ namespace DGraph4Net.Identity
 
         private static Request RemoveClaimRequest(TUser user, Claim claim)
         {
+            var uctn = new TUserClaim().GetDType();
+
             var q = $@"
             query Q($userId: string, $claimType: string) {{
-                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.UserClaimTypeName}"") AND uid_in(user_id, $userId))
+                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{uctn}"") AND uid_in(user_id, $userId))
             }}";
 
             var mu = new Mutation
@@ -1386,7 +1382,7 @@ namespace DGraph4Net.Identity
         /// <param name="claim">The claim to add to the user.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public Task AddClaimAsync(TUser user, Claim claim, CancellationToken cancellationToken) =>
+        public virtual Task AddClaimAsync(TUser user, Claim claim, CancellationToken cancellationToken) =>
             AddClaimsAsync(user, new[] { claim }, cancellationToken);
 
         /// <summary>
@@ -1465,7 +1461,7 @@ namespace DGraph4Net.Identity
         /// <param name="user">The associated user.</param>
         /// <param name="login">The sasociated login.</param>
         /// <returns></returns>
-        protected virtual TUserLogin CreateUserLogin(TUser user, UserLoginInfo login)
+        public virtual TUserLogin CreateUserLogin(TUser user, UserLoginInfo login)
         {
             return new TUserLogin
             {
@@ -1490,9 +1486,11 @@ namespace DGraph4Net.Identity
 
             var userLogin = CreateUserLogin(user, login);
 
+            var ultn = new TUserLogin().GetDType();
+
             var q = $@"
             query Q($userId: string, $providerKey: string, $providerName: string) {{
-                p as var(func: eq(provider_key, $providerKey)) @filter(eq(login_provider, $providerName) AND eq(dgraph.type, ""{IdentityTypeNameOptions.UserLoginTypeName}"") AND uid_in(user_id, $userId))
+                p as var(func: eq(provider_key, $providerKey)) @filter(eq(login_provider, $providerName) AND eq(dgraph.type, ""{ultn}"") AND uid_in(user_id, $userId))
             }}";
 
             var mu = new Mutation
@@ -1539,9 +1537,11 @@ namespace DGraph4Net.Identity
             CheckNull(loginProvider, nameof(loginProvider));
             CheckNull(providerKey, nameof(providerKey));
 
+            var ultn = new TUserLogin().GetDType();
+
             var q = $@"
             query Q($userId: string, $providerKey: string, $providerName: string) {{
-                p as var(func: eq(provider_key, $providerKey)) @filter(eq(login_provider, $providerName) AND eq(dgraph.type, ""{IdentityTypeNameOptions.UserLoginTypeName}"") AND uid_in(user_id, $userId))
+                p as var(func: eq(provider_key, $providerKey)) @filter(eq(login_provider, $providerName) AND eq(dgraph.type, ""{ultn}"") AND uid_in(user_id, $userId))
             }}";
 
             var mu = new Mutation
@@ -1581,7 +1581,7 @@ namespace DGraph4Net.Identity
         /// </summary>
         /// <param name="token">The token to be added.</param>
         /// <returns></returns>
-        protected virtual async Task AddUserTokenAsync(TUserToken token)
+        public virtual async Task AddUserTokenAsync(TUserToken token)
         {
             CheckNull(token, nameof(token));
 
@@ -1611,13 +1611,15 @@ namespace DGraph4Net.Identity
         /// </summary>
         /// <param name="token">The token to be removed.</param>
         /// <returns></returns>
-        protected virtual async Task RemoveUserTokenAsync(TUserToken token)
+        public virtual async Task RemoveUserTokenAsync(TUserToken token)
         {
             CheckNull(token, nameof(token));
 
+            var uttn = new TUserToken().GetDType();
+
             var q = $@"
             query Q($userId: string, $loginProvider: string, $name: string) {{
-                p as var(func: eq(name, $name)) @filter(eq(login_provider, $loginProvider) AND eq(dgraph.type, ""{IdentityTypeNameOptions.UserTokenTypeName}"") AND uid_in(user_id, $userId))
+                p as var(func: eq(name, $name)) @filter(eq(login_provider, $loginProvider) AND eq(dgraph.type, ""{uttn}"") AND uid_in(user_id, $userId))
             }}";
 
             var mu = new Mutation

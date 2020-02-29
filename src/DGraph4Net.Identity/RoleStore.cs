@@ -12,15 +12,42 @@ using Newtonsoft.Json;
 
 namespace DGraph4Net.Identity
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
-    public class RoleStore : RoleStore<DRole>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "<Pending>")]
+    public class RoleStore : RoleStore<DRole, DRoleClaim>
     {
-        private readonly ILogger<RoleStore> _logger;
+        public RoleStore(ILogger<RoleStore> logger, DGraph context, IdentityErrorDescriber describer) :
+            base(logger, context, describer)
+        {
+        }
+    }
 
-        public RoleStore(ILogger<RoleStore> logger, DGraph context, IdentityErrorDescriber describer) : base(context, describer)
+    /// <summary>
+    /// Creates a new instance of a persistence store for roles.
+    /// </summary>
+    /// <typeparam name="TRole">The type of the class representing a role.</typeparam>
+    /// <typeparam name="TRoleClaim"></typeparam>
+    public class RoleStore<TRole, TRoleClaim> :
+        IRoleClaimStore<TRole>,
+        IAsyncDisposable
+        where TRole : DRole<TRole, TRoleClaim>, new()
+        where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
+    {
+        /// <summary>
+        /// Constructs a new instance of <see cref="RoleStoreBase{TRole, TKey, TUserRole, TRoleClaim}"/>.
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="context"></param>
+        /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
+        protected RoleStore(ILogger<RoleStore<TRole, TRoleClaim>> logger, DGraph context,
+            IdentityErrorDescriber describer)
         {
             _logger = logger;
+            Context = context;
+            ErrorDescriber = describer ?? throw new ArgumentNullException(nameof(describer));
         }
+
+        private readonly ILogger<RoleStore<TRole, TRoleClaim>> _logger;
 
         private IdentityResult CreateError(Exception exception)
         {
@@ -30,13 +57,15 @@ namespace DGraph4Net.Identity
             return IdentityResult.Failed(e);
         }
 
-        public override async Task<IdentityResult> CreateAsync(DRole role, CancellationToken cancellationToken = default)
+        public virtual async Task<IdentityResult> CreateAsync(TRole role, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
 
+            var rtn = new TRole().GetDType();
+
             var q = $@"
             query Q($roleName: string) {{
-                u as var(func: eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}"")) @filter(eq(normalized_rolename, $roleName))
+                u as var(func: eq(dgraph.type, ""{rtn}"")) @filter(eq(normalized_rolename, $roleName))
             }}";
 
             var req = new Request
@@ -64,6 +93,7 @@ namespace DGraph4Net.Identity
 
                 return response.Uids.Count == 0 ? IdentityResult.Failed(ErrorDescriber.DuplicateUserName(role.NormalizedName)) : IdentityResult.Success;
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
                 var e = ErrorDescriber.DefaultError();
@@ -71,15 +101,18 @@ namespace DGraph4Net.Identity
 
                 return IdentityResult.Failed(e);
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        public override async Task<IdentityResult> UpdateAsync(DRole role, CancellationToken cancellationToken = default)
+        public virtual async Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
 
             role.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}"")) }}" };
+            var rtn = new TRole().GetDType();
+
+            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(eq(dgraph.type, ""{rtn}"")) }}" };
             var mu = new Mutation { CommitNow = true, Cond = "@if(eq(len(u, 1)))", SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(role)) };
             req.Mutations.Add(mu);
             await using var txn = GetTransaction(cancellationToken);
@@ -87,6 +120,7 @@ namespace DGraph4Net.Identity
             {
                 await txn.Do(req);
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
                 var e = ErrorDescriber.ConcurrencyFailure();
@@ -94,10 +128,11 @@ namespace DGraph4Net.Identity
 
                 return IdentityResult.Failed(e);
             }
+#pragma warning restore CA1031 // Do not catch general exception types
             return IdentityResult.Success;
         }
 
-        public override async Task<IdentityResult> DeleteAsync(DRole role, CancellationToken cancellationToken = default)
+        public virtual async Task<IdentityResult> DeleteAsync(TRole role, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
 
@@ -117,42 +152,53 @@ namespace DGraph4Net.Identity
                 if (!resp.TryGetValue("code", out var s) || s?.ToString() != "Success")
                     return IdentityResult.Failed(ErrorDescriber.DefaultError());
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
                 return CreateError(ex);
             }
+#pragma warning restore CA1031 // Do not catch general exception types
 
             return IdentityResult.Success;
         }
 
-        public override async Task<DRole> FindByIdAsync(string id, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Finds the role who has the specified ID as an asynchronous operation.
+        /// </summary>
+        /// <param name="id">The role ID to look for.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
+        public virtual async Task<TRole> FindByIdAsync(string id, CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed(cancellationToken);
             CheckNull(id, nameof(id));
 
             Uid roleId = id;
 
+            var rtn = new TRole().GetDType();
+
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($roleId string) {{
-                    role(func: uid($roleId)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}"")) {{
+                    role(func: uid($roleId)) @filter(eq(dgraph.type, ""{rtn}"")) {{
                         uid
                         expand(_all_)
                     }}
                 }}", new Dictionary<string, string> { { "$roleId", roleId } });
 
-            return JsonConvert.DeserializeObject<Dictionary<string, List<DRole>>>(userResp.Json.ToStringUtf8())
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TRole>>>(userResp.Json.ToStringUtf8())
                 .First(x => x.Key == "role").Value?.FirstOrDefault();
         }
 
-        public override async Task<DRole> FindByNameAsync(string normalizedName,
-            CancellationToken cancellationToken = default)
+        public virtual async Task<TRole> FindByNameAsync(string normalizedName, CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed(cancellationToken);
             CheckNull(normalizedName, nameof(normalizedName));
 
+            var rtn = new TRole().GetDType();
+
             var roleResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($roleName string) {{
-                    role(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleTypeName}"")) {{
+                    role(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{rtn}"")) {{
                         uid
                         expand(_all_)
                         claims {{
@@ -162,11 +208,11 @@ namespace DGraph4Net.Identity
                     }}
                 }}", new Dictionary<string, string> { { "$roleName", normalizedName } });
 
-            return JsonConvert.DeserializeObject<Dictionary<string, List<DRole>>>(roleResp.Json.ToStringUtf8())
+            return JsonConvert.DeserializeObject<Dictionary<string, List<TRole>>>(roleResp.Json.ToStringUtf8())
                 .First(x => x.Key == "role").Value?.FirstOrDefault();
         }
 
-        public override async Task<IList<Claim>> GetClaimsAsync(DRole role, CancellationToken cancellationToken = default)
+        public virtual async Task<IList<Claim>> GetClaimsAsync(TRole role, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
 
@@ -179,14 +225,16 @@ namespace DGraph4Net.Identity
             return role.Claims.Select(c => c.ToClaim()).ToList();
         }
 
-        private static Request CreateClaimRequest(DRole role, Claim claim)
+        private static Request CreateClaimRequest(TRole role, Claim claim)
         {
+            var rctn = new TRoleClaim().GetDType();
+
             var q = $@"
             query Q($roleId: string, $claimType: string) {{
-                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleClaimTypeName}"") AND eq(role_id, uid($roleId))))
+                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{rctn}"") AND eq(role_id, uid($roleId))))
             }}";
 
-            var rc = DRoleClaim.InitializeFrom<DRoleClaim>(role, claim);
+            var rc = DRoleClaim<TRoleClaim, TRole>.InitializeFrom(role, claim);
 
             var mu = new Mutation
             {
@@ -203,11 +251,13 @@ namespace DGraph4Net.Identity
             return req;
         }
 
-        private static Request RemoveClaimRequest(IEntity role, Claim claim)
+        private static Request RemoveClaimRequest(TRole role, Claim claim)
         {
+            var rctn = new TRoleClaim().GetDType();
+
             var q = $@"
             query Q($roleId: string, $claimType: string) {{
-                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{IdentityTypeNameOptions.RoleClaimTypeName}"") AND eq(role_id, uid($roleId)))
+                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{rctn}"") AND eq(role_id, uid($roleId)))
             }}";
 
             var mu = new Mutation
@@ -232,7 +282,7 @@ namespace DGraph4Net.Identity
         /// <param name="claim">The claim to add to the role.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public override Task AddClaimAsync(DRole role, Claim claim, CancellationToken cancellationToken = default) =>
+        public virtual Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default) =>
             AddClaimsAsync(role, new[] { claim }, cancellationToken);
 
         /// <summary>
@@ -242,7 +292,7 @@ namespace DGraph4Net.Identity
         /// <param name="claims">The claim to add to the role.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual async Task AddClaimsAsync(DRole role, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
+        public virtual async Task AddClaimsAsync(TRole role, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
             claims ??= Array.Empty<Claim>();
@@ -261,7 +311,7 @@ namespace DGraph4Net.Identity
             }
         }
 
-        public override Task RemoveClaimAsync(DRole role, Claim claim, CancellationToken cancellationToken = default)
+        public virtual Task RemoveClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
             => RemoveClaimsAsync(role, new[] { claim }, cancellationToken);
 
         /// <summary>
@@ -271,7 +321,7 @@ namespace DGraph4Net.Identity
         /// <param name="claims">The claim to remove.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual async Task RemoveClaimsAsync(DRole role, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
+        public virtual async Task RemoveClaimsAsync(TRole role, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
             CheckNull(claims, nameof(claims));
@@ -289,32 +339,8 @@ namespace DGraph4Net.Identity
                 throw;
             }
         }
-    }
-
-    /// <summary>
-    /// Creates a new instance of a persistence store for roles.
-    /// </summary>
-    /// <typeparam name="TRole">The type of the class representing a role.</typeparam>
-    public abstract class RoleStore<TRole> :
-        IRoleClaimStore<TRole>,
-        IAsyncDisposable
-        where TRole : DRole, new()
-    {
-        /// <summary>
-        /// Constructs a new instance of <see cref="RoleStoreBase{TRole, TKey, TUserRole, TRoleClaim}"/>.
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        protected RoleStore(DGraph context, IdentityErrorDescriber describer)
-        {
-            Context = context;
-            ErrorDescriber = describer ?? throw new ArgumentNullException(nameof(describer));
-        }
 
         private bool _disposed;
-
-        internal static IdentityTypeNameOptions<DUser, DRole, DUserToken, DUserClaim, DUserLogin, DRoleClaim>
-            IdentityTypeNameOptions => new IdentityTypeNameOptions<DUser, DRole, DUserToken, DUserClaim, DUserLogin, DRoleClaim>();
 
         protected Txn GetTransaction(CancellationToken cancellationToken = default) =>
             Context.NewTransaction(cancellationToken: cancellationToken);
@@ -354,36 +380,12 @@ namespace DGraph4Net.Identity
             CheckNull(role, nameof(role));
         }
 
-        public DGraph Context { get; }
+        public virtual DGraph Context { get; }
 
         /// <summary>
         /// Gets or sets the <see cref="IdentityErrorDescriber"/> for any error that occurred with the current operation.
         /// </summary>
         public IdentityErrorDescriber ErrorDescriber { get; set; }
-
-        /// <summary>
-        /// Creates a new role in a store as an asynchronous operation.
-        /// </summary>
-        /// <param name="role">The role to create in the store.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>A <see cref="Task{TResult}"/> that represents the <see cref="IdentityResult"/> of the asynchronous query.</returns>
-        public abstract Task<IdentityResult> CreateAsync(TRole role, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Updates a role in a store as an asynchronous operation.
-        /// </summary>
-        /// <param name="role">The role to update in the store.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>A <see cref="Task{TResult}"/> that represents the <see cref="IdentityResult"/> of the asynchronous query.</returns>
-        public abstract Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Deletes a role from the store as an asynchronous operation.
-        /// </summary>
-        /// <param name="role">The role to delete from the store.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>A <see cref="Task{TResult}"/> that represents the <see cref="IdentityResult"/> of the asynchronous query.</returns>
-        public abstract Task<IdentityResult> DeleteAsync(TRole role, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the ID for a role from the store as an asynchronous operation.
@@ -432,23 +434,6 @@ namespace DGraph4Net.Identity
         /// <returns>An <see cref="string"/> representation of the provided <paramref name="id"/>.</returns>
         public virtual string ConvertIdToString(Uid id) =>
             id;
-
-        /// <summary>
-        /// Finds the role who has the specified ID as an asynchronous operation.
-        /// </summary>
-        /// <param name="id">The role ID to look for.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
-        public abstract Task<TRole> FindByIdAsync(string id, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Finds the role who has the specified normalized name as an asynchronous operation.
-        /// </summary>
-        /// <param name="normalizedName">The normalized role name to look for.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>A <see cref="Task{TResult}"/> that result of the look up.</returns>
-        public abstract Task<TRole> FindByNameAsync(string normalizedName,
-            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get a role's normalized name as an asynchronous operation.
@@ -511,31 +496,5 @@ namespace DGraph4Net.Identity
                 Dispose(true);
             }));
         }
-
-        /// <summary>
-        /// Get the claims associated with the specified <paramref name="role"/> as an asynchronous operation.
-        /// </summary>
-        /// <param name="role">The role whose claims should be retrieved.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>A <see cref="Task{TResult}"/> that contains the claims granted to a role.</returns>
-        public abstract Task<IList<Claim>> GetClaimsAsync(TRole role, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Adds the <paramref name="claim"/> given to the specified <paramref name="role"/>.
-        /// </summary>
-        /// <param name="role">The role to add the claim to.</param>
-        /// <param name="claim">The claim to add to the role.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public abstract Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Removes the <paramref name="claim"/> given from the specified <paramref name="role"/>.
-        /// </summary>
-        /// <param name="role">The role to remove the claim from.</param>
-        /// <param name="claim">The claim to remove from the role.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
-        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public abstract Task RemoveClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default);
     }
 }

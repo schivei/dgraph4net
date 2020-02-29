@@ -8,18 +8,19 @@ using Newtonsoft.Json;
 namespace DGraph4Net.Identity
 {
     [DGraphType("AspNetUser")]
-    public class DUser : DUser<DRole, DUserClaim, DUserLogin, DUserToken>
+    public class DUser : DUser<DUser, DRole, DRoleClaim, DUserClaim, DUserLogin, DUserToken>
     {
         [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole)), JsonIgnore]
         public override ICollection<DRole> Roles { get; set; } = new List<DRole>();
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S4035:Classes implementing \"IEquatable<T>\" should be sealed", Justification = "<Pending>")]
-    public abstract class DUser<TRole, TUserClaim, TUserLogin, TUserToken> : IdentityUser<Uid>, IEntity, IEquatable<DUser<TRole, TUserClaim, TUserLogin, TUserToken>>
-        where TRole : DRole
-        where TUserClaim : DUserClaim
-        where TUserLogin : DUserLogin
-        where TUserToken : DUserToken
+    public abstract class DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> : IdentityUser<Uid>, IEntity, IEquatable<DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>>
+        where TUser : DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>, new()
+        where TRole : DRole<TRole, TRoleClaim>, new()
+        where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
+        where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
+        where TUserLogin : DUserLogin<TUserLogin>, new()
+        where TUserToken : DUserToken<TUserToken, TUser>, new()
     {
         public override int GetHashCode()
         {
@@ -29,6 +30,8 @@ namespace DGraph4Net.Identity
         [JsonProperty("claims"), JsonIgnore]
         public virtual ICollection<TUserClaim> Claims { get; set; } = new List<TUserClaim>();
 
+        // ReSharper disable once UnusedMember.Global
+        // ReSharper disable once UnusedMemberInSuper.Global
         public abstract ICollection<TRole> Roles { get; set; }
 
         [JsonProperty("logins"), JsonIgnore]
@@ -37,22 +40,29 @@ namespace DGraph4Net.Identity
         [JsonProperty("tokens"), JsonIgnore]
         public virtual ICollection<TUserToken> Tokens { get; set; } = new List<TUserToken>();
 
-        private ICollection<string> _dType = new[] { "User" };
+        protected DUser()
+        {
+            _dType = new[] { this.GetDType() };
+        }
+
+        private ICollection<string> _dType;
 
         [JsonProperty("dgraph.type")]
         public ICollection<string> DType
         {
             get
             {
-                if (_dType.All(dt => dt != "User"))
-                    _dType.Add("User");
+                var dtype = this.GetDType();
+                if (_dType.All(dt => dt != dtype))
+                    _dType.Add(dtype);
 
                 return _dType;
             }
             set
             {
-                if (value.All(dt => dt != "User"))
-                    value.Add("User");
+                var dtype = this.GetDType();
+                if (value.All(dt => dt != dtype))
+                    value.Add(dtype);
 
                 _dType = value;
             }
@@ -60,7 +70,7 @@ namespace DGraph4Net.Identity
 
         [PersonalData]
         [JsonProperty("password_hash"), StringPredicate]
-        public override string PasswordHash { get => base.PasswordHash; set => base.PasswordHash = value; }
+        public override string PasswordHash { get; set; }
 
         [JsonProperty("lockout_end"), DateTimePredicate(Token = DateTimeToken.Hour)]
         public override DateTimeOffset? LockoutEnd { get; set; }
@@ -111,7 +121,7 @@ namespace DGraph4Net.Identity
         [JsonProperty("access_failed_count"), CommonPredicate]
         public override int AccessFailedCount { get; set; }
 
-        internal void Populate(DUser usr)
+        internal void Populate(TUser usr)
         {
             GetType().GetProperties()
                 .Where(prop => prop.GetValue(usr) != null).ToList()
@@ -124,16 +134,16 @@ namespace DGraph4Net.Identity
                 return false;
             if (ReferenceEquals(this, obj))
                 return true;
-            return obj.GetType() == GetType() && Equals((DUser<TRole, TUserClaim, TUserLogin, TUserToken>)obj);
+            return obj is TUser usr && Equals(usr);
         }
 
-        public bool Equals(DUser<TRole, TUserClaim, TUserLogin, TUserToken> other) =>
-            Id.Equals(other.Id);
+        public bool Equals(DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> other) =>
+            Id.Equals(other?.Id);
 
-        public static bool operator ==(DUser<TRole, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
+        public static bool operator ==(DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
             usr?.Equals(other) == true;
 
-        public static bool operator !=(DUser<TRole, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
+        public static bool operator !=(DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
             usr?.Equals(other) != true;
     }
 }

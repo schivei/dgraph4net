@@ -8,19 +8,27 @@ using Newtonsoft.Json;
 
 namespace DGraph4Net.Identity
 {
-    [DGraphType("UserClaim")]
-    public class DUserClaim : IdentityUserClaim<Uid>, IEntity
+    [DGraphType("AspNetUserClaim")]
+    public class DUserClaim : DUserClaim<DUserClaim, DUser>
     {
-        protected bool Equals(DUserClaim other)
+        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
+        public override Uid UserId { get; set; }
+    }
+
+    public abstract class DUserClaim<TUserClaim, TUser> : IdentityUserClaim<Uid>, IEntity
+        where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
+        where TUser : IEntity, new()
+    {
+        protected bool Equals(DUserClaim<TUserClaim, TUser> other)
         {
-            return Id.Equals(other.Id);
+            return Id.Equals(other?.Id);
         }
 
         public override bool Equals(object obj)
         {
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((DUserClaim) obj);
+            return obj.GetType() == GetType() && Equals((DUserClaim<TUserClaim, TUser>) obj);
         }
 
         public override int GetHashCode()
@@ -28,41 +36,46 @@ namespace DGraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        private ICollection<string> _dType = new[] { "UserClaim" };
+        protected DUserClaim()
+        {
+            _dType = new[] { this.GetDType() };
+        }
+
+        private ICollection<string> _dType;
 
         [JsonProperty("dgraph.type")]
         public ICollection<string> DType
         {
             get
             {
-                if (_dType.All(dt => dt != "UserClaim"))
-                    _dType.Add("UserClaim");
+                var dtype = this.GetDType();
+                if (_dType.All(dt => dt != dtype))
+                    _dType.Add(dtype);
 
                 return _dType;
             }
             set
             {
-                if (value.All(dt => dt != "UserClaim"))
-                    value.Add("UserClaim");
+                var dtype = this.GetDType();
+                if (value.All(dt => dt != dtype))
+                    value.Add(dtype);
 
                 _dType = value;
             }
         }
 
         [JsonProperty("uid")]
-        public new Uid Id { get => base.Id; set => base.Id = Convert.ToInt32(value.ToString().Substring(2), 16); }
+        public new Uid Id { get; set; }
 
         [JsonProperty("claim_value"), StringPredicate(Token = StringToken.Term, Fulltext = true)]
-        public override string ClaimValue { get => base.ClaimValue; set => base.ClaimValue = value; }
-
+        public override string ClaimValue { get; set; }
 
         [JsonProperty("claim_type"), StringPredicate(Token = StringToken.Exact)]
-        public override string ClaimType { get => base.ClaimType; set => base.ClaimType = value; }
+        public override string ClaimType { get; set; }
 
-        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
-        public override Uid UserId { get => base.UserId; set => base.UserId = value; }
+        public override Uid UserId { get; set; }
 
-        public static TUserClaim InitializeFrom<TUserClaim>(DUser user, Claim claim) where TUserClaim : DUserClaim, new()
+        public static TUserClaim InitializeFrom(TUser user, Claim claim)
         {
             return new TUserClaim
             {
@@ -73,10 +86,10 @@ namespace DGraph4Net.Identity
             };
         }
 
-        public static bool operator ==(DUserClaim usr, object other) =>
+        public static bool operator ==(DUserClaim<TUserClaim, TUser> usr, object other) =>
             usr != null && usr.Equals(other);
 
-        public static bool operator !=(DUserClaim usr, object other) =>
+        public static bool operator !=(DUserClaim<TUserClaim, TUser> usr, object other) =>
             !usr?.Equals(other) == true;
     }
 }

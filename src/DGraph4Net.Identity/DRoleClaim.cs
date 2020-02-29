@@ -8,19 +8,27 @@ using Newtonsoft.Json;
 
 namespace DGraph4Net.Identity
 {
-    [DGraphType("RoleClaim")]
-    public class DRoleClaim : IdentityRoleClaim<Uid>, IEntity
+    [DGraphType("AspNetRoleClaim")]
+    public class DRoleClaim : DRoleClaim<DRoleClaim, DRole>
     {
-        protected bool Equals(DRoleClaim other)
+        [JsonProperty("role_id"), PredicateReferencesTo(typeof(DRole)), CommonPredicate]
+        public override Uid RoleId { get; set; }
+    }
+
+    public abstract class DRoleClaim<TRoleClaim, TRole> : IdentityRoleClaim<Uid>, IEntity
+        where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
+        where TRole : DRole<TRole, TRoleClaim>, new()
+    {
+        protected bool Equals(DRoleClaim<TRoleClaim, TRole> other)
         {
-            return Id.Equals(other.Id);
+            return Id.Equals(other?.Id);
         }
 
         public override bool Equals(object obj)
         {
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((DRoleClaim) obj);
+            return obj.GetType() == GetType() && Equals((DRoleClaim<TRoleClaim, TRole>) obj);
         }
 
         public override int GetHashCode()
@@ -28,22 +36,29 @@ namespace DGraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        private ICollection<string> _dType = new[] { "RoleClaim" };
+        protected DRoleClaim()
+        {
+            _dType = new[] { this.GetDType() };
+        }
+
+        private ICollection<string> _dType;
 
         [JsonProperty("dgraph.type")]
         public ICollection<string> DType
         {
             get
             {
-                if (_dType.All(dt => dt != "RoleClaim"))
-                    _dType.Add("RoleClaim");
+                var dtype = this.GetDType();
+                if (_dType.All(dt => dt != dtype))
+                    _dType.Add(dtype);
 
                 return _dType;
             }
             set
             {
-                if (value.All(dt => dt != "RoleClaim"))
-                    value.Add("RoleClaim");
+                var dtype = this.GetDType();
+                if (value.All(dt => dt != dtype))
+                    value.Add(dtype);
 
                 _dType = value;
             }
@@ -53,15 +68,14 @@ namespace DGraph4Net.Identity
         public new Uid Id { get => base.Id; set => base.Id = Convert.ToInt32(value.ToString().Substring(2), 16); }
 
         [JsonProperty("claim_value"), StringPredicate(Token = StringToken.Term, Fulltext = true)]
-        public override string ClaimValue { get => base.ClaimValue; set => base.ClaimValue = value; }
+        public override string ClaimValue { get; set; }
 
         [JsonProperty("claim_type"), StringPredicate(Token = StringToken.Exact)]
-        public override string ClaimType { get => base.ClaimType; set => base.ClaimType = value; }
+        public override string ClaimType { get; set; }
 
-        [JsonProperty("role_id"), PredicateReferencesTo(typeof(DRole)), CommonPredicate]
-        public override Uid RoleId { get => base.RoleId; set => base.RoleId = value; }
+        public override Uid RoleId { get; set; }
 
-        public static TRoleClaim InitializeFrom<TRoleClaim>(DRole role, Claim claim) where TRoleClaim : DRoleClaim, new()
+        public static TRoleClaim InitializeFrom(TRole role, Claim claim)
         {
             return new TRoleClaim
             {
@@ -72,10 +86,10 @@ namespace DGraph4Net.Identity
             };
         }
 
-        public static bool operator ==(DRoleClaim usr, object other) =>
+        public static bool operator ==(DRoleClaim<TRoleClaim, TRole> usr, object other) =>
             usr != null && usr.Equals(other);
 
-        public static bool operator !=(DRoleClaim usr, object other) =>
+        public static bool operator !=(DRoleClaim<TRoleClaim, TRole> usr, object other) =>
             !usr?.Equals(other) == true;
     }
 }

@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DGraph4Net.Extensions\DGraph4Net.Annotations.csproj" />
     <ProjectReference Include="..\DGraph4Net\DGraph4Net.csproj" />
   </ItemGroup>
 

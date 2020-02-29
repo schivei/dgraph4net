@@ -250,8 +250,11 @@ namespace DGraph4Net
                 {
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
                 }
-                catch (RpcException err) when (_dgraph.IsJwtExpired(err))
+                catch (RpcException err)
                 {
+                    if (!_dgraph.IsJwtExpired(err))
+                        throw;
+
                     await _dgraph.RetryLogin();
 
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
