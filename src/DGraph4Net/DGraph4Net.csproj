@@ -5,18 +5,18 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>
-    <Product>DGraph for .NET Standard 2.1</Product>
-    <Description>DGraph4Net is based on dgo (https://github.com/dgraph-io/dgo), a dgraph client for GoLang.</Description>
+    <Product>Dgraph for .NET Standard 2.1</Product>
+    <Description>Dgraph4Net is based on dgo (https://github.com/Dgraph-io/dgo), a Dgraph client for GoLang.</Description>
     <PackageLicenseFile></PackageLicenseFile>
     <PackageLicenseExpression>
     </PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/schivei/dgraph4net</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageIconUrl />
-    <RepositoryUrl>https://github.com/schivei/dgraph4net</RepositoryUrl>
+    <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>dgraph,client,dotnet,standard</PackageTags>
-    <PackageReleaseNotes>DGraph 4 Net</PackageReleaseNotes>
+    <PackageTags>Dgraph,client,dotnet,standard</PackageTags>
+    <PackageReleaseNotes>Dgraph 4 Net</PackageReleaseNotes>
     <DebugType>Full</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

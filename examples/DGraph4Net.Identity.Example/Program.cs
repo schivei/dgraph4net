@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace DGraph4Net.Identity.Example
+namespace Dgraph4Net.Identity.Example
 {
     public class Program
     {

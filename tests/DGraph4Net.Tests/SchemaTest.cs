@@ -1,10 +1,10 @@
 using System.Threading.Tasks;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Xunit;
 
-namespace DGraph4Net.Tests
+namespace Dgraph4Net.Tests
 {
-    [Collection("DGraph4Net")]
+    [Collection("Dgraph4Net")]
     public class SchemaTest : ExamplesTest
     {
         [Fact]

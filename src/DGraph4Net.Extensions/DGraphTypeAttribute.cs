@@ -1,14 +1,14 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace DGraph4Net.Annotations
+namespace Dgraph4Net.Annotations
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
     [SuppressMessage("ReSharper", "RedundantAttributeUsageProperty")]
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
-    public sealed class DGraphTypeAttribute : Attribute
+    public sealed class DgraphTypeAttribute : Attribute
     {
-        public DGraphTypeAttribute(string name)
+        public DgraphTypeAttribute(string name)
         {
             Name = name;
         }

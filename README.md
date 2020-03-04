@@ -1,2 +1,2 @@
-# dgraph4net
-DGraph for .NET Standard 2.1
+# Dgraph4Net
+Dgraph for .NET Standard 2.1

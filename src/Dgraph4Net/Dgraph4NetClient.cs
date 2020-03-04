@@ -2,13 +2,13 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Grpc.Core;
-using static DGraph4Net.Services.Dgraph;
+using static Dgraph4Net.Services.Dgraph;
 
-namespace DGraph4Net
+namespace Dgraph4Net
 {
-    public class DGraph : IAsyncDisposable, IDisposable
+    public class Dgraph4NetClient : IAsyncDisposable, IDisposable
     {
         private CancellationTokenSource _cancellationTokenSource;
         private Mutex _mtx;
@@ -20,7 +20,7 @@ namespace DGraph4Net
         /// </summary>
         public bool Disposed { get; private set; }
 
-        private DGraph()
+        private Dgraph4NetClient()
         {
             _cancellationTokenSource = new CancellationTokenSource();
             _mtx = new Mutex();
@@ -37,7 +37,7 @@ namespace DGraph4Net
         /// <para>A single Dgraph (client) is thread safe for sharing with multiple routines.</para>
         /// </remarks>
         /// <param name="dgraphClients"></param>
-        public DGraph(params DgraphClient[] dgraphClients) : this() =>
+        public Dgraph4NetClient(params DgraphClient[] dgraphClients) : this() =>
             _dgraphClients = dgraphClients;
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace DGraph4Net
         /// </para>
         /// <para>A single Dgraph (client) is thread safe for sharing with multiple routines.</para>
         /// <param name="channels"></param>
-        public DGraph(params ChannelBase[] channels) : this(channels.Select(channel => new DgraphClient(channel)).ToArray()) { }
+        public Dgraph4NetClient(params ChannelBase[] channels) : this(channels.Select(channel => new DgraphClient(channel)).ToArray()) { }
 
         /// <summary>
         /// Auth userid & password to retrieve Jwt
@@ -63,7 +63,7 @@ namespace DGraph4Net
         public async Task Login(string userid, string password)
         {
             if (Disposed)
-                throw new ObjectDisposedException(nameof(DGraph));
+                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
 
             _mtx.WaitOne();
 
@@ -104,7 +104,7 @@ namespace DGraph4Net
         public async Task<Payload> Alter(Operation operation)
         {
             if (Disposed)
-                throw new ObjectDisposedException(nameof(DGraph));
+                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
 
             var dc = AnyClient();
 
@@ -173,7 +173,7 @@ namespace DGraph4Net
         internal CallOptions GetOptions()
         {
             if (Disposed)
-                throw new ObjectDisposedException(nameof(DGraph));
+                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
 
             _mtx.WaitOne();
 
@@ -214,7 +214,7 @@ namespace DGraph4Net
         internal async Task RetryLogin()
         {
             if (Disposed)
-                throw new ObjectDisposedException(nameof(DGraph));
+                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
 
             _mtx.WaitOne();
 
@@ -270,7 +270,7 @@ namespace DGraph4Net
             _cancellationTokenSource = null;
         }
 
-        ~DGraph()
+        ~Dgraph4NetClient()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(false);

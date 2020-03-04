@@ -6,25 +6,25 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime;
 using System.Text;
-using DGraph4Net.Annotations;
-using DGraph4Net.Services;
+using Dgraph4Net.Annotations;
+using Dgraph4Net.Services;
 using Newtonsoft.Json;
 
 // ReSharper disable once CheckNamespace
-namespace DGraph4Net
+namespace Dgraph4Net
 {
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
-    public static class DGraphExtensions
+    public static class DgraphExtensions
     {
         /// <summary>
         /// Generates mapping
         /// </summary>
-        public static StringBuilder Map(this DGraph dGraph, params Assembly[] assemblies)
+        public static StringBuilder Map(this Dgraph4NetClient dgraph, params Assembly[] assemblies)
         {
             var types = assemblies
                 .SelectMany(assembly => assembly.GetTypes()
                     .Where(t => t.GetCustomAttributes()
-                        .Any(att => att is DGraphTypeAttribute)))
+                        .Any(att => att is DgraphTypeAttribute)))
                 .OrderBy(t => t.GetProperties()
                     .Any(pi => pi.GetCustomAttributes()
                         .Any(a => a is PredicateReferencesToAttribute)));
@@ -213,7 +213,7 @@ namespace DGraph4Net
                             break;
                     }
 
-                    return (jattr.PropertyName, predicate, type.GetCustomAttribute<DGraphTypeAttribute>().Name, propType, prop);
+                    return (jattr.PropertyName, predicate, type.GetCustomAttribute<DgraphTypeAttribute>().Name, propType, prop);
                 }).Where(x => x.PropertyName != null);
 
             var ambiguous = triples.GroupBy(x => x.PropertyName)
@@ -251,7 +251,7 @@ namespace DGraph4Net
 
                         if (r == null) return $"{nm}: {pred.propType}";
 
-                        var tn = r.RefType.GetCustomAttribute<DGraphTypeAttribute>().Name;
+                        var tn = r.RefType.GetCustomAttribute<DgraphTypeAttribute>().Name;
 
                         if (predicate.Contains("["))
                             tn = $"[{tn}]";
@@ -275,7 +275,7 @@ namespace DGraph4Net
                 Schema = schema
             };
 
-            dGraph.Alter(op).ConfigureAwait(false).GetAwaiter().GetResult();
+            dgraph.Alter(op).ConfigureAwait(false).GetAwaiter().GetResult();
 
             return sb;
         }

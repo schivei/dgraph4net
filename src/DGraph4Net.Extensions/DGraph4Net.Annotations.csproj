@@ -4,26 +4,22 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>DGraph4Net.Annotations</PackageId>
+    <PackageId>Dgraph4Net.Annotations</PackageId>
     <Version>0.2.0</Version>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>
-    <Product>DGraph Identity for .NET Standard 2.1</Product>
-    <Description>DGraph for Asp.Net Core Identity</Description>
+    <Product>Dgraph Identity for .NET Standard 2.1</Product>
+    <Description>Dgraph for Asp.Net Core Identity</Description>
     <PackageLicenseExpression></PackageLicenseExpression>
     <PackageIcon>logo.png</PackageIcon>
     <PackageIconUrl />
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageProjectUrl>https://github.com/schivei/dgraph4net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/schivei/dgraph4net</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>dgraph,client,dotnet,standard,annotations</PackageTags>
-    <PackageReleaseNotes>Data Annotations for DGraph</PackageReleaseNotes>
+    <PackageTags>Dgraph,client,dotnet,standard,annotations</PackageTags>
+    <PackageReleaseNotes>Data Annotations for Dgraph</PackageReleaseNotes>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\DGraph4Net\DGraph4Net.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\..\logo.png">
@@ -36,6 +32,15 @@
       <PackagePath>
       </PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dgraph4Net\Dgraph4Net.csproj" />
   </ItemGroup>
 
 </Project>

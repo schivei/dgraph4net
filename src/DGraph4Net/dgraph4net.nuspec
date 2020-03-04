@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <package>
   <metadata>
-    <id>DGraph4Net</id>
+    <id>Dgraph4Net</id>
     <version>0.2.0</version>
-    <title>DGraph for .NET Standard 2.1</title>
+    <title>Dgraph for .NET Standard 2.1</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <licenseUrl>https://github.com/schivei/dgraph4net/blob/master/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/schivei/dgraph4net</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/schivei/dgraph4net/master/logo.png</iconUrl>
-    <description>DGraph4Net is based on dgo (https://github.com/dgraph-io/dgo), a dgraph client for GoLang.</description>
+    <licenseUrl>https://github.com/schivei/Dgraph4Net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/schivei/Dgraph4Net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/schivei/Dgraph4Net/master/logo.png</iconUrl>
+    <description>Dgraph4Net is based on dgo (https://github.com/Dgraph-io/dgo), a Dgraph client for GoLang.</description>
     <releaseNotes>Added new dotnet features</releaseNotes>
     <copyright>Copyright 2020, Ciência em Cena</copyright>
-    <tags>dgraph,client,dotnet</tags>
+    <tags>Dgraph,client,dotnet</tags>
     <dependencies>
       <group targetFramework=".NETStandard2.1">
         <dependency id="Google.Protobuf" Version="3.11.3" />

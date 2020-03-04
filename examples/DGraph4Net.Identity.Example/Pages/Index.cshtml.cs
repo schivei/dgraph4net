@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 
-namespace DGraph4Net.Identity.Example.Pages
+namespace Dgraph4Net.Identity.Example.Pages
 {
     public class IndexModel : PageModel
     {

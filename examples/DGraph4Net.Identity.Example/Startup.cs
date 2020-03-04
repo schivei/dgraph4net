@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace DGraph4Net.Identity.Example
+namespace Dgraph4Net.Identity.Example
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "<Pending>")]
     public class Startup
@@ -35,11 +35,11 @@ namespace DGraph4Net.Identity.Example
                 });
 
             services.AddTransient(sp =>
-                new DGraph(sp.GetRequiredService<ChannelBase>()));
+                new Dgraph4NetClient(sp.GetRequiredService<ChannelBase>()));
 
             var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
-            var dgraph = new DGraph(channel);
-            // sends mapping to dgraph
+            var dgraph = new Dgraph4NetClient(channel);
+            // sends mapping to Dgraph
             var types = dgraph.Map(typeof(DUser).Assembly);
 
             services.AddIdentity<DUser, DRole>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -49,7 +49,6 @@ namespace DGraph4Net.Identity.Example
                 .AddDefaultUI();
             services.AddRazorPages();
         }
-
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         // ReSharper disable once UnusedMember.Global

@@ -5,11 +5,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Grpc.Core;
-using static DGraph4Net.Services.Dgraph;
+using static Dgraph4Net.Services.Dgraph;
 
-namespace DGraph4Net
+namespace Dgraph4Net
 {
     /// <summary>
     /// Txn is a single atomic transaction.
@@ -50,7 +50,7 @@ namespace DGraph4Net
         private readonly bool _readOnly;
 
         private TxnContext _context;
-        private DGraph _dgraph;
+        private Dgraph4NetClient _dgraph;
         private DgraphClient _dgraphClient;
         private bool _finished;
         private bool _mutated;
@@ -62,12 +62,12 @@ namespace DGraph4Net
         /// <summary>
         /// Creates a new transaction.
         /// </summary>
-        /// <param name="dgraph"></param>
+        /// <param name="Dgraph"></param>
         /// <param name="readOnly"></param>
         /// <param name="bestEffort"></param>
         /// <param name="cancellationToken"></param>
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
-        public Txn(DGraph dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) : this(dgraph, cancellationToken)
+        public Txn(Dgraph4NetClient Dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) : this(Dgraph, cancellationToken)
         {
             _dgraphClient = _dgraph.AnyClient();
             _context = new TxnContext();
@@ -76,10 +76,10 @@ namespace DGraph4Net
                 BestEffort();
         }
 
-        public Txn(DGraph dgraph, CancellationToken? cancellationToken)
+        public Txn(Dgraph4NetClient Dgraph, CancellationToken? cancellationToken)
         {
-            _dgraph = dgraph;
-            LinkTokens(dgraph.GetTokenSource());
+            _dgraph = Dgraph;
+            LinkTokens(Dgraph.GetTokenSource());
 
             if (cancellationToken is null)
                 return;

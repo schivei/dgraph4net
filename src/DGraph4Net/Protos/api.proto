@@ -21,7 +21,7 @@
 
 syntax = "proto3";
 
-option csharp_namespace = "DGraph4Net.Services";
+option csharp_namespace = "Dgraph4Net.Services";
 
 package api;
 

@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <package>
   <metadata>
-    <id>DGraph4Net</id>
+    <id>Dgraph4Net</id>
     <version>0.2.0</version>
-    <title>DGraph for .NET Standard 2.1</title>
+    <title>Dgraph for .NET Standard 2.1</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <licenseUrl>https://github.com/schivei/dgraph4net/blob/master/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/schivei/dgraph4net</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/schivei/dgraph4net/master/logo.png</iconUrl>
-    <description>DGraph4Net Annotations.</description>
+    <licenseUrl>https://github.com/schivei/Dgraph4Net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/schivei/Dgraph4Net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/schivei/Dgraph4Net/master/logo.png</iconUrl>
+    <description>Dgraph4Net Annotations.</description>
     <releaseNotes>Added new dotnet features</releaseNotes>
     <copyright>Copyright 2020, Ciência em Cena</copyright>
-    <tags>dgraph,client,dotnet,annotations</tags>
+    <tags>Dgraph,client,dotnet,annotations</tags>
     <dependencies>
       <group targetFramework=".NETStandard2.1">
         <dependency id="Google.Protobuf" Version="3.11.3" />
@@ -21,7 +21,7 @@
         <dependency id="Grpc.Net.ClientFactory" Version="2.27.0" />
         <dependency id="Grpc.Tools" Version="2.27.0"/>
         <dependency id="Newtonsoft.Json" Version="12.0.3" />
-        <dependency id="DGraph4Net" Version="0.2.0"/>
+        <dependency id="Dgraph4Net" Version="0.2.0"/>
       </group>
     </dependencies>
   </metadata>

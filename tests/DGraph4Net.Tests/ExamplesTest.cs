@@ -1,15 +1,15 @@
 using System;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Xunit;
 
-namespace DGraph4Net.Tests
+namespace Dgraph4Net.Tests
 {
-    [Collection("DGraph4Net")]
+    [Collection("Dgraph4Net")]
     public class ExamplesTest : Assert
     {
-        protected static DGraph GetDgraphClient()
+        protected static Dgraph4NetClient GetDgraphClient()
         {
             // This switch must be set before creating the GrpcChannel/HttpClient.
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
@@ -20,7 +20,7 @@ namespace DGraph4Net.Tests
                 Credentials = ChannelCredentials.Insecure
             });
 
-            var dg = new DGraph(channel);
+            var dg = new Dgraph4NetClient(channel);
 
             dg.Alter(new Operation { DropAll = true }).ConfigureAwait(false)
                 .GetAwaiter().GetResult();

@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Google.Protobuf;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace DGraph4Net.Tests
+namespace Dgraph4Net.Tests
 {
-    [Collection("DGraph4Net")]
+    [Collection("Dgraph4Net")]
     public class ObjectTest : ExamplesTest
     {
         #region bootstrap

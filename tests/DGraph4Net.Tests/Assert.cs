@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace DGraph4Net.Tests
+namespace Dgraph4Net.Tests
 {
 
     public class Assert : Xunit.Assert

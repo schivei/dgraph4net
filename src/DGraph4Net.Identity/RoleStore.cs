@@ -4,19 +4,20 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types",
         Justification = "<Pending>")]
     public class RoleStore : RoleStore<DRole, DRoleClaim>
     {
-        public RoleStore(ILogger<RoleStore> logger, DGraph context, IdentityErrorDescriber describer) :
+        public RoleStore(ILogger<RoleStore> logger, Dgraph4NetClient context,
+            IdentityErrorDescriber describer) :
             base(logger, context, describer)
         {
         }
@@ -39,8 +40,8 @@ namespace DGraph4Net.Identity
         /// <param name="logger"></param>
         /// <param name="context"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        protected RoleStore(ILogger<RoleStore<TRole, TRoleClaim>> logger, DGraph context,
-            IdentityErrorDescriber describer)
+        protected RoleStore(ILogger<RoleStore<TRole, TRoleClaim>> logger,
+            Dgraph4NetClient context, IdentityErrorDescriber describer)
         {
             _logger = logger;
             Context = context;
@@ -380,7 +381,7 @@ namespace DGraph4Net.Identity
             CheckNull(role, nameof(role));
         }
 
-        public virtual DGraph Context { get; }
+        public virtual Dgraph4NetClient Context { get; }
 
         /// <summary>
         /// Gets or sets the <see cref="IdentityErrorDescriber"/> for any error that occurred with the current operation.

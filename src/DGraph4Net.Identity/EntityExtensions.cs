@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Reflection;
-using DGraph4Net.Annotations;
+using Dgraph4Net.Annotations;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
     internal static class EntityExtensions
     {
@@ -10,8 +10,8 @@ namespace DGraph4Net.Identity
         {
             var attr =
             entity.GetType().GetCustomAttributes()
-                .FirstOrDefault(dt => dt is DGraphTypeAttribute)
-                as DGraphTypeAttribute;
+                .FirstOrDefault(dt => dt is DgraphTypeAttribute)
+                as DgraphTypeAttribute;
 
             return attr?.Name;
         }

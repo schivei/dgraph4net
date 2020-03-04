@@ -6,13 +6,13 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
     /// <summary>
     /// Represents a new instance of a persistence store for users, using the default implementation
@@ -23,10 +23,10 @@ namespace DGraph4Net.Identity
         /// <summary>
         /// Constructs a new instance of <see cref="UserStore"/>.
         /// </summary>
-        /// <param name="context">The <see cref="DGraph"/>.</param>
+        /// <param name="context">The <see cref="Dgraph4NetClient"/>.</param>
         /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/>.</param>
-        public UserStore(DGraph context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
+        public UserStore(Dgraph4NetClient context, ILogger<UserStore> logger, IdentityErrorDescriber describer = null) :
             base(context, logger, describer)
         { }
     }
@@ -71,7 +71,7 @@ namespace DGraph4Net.Identity
         /// <summary>
         /// Gets the database context for this store.
         /// </summary>
-        public virtual DGraph Context { get; }
+        public virtual Dgraph4NetClient Context { get; }
 
         private Txn GetTransaction(CancellationToken cancellationToken = default) =>
             Context.NewTransaction(cancellationToken: cancellationToken);
@@ -82,7 +82,7 @@ namespace DGraph4Net.Identity
         /// <param name="context">The context used to access the store.</param>
         /// <param name="logger"></param>
         /// <param name="describer">The <see cref="IdentityErrorDescriber"/> used to describe store errors.</param>
-        public UserStore(DGraph context, ILogger<UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin,
+        public UserStore(Dgraph4NetClient context, ILogger<UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin,
             TUserToken, TRoleClaim>> logger, IdentityErrorDescriber describer = null) :
             this(logger, describer ?? new IdentityErrorDescriber()) =>
             Context = context ?? throw new ArgumentNullException(nameof(context));

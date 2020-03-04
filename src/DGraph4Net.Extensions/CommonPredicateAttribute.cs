@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace DGraph4Net.Annotations
+namespace Dgraph4Net.Annotations
 {
     /// <summary>
     /// System looks to <see cref="Newtonsoft.Json.JsonPropertyAttribute"/> to get predicate name.

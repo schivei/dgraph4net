@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
     public interface IEntity
     {

@@ -1,14 +1,14 @@
 using System.Data;
 using System.Threading.Tasks;
 using System.Transactions;
-using DGraph4Net.Services;
+using Dgraph4Net.Services;
 using Google.Protobuf;
 using Xunit;
-using Assert = DGraph4Net.Tests.Assert;
+using Assert = Dgraph4Net.Tests.Assert;
 
-namespace DGraph4Net.Tests
+namespace Dgraph4Net.Tests
 {
-    [Collection("DGraph4Net")]
+    [Collection("Dgraph4Net")]
     public class ErrorsTest : ExamplesTest
     {
         [Fact(DisplayName = "should have returned ErrFinished")]

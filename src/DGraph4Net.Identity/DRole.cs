@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DGraph4Net.Annotations;
+using Dgraph4Net.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
-    [DGraphType("AspNetRole")]
+    [DgraphType("AspNetRole")]
     public class DRole : DRole<DRole, DRoleClaim>
     {
     }

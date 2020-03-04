@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DGraph4Net.Annotations;
+using Dgraph4Net.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
-    [DGraphType("AspNetUserLogin")]
+    [DgraphType("AspNetUserLogin")]
     public class DUserLogin : DUserLogin<DUserLogin>
     {
         [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]

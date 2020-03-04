@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace DGraph4Net.Annotations
+namespace Dgraph4Net.Annotations
 {
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public enum StringToken

@@ -2,7 +2,7 @@ using System;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
     public class DUserRole : IdentityUserRole<Uid>
     {

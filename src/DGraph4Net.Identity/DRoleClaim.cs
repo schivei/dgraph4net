@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using DGraph4Net.Annotations;
+using Dgraph4Net.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
-namespace DGraph4Net.Identity
+namespace Dgraph4Net.Identity
 {
-    [DGraphType("AspNetRoleClaim")]
+    [DgraphType("AspNetRoleClaim")]
     public class DRoleClaim : DRoleClaim<DRoleClaim, DRole>
     {
         [JsonProperty("role_id"), PredicateReferencesTo(typeof(DRole)), CommonPredicate]

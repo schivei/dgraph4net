@@ -7,11 +7,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CE643E3C-6E6
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B58A6CAC-F78E-4D4E-B7D6-CEB4B911B486}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DGraph4Net", "src\DGraph4Net\DGraph4Net.csproj", "{B8CAAA93-A3B2-4F15-8A8A-6D705923404B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net", "src\Dgraph4Net\Dgraph4Net.csproj", "{B8CAAA93-A3B2-4F15-8A8A-6D705923404B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DGraph4Net.Tests", "tests\DGraph4Net.Tests\DGraph4Net.Tests.csproj", "{7746E9ED-EDD3-4520-B8F5-132ECA806331}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Tests", "tests\Dgraph4Net.Tests\Dgraph4Net.Tests.csproj", "{7746E9ED-EDD3-4520-B8F5-132ECA806331}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DGraph4Net.Identity", "src\DGraph4Net.Identity\DGraph4Net.Identity.csproj", "{CAFAE564-CCB4-49A8-9523-D393E60AE48D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Identity", "src\Dgraph4Net.Identity\Dgraph4Net.Identity.csproj", "{CAFAE564-CCB4-49A8-9523-D393E60AE48D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AD8B1EAE-3079-47D5-9BB2-91BD2D2AD5EB}"
 	ProjectSection(SolutionItems) = preProject
@@ -27,9 +27,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example", "example", "{226828F7-A725-49D0-A6B6-37AA81E00F2B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DGraph4Net.Identity.Example", "examples\DGraph4Net.Identity.Example\DGraph4Net.Identity.Example.csproj", "{84276E82-E607-4EA3-9F52-04A958D6F10D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Identity.Example", "examples\Dgraph4Net.Identity.Example\Dgraph4Net.Identity.Example.csproj", "{84276E82-E607-4EA3-9F52-04A958D6F10D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DGraph4Net.Annotations", "src\DGraph4Net.Extensions\DGraph4Net.Annotations.csproj", "{B6488DD0-9CAB-4EED-ACC3-CBD318B47260}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Annotations", "src\Dgraph4Net.Extensions\Dgraph4Net.Annotations.csproj", "{B6488DD0-9CAB-4EED-ACC3-CBD318B47260}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
