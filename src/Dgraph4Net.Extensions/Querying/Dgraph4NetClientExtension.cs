@@ -16,8 +16,7 @@ namespace Dgraph4Net
             Dictionary<string, string> variables)
         {
             var e = exp.Body as MemberExpression;
-            var m = e.Member as PropertyInfo;
-            var att = e.Member.GetCustomAttribute<Newtonsoft.Json.JsonPropertyAttribute>();
+            var att = typeof(T).GetProperty(e.Member.Name).GetCustomAttribute<Newtonsoft.Json.JsonPropertyAttribute>();
         }
     }
 
