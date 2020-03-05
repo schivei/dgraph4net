@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dgraph4Net.Extensions\Dgraph4Net.Annotations.csproj" />
+    <ProjectReference Include="..\Dgraph4Net.Annotations\Dgraph4Net.Annotations.csproj" />
     <ProjectReference Include="..\Dgraph4Net\Dgraph4Net.csproj" />
   </ItemGroup>
 

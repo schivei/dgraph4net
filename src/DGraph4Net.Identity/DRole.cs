@@ -12,7 +12,7 @@ namespace Dgraph4Net.Identity
     {
     }
 
-    public class DRole<TRole, TRoleClaim> : IdentityRole<Uid>, IEntity, IEquatable<DRole<TRole, TRoleClaim>>
+    public class DRole<TRole, TRoleClaim> : AEntity, IEquatable<DRole<TRole, TRoleClaim>>
     where TRole : DRole<TRole, TRoleClaim>, new()
     where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
     {
@@ -33,60 +33,26 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        public DRole()
-        {
-            _dType = new[] { this.GetDType() };
-        }
-
-        private ICollection<string> _dType;
-
-        [JsonProperty("dgraph.type")]
-        public ICollection<string> DType
-        {
-            get
-            {
-                var dtype = this.GetDType();
-                if (_dType.All(dt => dt != dtype))
-                    _dType.Add(dtype);
-
-                return _dType;
-            }
-            set
-            {
-                var dtype = this.GetDType();
-                if (value.All(dt => dt != dtype))
-                    value.Add(dtype);
-
-                _dType = value;
-            }
-        }
-
         [JsonProperty("claims"), JsonIgnore]
         public virtual ICollection<TRoleClaim> Claims { get; set; } = new List<TRoleClaim>();
-
-        /// <summary>
-        /// Gets or sets the primary key for this role.
-        /// </summary>
-        [JsonProperty("uid")]
-        public override Uid Id { get; set; }
 
         /// <summary>
         /// Gets or sets the name for this role.
         /// </summary>
         [JsonProperty("rolename"), StringPredicate(Token = StringToken.Exact)]
-        public override string Name { get; set; }
+        public virtual string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the normalized name for this role.
         /// </summary>
         [JsonProperty("normalized_rolename"), StringPredicate(Token = StringToken.Exact)]
-        public override string NormalizedName { get; set; }
+        public virtual string NormalizedName { get; set; }
 
         /// <summary>
         /// A random value that should change whenever a role is persisted to the store
         /// </summary>
         [JsonProperty("concurrency_stamp"), StringPredicate]
-        public override string ConcurrencyStamp { get; set; }
+        public virtual string ConcurrencyStamp { get; set; }
 
         internal static TRole Initialize(TRole role)
         {

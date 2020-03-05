@@ -10,11 +10,11 @@ namespace Dgraph4Net.Identity
     [DgraphType("AspNetUserToken")]
     public class DUserToken : DUserToken<DUserToken, DUser>
     {
-        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
+        [JsonProperty("user"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
         public override Uid UserId { get; set; }
     }
 
-    public abstract class DUserToken<TUserToken, TUser> : IdentityUserToken<Uid>, IEntity, IEquatable<DUserToken<TUserToken, TUser>>
+    public abstract class DUserToken<TUserToken, TUser> : AEntity, IEquatable<DUserToken<TUserToken, TUser>>
         where TUser : class, new()
         where TUserToken : DUserToken<TUserToken, TUser>, new()
     {
@@ -37,48 +37,17 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        protected DUserToken()
-        {
-            _dType = new[] { this.GetDType() };
-        }
-
-        private ICollection<string> _dType;
-
-        [JsonProperty("dgraph.type")]
-        public ICollection<string> DType
-        {
-            get
-            {
-                var dtype = this.GetDType();
-                if (_dType.All(dt => dt != dtype))
-                    _dType.Add(dtype);
-
-                return _dType;
-            }
-            set
-            {
-                var dtype = this.GetDType();
-                if (value.All(dt => dt != dtype))
-                    value.Add(dtype);
-
-                _dType = value;
-            }
-        }
-
-        [JsonProperty("uid")]
-        public virtual Uid Id { get; set; }
-
-        public abstract override Uid UserId { get; set; }
+        public abstract Uid UserId { get; set; }
 
         [JsonProperty("login_provider"), StringPredicate(Token = StringToken.Exact)]
-        public override string LoginProvider { get; set; }
+        public virtual string LoginProvider { get; set; }
 
         [JsonProperty("name"), StringPredicate(Token = StringToken.Exact)]
-        public override string Name { get; set; }
+        public virtual string Name { get; set; }
 
         [JsonProperty("value"), StringPredicate]
         [ProtectedPersonalData]
-        public override string Value { get; set; }
+        public virtual string Value { get; set; }
 
         internal static TUserToken Initialize(DUserToken<TUserToken, TUser> userToken)
         {

@@ -29,7 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example", "example", "{2268
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Identity.Example", "examples\Dgraph4Net.Identity.Example\Dgraph4Net.Identity.Example.csproj", "{84276E82-E607-4EA3-9F52-04A958D6F10D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Annotations", "src\Dgraph4Net.Extensions\Dgraph4Net.Annotations.csproj", "{B6488DD0-9CAB-4EED-ACC3-CBD318B47260}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Annotations", "src\Dgraph4Net.Annotations\Dgraph4Net.Annotations.csproj", "{B6488DD0-9CAB-4EED-ACC3-CBD318B47260}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

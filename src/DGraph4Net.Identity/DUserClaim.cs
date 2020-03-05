@@ -15,7 +15,7 @@ namespace Dgraph4Net.Identity
         public override Uid UserId { get; set; }
     }
 
-    public abstract class DUserClaim<TUserClaim, TUser> : IdentityUserClaim<Uid>, IEntity
+    public abstract class DUserClaim<TUserClaim, TUser> : AEntity
         where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
         where TUser : IEntity, new()
     {
@@ -36,44 +36,13 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        protected DUserClaim()
-        {
-            _dType = new[] { this.GetDType() };
-        }
-
-        private ICollection<string> _dType;
-
-        [JsonProperty("dgraph.type")]
-        public ICollection<string> DType
-        {
-            get
-            {
-                var dtype = this.GetDType();
-                if (_dType.All(dt => dt != dtype))
-                    _dType.Add(dtype);
-
-                return _dType;
-            }
-            set
-            {
-                var dtype = this.GetDType();
-                if (value.All(dt => dt != dtype))
-                    value.Add(dtype);
-
-                _dType = value;
-            }
-        }
-
-        [JsonProperty("uid")]
-        public new Uid Id { get; set; }
-
         [JsonProperty("claim_value"), StringPredicate(Token = StringToken.Term, Fulltext = true)]
-        public override string ClaimValue { get; set; }
+        public virtual string ClaimValue { get; set; }
 
         [JsonProperty("claim_type"), StringPredicate(Token = StringToken.Exact)]
-        public override string ClaimType { get; set; }
+        public virtual string ClaimType { get; set; }
 
-        public override Uid UserId { get; set; }
+        public abstract Uid UserId { get; set; }
 
         public static TUserClaim InitializeFrom(TUser user, Claim claim)
         {

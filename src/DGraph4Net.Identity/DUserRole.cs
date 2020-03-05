@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
 {
-    public class DUserRole : IdentityUserRole<Uid>
+    public class DUserRole
     {
         protected bool Equals(DUserRole other)
         {
@@ -24,10 +24,10 @@ namespace Dgraph4Net.Identity
         }
 
         [JsonProperty("user_id")]
-        public override Uid UserId { get => base.UserId; set => base.UserId = value; }
+        public virtual Uid UserId { get; set; }
 
         [JsonProperty("role_id")]
-        public override Uid RoleId { get => base.RoleId; set => base.RoleId = value; }
+        public virtual Uid RoleId { get; set; }
 
         public static bool operator ==(DUserRole usr, object other) =>
             usr != null && usr.Equals(other);

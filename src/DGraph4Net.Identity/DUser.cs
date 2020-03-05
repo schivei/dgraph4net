@@ -14,7 +14,7 @@ namespace Dgraph4Net.Identity
         public override ICollection<DRole> Roles { get; set; } = new List<DRole>();
     }
 
-    public abstract class DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> : IdentityUser<Uid>, IEntity, IEquatable<DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>>
+    public abstract class DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> : AEntity, IEquatable<DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>>
         where TUser : DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>, new()
         where TRole : DRole<TRole, TRoleClaim>, new()
         where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
@@ -40,86 +40,54 @@ namespace Dgraph4Net.Identity
         [JsonProperty("tokens"), JsonIgnore]
         public virtual ICollection<TUserToken> Tokens { get; set; } = new List<TUserToken>();
 
-        protected DUser()
-        {
-            _dType = new[] { this.GetDType() };
-        }
-
-        private ICollection<string> _dType;
-
-        [JsonProperty("dgraph.type")]
-        public ICollection<string> DType
-        {
-            get
-            {
-                var dtype = this.GetDType();
-                if (_dType.All(dt => dt != dtype))
-                    _dType.Add(dtype);
-
-                return _dType;
-            }
-            set
-            {
-                var dtype = this.GetDType();
-                if (value.All(dt => dt != dtype))
-                    value.Add(dtype);
-
-                _dType = value;
-            }
-        }
-
         [PersonalData]
         [JsonProperty("password_hash"), StringPredicate]
-        public override string PasswordHash { get; set; }
+        public virtual string PasswordHash { get; set; }
 
         [JsonProperty("lockout_end"), DateTimePredicate(Token = DateTimeToken.Hour)]
-        public override DateTimeOffset? LockoutEnd { get; set; }
+        public virtual DateTimeOffset? LockoutEnd { get; set; }
 
         [PersonalData]
         [JsonProperty("two_factor_enabled"), CommonPredicate]
-        public override bool TwoFactorEnabled { get; set; }
+        public virtual bool TwoFactorEnabled { get; set; }
 
         [PersonalData]
         [JsonProperty("phonenumber_confirmed"), CommonPredicate]
-        public override bool PhoneNumberConfirmed { get; set; }
+        public virtual bool PhoneNumberConfirmed { get; set; }
 
         [ProtectedPersonalData]
         [JsonProperty("phonenumber"), StringPredicate]
-        public override string PhoneNumber { get; set; }
+        public virtual string PhoneNumber { get; set; }
 
         [JsonProperty("concurrency_stamp"), StringPredicate]
-        public override string ConcurrencyStamp { get; set; }
+        public virtual string ConcurrencyStamp { get; set; }
 
         [JsonProperty("security_stamp"), StringPredicate]
-        public override string SecurityStamp { get; set; }
+        public virtual string SecurityStamp { get; set; }
 
         [PersonalData]
         [JsonProperty("email_confirmed"), CommonPredicate]
-        public override bool EmailConfirmed { get; set; }
+        public virtual bool EmailConfirmed { get; set; }
 
         [JsonProperty("normalized_email"), StringPredicate(Token = StringToken.Exact)]
-        public override string NormalizedEmail { get; set; }
+        public virtual string NormalizedEmail { get; set; }
 
         [ProtectedPersonalData]
         [JsonProperty("email"), StringPredicate(Token = StringToken.Exact)]
-        public override string Email { get; set; }
+        public virtual string Email { get; set; }
 
         [JsonProperty("normalized_username"), StringPredicate(Token = StringToken.Exact)]
-        public override string NormalizedUserName { get; set; }
+        public virtual string NormalizedUserName { get; set; }
 
         [ProtectedPersonalData]
         [JsonProperty("username"), StringPredicate(Token = StringToken.Exact)]
-        public override string UserName { get; set; }
-
-        [PersonalData]
-        [JsonProperty("uid")]
-        public override Uid Id { get; set; }
+        public virtual string UserName { get; set; }
 
         [JsonProperty("lockout_enabled"), CommonPredicate]
-        public override bool LockoutEnabled { get; set; }
+        public virtual bool LockoutEnabled { get; set; }
 
         [JsonProperty("access_failed_count"), CommonPredicate]
-        public override int AccessFailedCount { get; set; }
+        public virtual int AccessFailedCount { get; set; }
 
         internal void Populate(TUser usr)
         {

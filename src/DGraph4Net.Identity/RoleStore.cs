@@ -218,12 +218,12 @@ namespace Dgraph4Net.Identity
             CheckRole(role, cancellationToken);
 
             if (!(role.Claims is null))
-                return role.Claims.Select(c => c.ToClaim()).ToList();
+                return role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
 
             var rl = await FindByIdAsync(role.Id, cancellationToken);
             role.Populate(rl);
 
-            return role.Claims.Select(c => c.ToClaim()).ToList();
+            return role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
         }
 
         private static Request CreateClaimRequest(TRole role, Claim claim)

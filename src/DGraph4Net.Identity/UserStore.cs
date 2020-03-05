@@ -432,7 +432,7 @@ namespace Dgraph4Net.Identity
             CheckUser(user, cancellationToken);
 
             if (!(user.Claims is null))
-                return user.Claims.Select(c => c.ToClaim()).ToList();
+                return user.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
 
             var uctn = new TUserClaim().GetDType();
 
@@ -449,7 +449,7 @@ namespace Dgraph4Net.Identity
                     (userResp.Json.ToStringUtf8())
                 .First(x => x.Key == "claims").Value ?? new List<TUserClaim>();
 
-            return user.Claims.Select(c => c.ToClaim()).ToList();
+            return user.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
         }
 
         /// <summary>
