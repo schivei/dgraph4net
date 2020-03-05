@@ -13,15 +13,22 @@ namespace System
         {
             return objectType == typeof(Uid) ||
                 objectType == typeof(string) ||
-                objectType == typeof(ulong);
+                objectType == typeof(ulong) ||
+                objectType == typeof(object);
         }
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
+            var value = reader.Value;
             if (reader.Value is null || objectType != typeof(Uid))
-                return existingValue;
+            {
+                var jo = JObject.Load(reader);
+                if(!jo.TryGetValue("uid", out var tk) || tk is null)
+                    return existingValue;
+                value = tk.ToString();
+            }
 
-            switch (reader.Value)
+            switch (value)
             {
                 case Uid uid:
                     return uid;
@@ -29,15 +36,15 @@ namespace System
                     return new Uid(str);
             }
 
-            if (reader.Value is int ||
-                reader.Value is uint ||
-                reader.Value is long ||
-                reader.Value is ulong ||
-                reader.Value is byte ||
-                reader.Value is char ||
-                reader.Value is sbyte ||
-                reader.Value is short ||
-                reader.Value is ushort)
+            if (value is int ||
+                value is uint ||
+                value is long ||
+                value is ulong ||
+                value is byte ||
+                value is char ||
+                value is sbyte ||
+                value is short ||
+                value is ushort)
             {
                 return new Uid(Convert.ToUInt64(reader.Value), true);
             }

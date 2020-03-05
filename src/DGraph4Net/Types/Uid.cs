@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
@@ -112,7 +111,7 @@ namespace System
 
         private static string Clear(string uid, bool @throw = true)
         {
-            var reg = new Regex("^((<)?(0x[a-fA-F0-9]{1,16})(>)?|_:[a-zA-Z0-9_]{1,32})$");
+            var reg = new Regex("^(<)?(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})(>)?$");
             if (!reg.IsMatch(uid) && @throw)
                 throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
@@ -121,7 +120,7 @@ namespace System
 
             var matches = reg.Matches(uid);
 
-            return matches[0].Groups[3].Value.ToLowerInvariant();
+            return matches[0].Groups[2].Value.ToLowerInvariant();
         }
 
         public static Uid NewUid() =>
