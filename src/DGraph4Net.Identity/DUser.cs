@@ -10,8 +10,11 @@ namespace Dgraph4Net.Identity
     [DgraphType("AspNetUser")]
     public class DUser : DUser<DUser, DRole, DRoleClaim, DUserClaim, DUserLogin, DUserToken>
     {
-        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole)), JsonIgnore]
+        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole))]
         public override ICollection<DRole> Roles { get; set; } = new List<DRole>();
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
+        public virtual bool ShouldSerializeRoles() => false;
     }
 
     public abstract class DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> : AEntity, IEquatable<DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>>
@@ -27,18 +30,27 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        [JsonProperty("claims"), JsonIgnore]
+        [JsonProperty("claims")]
         public virtual ICollection<TUserClaim> Claims { get; set; } = new List<TUserClaim>();
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
+        public virtual bool ShouldSerializeClaims() => false;
 
         // ReSharper disable once UnusedMember.Global
         // ReSharper disable once UnusedMemberInSuper.Global
         public abstract ICollection<TRole> Roles { get; set; }
 
-        [JsonProperty("logins"), JsonIgnore]
+        [JsonProperty("logins")]
         public virtual ICollection<TUserLogin> Logins { get; set; } = new List<TUserLogin>();
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
+        public virtual bool ShouldSerializeLogins() => false;
 
-        [JsonProperty("tokens"), JsonIgnore]
+        [JsonProperty("tokens")]
         public virtual ICollection<TUserToken> Tokens { get; set; } = new List<TUserToken>();
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
+        public virtual bool ShouldSerializeTokens() => false;
 
         [PersonalData]
         [JsonProperty("password_hash"), StringPredicate]

@@ -33,8 +33,11 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        [JsonProperty("claims"), JsonIgnore]
+        [JsonProperty("claims")]
         public virtual ICollection<TRoleClaim> Claims { get; set; } = new List<TRoleClaim>();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
+        public virtual bool ShouldSerializeClaims() => false;
 
         /// <summary>
         /// Gets or sets the name for this role.

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
@@ -11,7 +12,7 @@ namespace System
     {
         private readonly string _uid;
 
-        public bool IsReferenceOnly => _uid.StartsWith("_:");
+        public bool IsReferenceOnly => !IsEmpty && _uid.StartsWith("_:");
 
         public bool IsEmpty => string.IsNullOrEmpty(_uid);
 
@@ -19,11 +20,17 @@ namespace System
         public Uid(string uid) =>
             _uid = Clear(uid);
 
-        public Uid(Guid uid) =>
-            _uid = Clear($"_:{uid:N}".Substring(16));
+        public Uid(Guid uid)
+        {
+            var val = $"_:{uid.ToString("N").Substring(16)}";
+            _uid = Clear(val);
+        }
 
-        public Uid(ulong uid, bool real) =>
-            _uid = Clear($"{(real ? "0x" : "_:")}{uid:X}");
+        public Uid(ulong uid, bool real)
+        {
+            var val = $"{(real ? "0x" : "_:")}{uid:X}";
+            _uid = Clear(val);
+        }
 
         public Uid(ulong uid) : this(uid, false) { }
 
@@ -44,6 +51,9 @@ namespace System
 
         public static implicit operator Uid(ulong uid) =>
             new Uid(uid);
+
+        public static implicit operator ulong(Uid uid) =>
+            uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ulong.") : ulong.Parse(uid.ToString(), NumberStyles.HexNumber);
 
         public static implicit operator Uid(uint uid) =>
             new Uid(uid);

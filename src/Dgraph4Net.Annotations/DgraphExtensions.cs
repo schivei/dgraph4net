@@ -8,6 +8,7 @@ using System.Runtime;
 using System.Text;
 using Dgraph4Net.Annotations;
 using Dgraph4Net.Services;
+using Google.Protobuf;
 using Newtonsoft.Json;
 
 // ReSharper disable once CheckNamespace
@@ -278,17 +279,16 @@ namespace Dgraph4Net
                     var typeProperties = tp.Select(pred =>
                     {
                         var (propertyName, predicate, _, _, prop) = pred;
-                        var nm = predicate.Contains("@reverse") ?
-                            $"<~{propertyName}>" :
-                            $"<{propertyName}>";
+                        var nm = predicate.Contains("@reverse") ? $"<~{propertyName}>" : $"<{propertyName}>";
 
                         var r =
-                        prop.GetCustomAttributes()
-                            .Where(a => a is PredicateReferencesToAttribute)
-                            .OfType<PredicateReferencesToAttribute>()
-                            .FirstOrDefault();
+                            prop.GetCustomAttributes()
+                                .Where(a => a is PredicateReferencesToAttribute)
+                                .OfType<PredicateReferencesToAttribute>()
+                                .FirstOrDefault();
 
-                        if (r == null) return $"{nm}: {pred.propType}";
+                        if (r == null)
+                            return $"{nm}: {pred.propType}";
 
                         var tn = r.RefType.GetCustomAttribute<DgraphTypeAttribute>().Name;
 
@@ -298,8 +298,10 @@ namespace Dgraph4Net
                         return $"{nm}: {tn}";
                     });
 
+                    var names = string.Join("\n", typeProperties.Select(s => $"  {s}"));
+
                     return $@"type {typename} {{
-{string.Join("\n", typeProperties.Select(s => $"  {s}"))}
+{names}
 }}";
                 });
 
@@ -452,6 +454,152 @@ namespace Dgraph4Net
                 .Select(p => p.PropertyName);
 
             return triples.FirstOrDefault() ?? column;
+        }
+
+        public static string GetColumnType<T>(this T entity, string column) where T : class, IEntity
+        {
+            var types = new[] { entity.GetType() };
+
+            var properties =
+            types.SelectMany(type => type.GetProperties()
+                .Where(prop => prop.GetCustomAttributes()
+                    .Any(attr => attr is StringPredicateAttribute ||
+                                 attr is CommonPredicateAttribute ||
+                                 attr is DateTimePredicateAttribute ||
+                                 attr is PasswordPredicateAttribute ||
+                                 attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
+
+            var triples =
+            properties.Where(pp => pp.prop.DeclaringType != null &&
+                                     !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
+                                     !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
+                                     pp.prop.GetCustomAttributes()
+                                         .Where(attr => attr is JsonPropertyAttribute)
+                                         .OfType<JsonPropertyAttribute>()
+                                         .All(jattr =>
+                                             jattr.PropertyName?.Contains("|") != true))
+                .Select(pp =>
+                {
+                    var (_, prop) = pp;
+                    var pAttr = prop
+                                    .GetCustomAttributes()
+                                    .FirstOrDefault(attr => attr is StringPredicateAttribute ||
+                                                            attr is CommonPredicateAttribute ||
+                                                            attr is DateTimePredicateAttribute ||
+                                                            attr is PasswordPredicateAttribute ||
+                                                            attr is ReversePredicateAttribute) ??
+                                new CommonPredicateAttribute();
+
+                    var princType = prop.PropertyType.IsGenericType
+                        ? prop.PropertyType.GetGenericArguments().First()
+                        : prop.PropertyType;
+
+                    var isList = prop.PropertyType != typeof(string) &&
+                                 typeof(IEnumerable).IsAssignableFrom(prop.PropertyType);
+
+                    if (!isList && prop.PropertyType.IsGenericType)
+                        princType = prop.PropertyType;
+
+                    if (isList && typeof(char[]) == prop.PropertyType)
+                    {
+                        princType = prop.PropertyType;
+                    }
+
+                    var isUid = princType == typeof(Uid) ||
+                                princType == typeof(Uid?) ||
+                                pAttr is ReversePredicateAttribute;
+
+                    var isString = princType.IsEnum ||
+                                   princType == typeof(string) ||
+                                   princType == typeof(char) ||
+                                   princType == typeof(char[]) ||
+                                   princType == typeof(char?) ||
+                                   princType == typeof(TimeSpan) ||
+                                   princType == typeof(TimeSpan?);
+
+                    var isFloat = princType == typeof(float) ||
+                                  princType == typeof(double) ||
+                                  princType == typeof(decimal) ||
+                                  princType == typeof(float?) ||
+                                  princType == typeof(double?) ||
+                                  princType == typeof(decimal?);
+
+                    var isInt = princType == typeof(int) ||
+                                princType == typeof(uint) ||
+                                princType == typeof(long) ||
+                                princType == typeof(ulong) ||
+                                princType == typeof(short) ||
+                                princType == typeof(ushort) ||
+                                princType == typeof(byte) ||
+                                princType == typeof(sbyte) ||
+                                princType == typeof(int?) ||
+                                princType == typeof(uint?) ||
+                                princType == typeof(long?) ||
+                                princType == typeof(ulong?) ||
+                                princType == typeof(short?) ||
+                                princType == typeof(ushort?) ||
+                                princType == typeof(byte?) ||
+                                princType == typeof(sbyte?);
+
+                    var isBool = princType == typeof(bool) ||
+                                 princType == typeof(bool?);
+
+                    var isDate = princType == typeof(DateTime) ||
+                                 princType == typeof(DateTimeOffset) ||
+                                 princType == typeof(DateTime?) ||
+                                 princType == typeof(DateTimeOffset?);
+
+                    var isGeo = new[]
+                    {
+                        "Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon",
+                        "GeometryCollection"
+                    }.Contains(princType.Name);
+
+                    string propType;
+                    if (isUid)
+                    {
+                        propType = "uid";
+                    }
+                    else if (isString)
+                    {
+                        propType = "string";
+                    }
+                    else if (isFloat)
+                    {
+                        propType = "float";
+                    }
+                    else if (isInt)
+                    {
+                        propType = "int";
+                    }
+                    else if (isBool)
+                    {
+                        propType = "bool";
+                    }
+                    else if (isDate)
+                    {
+                        propType = "datetime";
+                    }
+                    else if (isGeo)
+                    {
+                        propType = "geo";
+                    }
+                    else
+                    {
+                        propType = "default";
+                    }
+
+                    var isPasswd = pAttr is PasswordPredicateAttribute &&
+                                   (propType == "string" || propType == "default");
+
+                    if (isPasswd)
+                        propType = "password";
+
+                    return (propType, pp.prop);
+                }).Where(p => p.propType != null && p.prop?.Name != null && p.prop.Name == column)
+                .Select(p => p.propType);
+
+            return triples.FirstOrDefault() ?? "default";
         }
     }
 }

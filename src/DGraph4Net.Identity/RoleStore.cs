@@ -66,7 +66,7 @@ namespace Dgraph4Net.Identity
 
             var q = $@"
             query Q($roleName: string) {{
-                u as var(func: eq(dgraph.type, ""{rtn}"")) @filter(eq(normalized_rolename, $roleName))
+                u as var(func: type({rtn})) @filter(eq(normalized_rolename, $roleName))
             }}";
 
             var req = new Request
@@ -113,7 +113,7 @@ namespace Dgraph4Net.Identity
 
             var rtn = new TRole().GetDType();
 
-            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(eq(dgraph.type, ""{rtn}"")) }}" };
+            var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(type({rtn})) }}" };
             var mu = new Mutation { CommitNow = true, Cond = "@if(eq(len(u, 1)))", SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(role)) };
             req.Mutations.Add(mu);
             await using var txn = GetTransaction(cancellationToken);
@@ -180,7 +180,7 @@ namespace Dgraph4Net.Identity
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($roleId string) {{
-                    role(func: uid($roleId)) @filter(eq(dgraph.type, ""{rtn}"")) {{
+                    role(func: uid($roleId)) @filter(type({rtn})) {{
                         uid
                         expand(_all_)
                     }}
@@ -199,7 +199,7 @@ namespace Dgraph4Net.Identity
 
             var roleResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars($@"query Q($roleName string) {{
-                    role(func: eq(normalized_rolename, $roleName)) @filter(eq(dgraph.type, ""{rtn}"")) {{
+                    role(func: eq(normalized_rolename, $roleName)) @filter(type({rtn})) {{
                         uid
                         expand(_all_)
                         claims {{
@@ -232,7 +232,7 @@ namespace Dgraph4Net.Identity
 
             var q = $@"
             query Q($roleId: string, $claimType: string) {{
-                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{rctn}"") AND eq(role_id, uid($roleId))))
+                c as var(func: eq(claim_type, $claimType)) @filter(type({rctn}) AND eq(role_id, uid($roleId))))
             }}";
 
             var rc = DRoleClaim<TRoleClaim, TRole>.InitializeFrom(role, claim);
@@ -258,7 +258,7 @@ namespace Dgraph4Net.Identity
 
             var q = $@"
             query Q($roleId: string, $claimType: string) {{
-                c as var(func: eq(claim_type, $claimType)) @filter(eq(dgraph.type, ""{rctn}"") AND eq(role_id, uid($roleId)))
+                c as var(func: eq(claim_type, $claimType)) @filter(type({rctn}) AND eq(role_id, uid($roleId)))
             }}";
 
             var mu = new Mutation

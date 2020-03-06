@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -23,7 +22,7 @@ namespace System
             if (reader.Value is null || objectType != typeof(Uid))
             {
                 var jo = JObject.Load(reader);
-                if(!jo.TryGetValue("uid", out var tk) || tk is null)
+                if (!jo.TryGetValue("uid", out var tk) || tk is null)
                     return existingValue;
                 value = tk.ToString();
             }
@@ -55,7 +54,15 @@ namespace System
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             var uid = (value as Uid?)?.ToString() ?? string.Empty;
-            if (writer.Path != "uid")
+            var isObj = writer.Path != "uid" && !writer.Path.EndsWith(".uid");
+
+            if (string.IsNullOrEmpty(uid))
+            {
+                writer.WriteNull();
+                return;
+            }
+
+            if (isObj)
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName("uid");
@@ -63,7 +70,7 @@ namespace System
 
             writer.WriteValue(uid);
 
-            if (writer.Path != "uid")
+            if (isObj)
             {
                 writer.WriteEndObject();
             }
