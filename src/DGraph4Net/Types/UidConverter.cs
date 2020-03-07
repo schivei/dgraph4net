@@ -54,7 +54,7 @@ namespace System
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             var uid = (value as Uid?)?.ToString() ?? string.Empty;
-            var isObj = writer.Path != "uid" && !writer.Path.EndsWith(".uid");
+            var isRef = writer.Path != "uid" && !writer.Path.EndsWith(".uid");
 
             if (string.IsNullOrEmpty(uid))
             {
@@ -62,7 +62,7 @@ namespace System
                 return;
             }
 
-            if (isObj)
+            if (isRef)
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName("uid");
@@ -70,7 +70,7 @@ namespace System
 
             writer.WriteValue(uid);
 
-            if (isObj)
+            if (isRef)
             {
                 writer.WriteEndObject();
             }

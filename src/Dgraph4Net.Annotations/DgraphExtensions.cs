@@ -266,7 +266,8 @@ namespace Dgraph4Net
 
             var sb = new StringBuilder();
 
-            foreach (var (_, predicate, _, _, _) in triples)
+            foreach (var predicate in triples
+                .Select(tp => tp.predicate).Distinct())
                 sb.AppendLine(predicate);
 
             sb.AppendLine();
@@ -356,7 +357,7 @@ namespace Dgraph4Net
                                              jattr.PropertyName?.Contains("|") != true))
                 .Select(pp =>
                 {
-                    var (type, prop) = pp;
+                    var (_, prop) = pp;
                     var jattr =
                         prop.GetCustomAttributes()
                             .Where(attr => attr is JsonPropertyAttribute)
@@ -396,7 +397,7 @@ namespace Dgraph4Net
                                              jattr.PropertyName?.Contains("|") != true))
                 .Select(pp =>
                 {
-                    var (type, prop) = pp;
+                    var (_, prop) = pp;
                     var jattr =
                         prop.GetCustomAttributes()
                             .Where(attr => attr is JsonPropertyAttribute)

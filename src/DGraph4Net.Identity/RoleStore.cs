@@ -90,7 +90,7 @@ namespace Dgraph4Net.Identity
 
             try
             {
-                var response = await txn.Do(req);
+                var response = await txn.Do(req).ConfigureAwait(false);
 
                 return response.Uids.Count == 0 ? IdentityResult.Failed(ErrorDescriber.DuplicateUserName(role.NormalizedName)) : IdentityResult.Success;
             }
@@ -119,7 +119,7 @@ namespace Dgraph4Net.Identity
             await using var txn = GetTransaction(cancellationToken);
             try
             {
-                await txn.Do(req);
+                await txn.Do(req).ConfigureAwait(false);
             }
 #pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
@@ -147,7 +147,7 @@ namespace Dgraph4Net.Identity
 
             try
             {
-                var response = await txn.Mutate(mu);
+                var response = await txn.Mutate(mu).ConfigureAwait(false);
                 var resp = JsonConvert.DeserializeObject<Dictionary<string, object>>(response.Json.ToStringUtf8());
 
                 if (!resp.TryGetValue("code", out var s) || s?.ToString() != "Success")
@@ -179,12 +179,13 @@ namespace Dgraph4Net.Identity
             var rtn = new TRole().GetDType();
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
-                .QueryWithVars($@"query Q($roleId string) {{
+                .QueryWithVars($@"query Q($roleId: string) {{
                     role(func: uid($roleId)) @filter(type({rtn})) {{
                         uid
                         expand(_all_)
                     }}
-                }}", new Dictionary<string, string> { { "$roleId", roleId } });
+                }}", new Dictionary<string, string> { { "$roleId", roleId } })
+                .ConfigureAwait(false);
 
             return JsonConvert.DeserializeObject<Dictionary<string, List<TRole>>>(userResp.Json.ToStringUtf8())
                 .First(x => x.Key == "role").Value?.FirstOrDefault();
@@ -198,7 +199,7 @@ namespace Dgraph4Net.Identity
             var rtn = new TRole().GetDType();
 
             var roleResp = await Context.NewTransaction(true, true, cancellationToken)
-                .QueryWithVars($@"query Q($roleName string) {{
+                .QueryWithVars($@"query Q($roleName: string) {{
                     role(func: eq(normalized_rolename, $roleName)) @filter(type({rtn})) {{
                         uid
                         expand(_all_)
@@ -207,7 +208,8 @@ namespace Dgraph4Net.Identity
                             expand(_all_)
                         }}
                     }}
-                }}", new Dictionary<string, string> { { "$roleName", normalizedName } });
+                }}", new Dictionary<string, string> { { "$roleName", normalizedName } })
+                .ConfigureAwait(false);
 
             return JsonConvert.DeserializeObject<Dictionary<string, List<TRole>>>(roleResp.Json.ToStringUtf8())
                 .First(x => x.Key == "role").Value?.FirstOrDefault();
@@ -220,7 +222,8 @@ namespace Dgraph4Net.Identity
             if (!(role.Claims is null))
                 return role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
 
-            var rl = await FindByIdAsync(role.Id, cancellationToken);
+            var rl = await FindByIdAsync(role.Id, cancellationToken)
+                .ConfigureAwait(false);
             role.Populate(rl);
 
             return role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
@@ -302,7 +305,8 @@ namespace Dgraph4Net.Identity
 
             try
             {
-                await txn.Do(claims.Select(claim => CreateClaimRequest(role, claim)));
+                await txn.Do(claims.Select(claim => CreateClaimRequest(role, claim)))
+                    .ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -331,7 +335,8 @@ namespace Dgraph4Net.Identity
 
             try
             {
-                await txn.Do(claims.Select(claim => RemoveClaimRequest(role, claim)));
+                await txn.Do(claims.Select(claim => RemoveClaimRequest(role, claim)))
+                    .ConfigureAwait(false);
             }
             catch (Exception ex)
             {

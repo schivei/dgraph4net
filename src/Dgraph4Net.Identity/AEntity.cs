@@ -11,6 +11,7 @@ namespace Dgraph4Net.Identity
         protected AEntity()
         {
             _dgraphType = new[] { DgraphExtensions.GetDType(this) };
+            Id = Guid.NewGuid();
         }
 
         [PersonalData]
