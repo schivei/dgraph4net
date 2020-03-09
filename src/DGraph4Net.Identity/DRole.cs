@@ -42,7 +42,7 @@ namespace Dgraph4Net.Identity
         /// <summary>
         /// Gets or sets the name for this role.
         /// </summary>
-        [JsonProperty("rolename"), StringPredicate(Token = StringToken.Exact)]
+        [JsonProperty("rolename"), StringPredicate(Token = StringToken.Exact, Fulltext = true)]
         public virtual string Name { get; set; }
 
         /// <summary>

@@ -2,13 +2,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime;
 using System.Text;
 using Dgraph4Net.Annotations;
 using Dgraph4Net.Services;
-using Google.Protobuf;
 using Newtonsoft.Json;
 
 // ReSharper disable once CheckNamespace
@@ -254,7 +254,7 @@ namespace Dgraph4Net
                     }
 
                     return (jattr.PropertyName, predicate, type.GetCustomAttribute<DgraphTypeAttribute>().Name, propType, prop);
-                }).Where(x => x.PropertyName != null);
+                }).Where(x => x.PropertyName != null).ToArray();
 
             var ambiguous = triples.GroupBy(x => x.PropertyName)
                 .Where(x => x.Select(y => y.predicate).Distinct().Count() > 1);
@@ -266,14 +266,12 @@ namespace Dgraph4Net
 
             var sb = new StringBuilder();
 
-            foreach (var predicate in triples
-                .Select(tp => tp.predicate).Distinct())
+            foreach (var predicate in triples.Distinct().OrderBy(p => p.PropertyName).Select(tp => tp.predicate))
                 sb.AppendLine(predicate);
 
             sb.AppendLine();
 
-            var ts =
-            triples.GroupBy(triple => triple.Name)
+            var ts = triples.OrderBy(p => p.Name).GroupBy(triple => triple.Name)
                 .Select(tp =>
                 {
                     var typename = tp.Key;
@@ -307,17 +305,18 @@ namespace Dgraph4Net
                 });
 
             foreach (var type in ts)
-                sb.Append(type + "\n");
+                sb.Append(type).Append('\n');
 
             var schema = sb.ToString().Replace("\r\n", "\n").Trim('\n') + '\n';
 
-            var op = new Operation
-            {
-                DropAll = false,
-                Schema = schema
-            };
+            if (File.Exists("schema.dgraph") && File.ReadAllText("schema.dgraph", Encoding.UTF8) == schema)
+                return sb;
+
+            var op = new Operation { DropAll = false, Schema = schema };
 
             dgraph.Alter(op).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            File.WriteAllText("schema.dgraph", schema, Encoding.UTF8);
 
             return sb;
         }
