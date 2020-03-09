@@ -57,7 +57,8 @@ namespace Dgraph4Net.Identity
         IUserAuthenticatorKeyStore<TUser>,
         IUserTwoFactorRecoveryCodeStore<TUser>,
         IProtectedUserStore<TUser>,
-        IAsyncDisposable
+        IAsyncDisposable,
+        IUserRoleStore<TUser>
         where TUser : DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>, new()
         where TRole : DRole<TRole, TRoleClaim>, new()
         where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
