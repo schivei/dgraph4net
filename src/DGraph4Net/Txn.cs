@@ -220,7 +220,7 @@ namespace Dgraph4Net
                 throw ErrFinished;
 
             var reqs = requests as Request[] ?? requests.ToArray();
-            if (!reqs.Any())
+            if (reqs.Length == 0)
             {
                 _finished = true;
                 return new[] { new Response { Txn = _context, Latency = new Latency(), Metrics = new Metrics() } };
@@ -250,10 +250,8 @@ namespace Dgraph4Net
                 {
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
                 }
-                catch (RpcException err)
+                catch (RpcException err) when (_dgraph.IsJwtExpired(err))
                 {
-                    if (!_dgraph.IsJwtExpired(err))
-                        throw;
 
                     await _dgraph.RetryLogin().ConfigureAwait(false);
 
@@ -468,10 +466,8 @@ namespace Dgraph4Net
 
                 _finished = true;
             }
-            catch (RpcException err)
+            catch (RpcException err) when (_dgraph.IsJwtExpired(err))
             {
-                if (!_dgraph.IsJwtExpired(err))
-                    throw;
 
                 await _dgraph.RetryLogin().ConfigureAwait(false);
 

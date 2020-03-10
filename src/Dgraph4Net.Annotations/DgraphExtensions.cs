@@ -185,10 +185,11 @@ namespace Dgraph4Net
                             predicate = string.Format(predicate, "string");
                             if (sa.Fulltext || sa.Trigram || sa.Upsert || sa.Token != StringToken.None)
                             {
+                                var tr = predicate.Contains("fulltext") ? ",trigram" : "trigram";
                                 predicate += " @index(";
                                 predicate += sa.Fulltext ? "fulltext" : "";
                                 predicate += sa.Trigram
-                                    ? predicate.Contains("fulltext") ? ",trigram" : "trigram"
+                                    ? tr
                                     : "";
 
                                 var tk = sa.Token switch
@@ -199,9 +200,9 @@ namespace Dgraph4Net
                                     _ => ""
                                 };
 
-                                predicate += !string.IsNullOrEmpty(tk)
-                                    ? predicate.Contains("fulltext") || predicate.Contains("trigram") ? $",{tk}" : tk
-                                    : "";
+                                var fll = predicate.Contains("fulltext") || predicate.Contains("trigram") ? $",{tk}" : tk;
+
+                                predicate += !string.IsNullOrEmpty(tk) ? fll : "";
 
                                 predicate += sa.Lang ? ") @lang" : ")";
                                 predicate += sa.Upsert ? " @upsert" : "";
@@ -259,10 +260,13 @@ namespace Dgraph4Net
             var ambiguous = triples.GroupBy(x => x.PropertyName)
                 .Where(x => x.Select(y => y.predicate).Distinct().Count() > 1);
 
-            var imps = ambiguous.Select(s => s.Key).ToArray();
+            var imps = ambiguous.SelectMany(s => s.Select(p => (p.prop.Name, p.prop.DeclaringType.Name))).ToArray();
 
             if (imps.Length > 1)
-                throw new AmbiguousImplementationException($"There are two or more different implementations of: {string.Join(',', imps).Trim(',').Replace(",", ", ")}.");
+            {
+                throw new AmbiguousImplementationException($@"There are two or more different implementations of: {(string.Join(',', imps.Select(i => i.Item1).Distinct())
+                    .Trim(',').Replace(",", ", "))}.\n\nImplementations: \n{string.Join("\n", imps.Select(i => $"{i.Item2}::{i.Item1}"))}");
+            }
 
             var sb = new StringBuilder();
 
