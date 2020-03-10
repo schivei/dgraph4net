@@ -266,7 +266,8 @@ namespace Dgraph4Net
 
             var sb = new StringBuilder();
 
-            foreach (var predicate in triples.Distinct().OrderBy(p => p.PropertyName).Select(tp => tp.predicate))
+            foreach (var predicate in triples.OrderBy(p => p.PropertyName).GroupBy(tp => tp.predicate)
+                .Select(tp => tp.Key))
                 sb.AppendLine(predicate);
 
             sb.AppendLine();
