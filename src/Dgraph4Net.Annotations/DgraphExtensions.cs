@@ -172,25 +172,23 @@ namespace Dgraph4Net
                     var predicate = $"<{jattr.PropertyName}>: ";
                     predicate += isList ? "[{0}]" : "{0}";
 
+                    var isReverse = pAttr is ReversePredicateAttribute;
+
                     switch (pAttr)
                     {
-                        case ReversePredicateAttribute _ when propType == "uid":
+                        case ReversePredicateAttribute _:
                             propType = "uid";
                             predicate = string.Format(predicate, "uid");
-
-                            predicate += isList ? " @reverse @count ." : " @reverse .";
                             break;
                         case StringPredicateAttribute sa when propType == "string":
                             propType = "string";
                             predicate = string.Format(predicate, "string");
                             if (sa.Fulltext || sa.Trigram || sa.Upsert || sa.Token != StringToken.None)
                             {
-                                var tr = predicate.Contains("fulltext") ? ",trigram" : "trigram";
                                 predicate += " @index(";
                                 predicate += sa.Fulltext ? "fulltext" : "";
-                                predicate += sa.Trigram
-                                    ? tr
-                                    : "";
+                                var tr = predicate.Contains("fulltext") ? ", trigram" : "trigram";
+                                predicate += sa.Trigram ? tr : "";
 
                                 var tk = sa.Token switch
                                 {
@@ -200,7 +198,7 @@ namespace Dgraph4Net
                                     _ => ""
                                 };
 
-                                var fll = predicate.Contains("fulltext") || predicate.Contains("trigram") ? $",{tk}" : tk;
+                                var fll = predicate.Contains("fulltext") || predicate.Contains("trigram") ? $", {tk}" : tk;
 
                                 predicate += !string.IsNullOrEmpty(tk) ? fll : "";
 
@@ -211,8 +209,6 @@ namespace Dgraph4Net
                             {
                                 predicate += sa.Lang ? " @lang" : "";
                             }
-
-                            predicate += isList ? " @count ." : " .";
                             break;
 
                         case CommonPredicateAttribute pa:
@@ -222,8 +218,6 @@ namespace Dgraph4Net
                                 predicate += $" @index({propType})";
                                 predicate += pa.Upsert ? " @upsert" : "";
                             }
-
-                            predicate += isList ? " @count ." : " .";
                             break;
 
                         case DateTimePredicateAttribute da:
@@ -236,23 +230,23 @@ namespace Dgraph4Net
                                 predicate += $" @index({da.Token.ToString().ToLowerInvariant()})";
                                 predicate += da.Upsert ? " @upsert" : "";
                             }
-
-                            predicate += isList ? " @count ." : " .";
                             break;
 
                         case PasswordPredicateAttribute _ when propType == "string":
                             propType = "password";
                             predicate = string.Format(predicate, "password");
-
-                            predicate += " .";
                             break;
 
                         default:
                             predicate = string.Format(predicate, propType);
-                            var count = isList ? " @count ." : " .";
-                            predicate += count;
                             break;
                     }
+
+                    var rev = isReverse && isList ? " @count @reverse ." : " @reverse .";
+
+                    var lt = isList ? " @count ." : " .";
+
+                    predicate += isReverse ? rev : lt;
 
                     return (jattr.PropertyName, predicate, type.GetCustomAttribute<DgraphTypeAttribute>().Name, propType, prop);
                 }).Where(x => x.PropertyName != null).ToArray();
