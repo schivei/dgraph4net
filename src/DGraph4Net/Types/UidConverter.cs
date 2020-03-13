@@ -27,6 +27,9 @@ namespace System
                 value = tk.ToString();
             }
 
+            if (string.IsNullOrEmpty(value?.ToString().Trim()))
+                return default(Uid);
+
             switch (value)
             {
                 case Uid uid:

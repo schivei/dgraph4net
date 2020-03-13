@@ -425,7 +425,8 @@ namespace Dgraph4Net
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
                                  attr is PasswordPredicateAttribute ||
-                                 attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
+                                 attr is ReversePredicateAttribute ||
+                                 attr is JsonPropertyAttribute)).Select(prop => (type, prop)));
 
             var triples =
             properties.Where(pp => pp.prop.DeclaringType != null &&
@@ -451,6 +452,9 @@ namespace Dgraph4Net
                     return (jattr.PropertyName, pp.prop.Name);
                 }).Where(p => p.PropertyName != null && p.Name != null && (p.Name == column || p.PropertyName == column))
                 .Select(p => p.PropertyName);
+
+            var def = entity.GetType().GetProperty(column)?.GetCustomAttribute<JsonPropertyAttribute>();
+            column = def?.PropertyName ?? column;
 
             return triples.FirstOrDefault() ?? column;
         }
