@@ -1,10 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dgraph4Net.Identity;
-using Dgraph4Net.Services;
 using Newtonsoft.Json;
 using Xunit;
 

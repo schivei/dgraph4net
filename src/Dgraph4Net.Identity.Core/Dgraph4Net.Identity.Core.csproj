@@ -2,17 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>Dgraph4Net</RootNamespace>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Dgraph4Net.Annotations</PackageId>
+    <PackageId>Dgraph4Net.Identity.Core</PackageId>
     <Version>0.3.0</Version>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>
     <Product>Dgraph for .NET Standard 2.1</Product>
     <Description>Dgraph for dotnet Core</Description>
-    <PackageIcon>logo.png</PackageIcon>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
+    <PackageIconUrl />
     <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Dgraph,client,dotnet,standard,annotations</PackageTags>
@@ -20,25 +22,27 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\logo.png">
-      <Pack>True</Pack>
-      <PackagePath>
-      </PackagePath>
-    </None>
     <None Include="..\..\LICENSE">
       <Pack>True</Pack>
-      <PackagePath>
-      </PackagePath>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\..\logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
 
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="3.1.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dgraph4Net\Dgraph4Net.csproj" />
+    <ProjectReference Include="..\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
   </ItemGroup>
 
 </Project>

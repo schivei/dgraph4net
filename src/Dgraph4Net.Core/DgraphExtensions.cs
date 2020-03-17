@@ -8,19 +8,18 @@ using System.Reflection;
 using System.Runtime;
 using System.Text;
 using Dgraph4Net.Annotations;
-using Dgraph4Net.Services;
 using Newtonsoft.Json;
 
-// ReSharper disable once CheckNamespace
 namespace Dgraph4Net
 {
+
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public static class DgraphExtensions
     {
         /// <summary>
         /// Generates mapping
         /// </summary>
-        public static StringBuilder Map(this Dgraph4NetClient dgraph, params Assembly[] assemblies)
+        public static StringBuilder Map(this IDgraph4NetClient dgraph, params Assembly[] assemblies)
         {
             var types = assemblies
                 .SelectMany(assembly => assembly.GetTypes()
@@ -311,9 +310,7 @@ namespace Dgraph4Net
             if (File.Exists("schema.dgraph") && File.ReadAllText("schema.dgraph", Encoding.UTF8) == schema)
                 return sb;
 
-            var op = new Operation { DropAll = false, Schema = schema };
-
-            dgraph.Alter(op).ConfigureAwait(false).GetAwaiter().GetResult();
+            dgraph.Alter(schema).ConfigureAwait(false).GetAwaiter().GetResult();
 
             File.WriteAllText("schema.dgraph", schema, Encoding.UTF8);
 

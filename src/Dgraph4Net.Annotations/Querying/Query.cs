@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Dgraph4Net.Identity")]
+[assembly: InternalsVisibleTo("Dgraph4Net.Identity.Core")]
 
 namespace Dgraph4Net.Annotations.Querying
 {

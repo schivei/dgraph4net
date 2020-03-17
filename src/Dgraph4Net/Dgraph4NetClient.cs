@@ -8,7 +8,7 @@ using static Dgraph4Net.Services.Dgraph;
 
 namespace Dgraph4Net
 {
-    public class Dgraph4NetClient : IAsyncDisposable, IDisposable
+    public class Dgraph4NetClient : IDgraph4NetClient
     {
         private CancellationTokenSource _cancellationTokenSource;
         private Mutex _mtx;
@@ -124,6 +124,9 @@ namespace Dgraph4Net
                 return await dc.AlterAsync(operation, co);
             }
         }
+
+        public Task Alter(string schema, bool dropAll = false) =>
+            Alter(new Operation { DropAll = dropAll, Schema = schema });
 
         /// <summary>
         /// DeleteEdges sets the edges corresponding to predicates

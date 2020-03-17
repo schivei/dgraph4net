@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
+
+[assembly: InternalsVisibleTo("Dgraph4Net.Identity")]
 
 namespace Dgraph4Net.Identity
 {
