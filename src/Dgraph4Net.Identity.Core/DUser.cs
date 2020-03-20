@@ -10,48 +10,61 @@ namespace Dgraph4Net.Identity
     [DgraphType("AspNetUser")]
     public class DUser : DUser<DUser, DRole, DRoleClaim, DUserClaim, DUserLogin, DUserToken>
     {
-        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(DRole))]
-        public override ICollection<DRole> Roles { get; set; } = new List<DRole>();
-        
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
-        public virtual bool ShouldSerializeRoles() => false;
     }
 
-    public abstract class DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> : AEntity, IEquatable<DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>>
-        where TUser : DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>, new()
-        where TRole : DRole<TRole, TRoleClaim>, new()
-        where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
-        where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
-        where TUserLogin : DUserLogin<TUserLogin>, new()
-        where TUserToken : DUserToken<TUserToken, TUser>, new()
+    public abstract class DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> :
+        AEntity, IEquatable<DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>>,
+        IUser<TRole, TUserClaim, TUserLogin, TUserToken>
+        where TUser : class, IUser<TRole, TUserClaim, TUserLogin, TUserToken>, new()
+        where TRole : class, IRole<TRoleClaim>, new()
+        where TRoleClaim : class, IRoleClaim, new()
+        where TUserClaim : class, IUserClaim, new()
+        where TUserLogin : class, IUserLogin, new()
+        where TUserToken : class, IUserToken, new()
     {
         public override int GetHashCode()
         {
             return HashCode.Combine(Id);
         }
 
-        [JsonProperty("claims")]
-        public virtual ICollection<TUserClaim> Claims { get; set; } = new List<TUserClaim>();
-        
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
-        public virtual bool ShouldSerializeClaims() => false;
+        [JsonProperty("claims"), ReversePredicate, PredicateReferencesTo(typeof(IUserClaim))]
+        public virtual List<TUserClaim> Claims { get; set; } = new List<TUserClaim>();
+
+        List<IRole> IUser.Roles
+        {
+            get => Roles.Cast<IRole>().ToList();
+            set => Roles = value.Cast<TRole>().ToList();
+        }
+
+        List<IUserLogin> IUser.Logins
+        {
+            get => Logins.Cast<IUserLogin>().ToList();
+            set => Logins = value.Cast<TUserLogin>().ToList();
+        }
+
+        List<IUserToken> IUser.Tokens
+        {
+            get => Tokens.Cast<IUserToken>().ToList();
+            set => Tokens = value.Cast<TUserToken>().ToList();
+        }
 
         // ReSharper disable once UnusedMember.Global
         // ReSharper disable once UnusedMemberInSuper.Global
-        public abstract ICollection<TRole> Roles { get; set; }
+        List<IUserClaim> IUser.Claims
+        {
+            get => Claims.Cast<IUserClaim>().ToList();
+            set => Claims = value.Cast<TUserClaim>().ToList();
+        }
 
-        [JsonProperty("logins")]
-        public virtual ICollection<TUserLogin> Logins { get; set; } = new List<TUserLogin>();
+        [JsonProperty("roles"), ReversePredicate, PredicateReferencesTo(typeof(IRole))]
+        public virtual List<TRole> Roles { get; set; } = new List<TRole>();
+
+        [JsonProperty("logins"), ReversePredicate, PredicateReferencesTo(typeof(IUserLogin))]
+        public virtual List<TUserLogin> Logins { get; set; } = new List<TUserLogin>();
         
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
-        public virtual bool ShouldSerializeLogins() => false;
-
-        [JsonProperty("tokens")]
-        public virtual ICollection<TUserToken> Tokens { get; set; } = new List<TUserToken>();
+        [JsonProperty("tokens"), ReversePredicate, PredicateReferencesTo(typeof(IUserToken))]
+        public virtual List<TUserToken> Tokens { get; set; } = new List<TUserToken>();
         
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
-        public virtual bool ShouldSerializeTokens() => false;
-
         [PersonalData]
         [JsonProperty("password_hash"), StringPredicate]
         public virtual string PasswordHash { get; set; }
@@ -100,13 +113,6 @@ namespace Dgraph4Net.Identity
 
         [JsonProperty("access_failed_count"), CommonPredicate]
         public virtual int AccessFailedCount { get; set; }
-
-        internal void Populate(TUser usr)
-        {
-            GetType().GetProperties()
-                .Where(prop => prop.GetValue(usr) != null).ToList()
-                .ForEach(prop => prop.SetValue(this, prop.GetValue(usr)));
-        }
 
         public override bool Equals(object obj)
         {

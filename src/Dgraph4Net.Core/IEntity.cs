@@ -5,8 +5,8 @@ namespace Dgraph4Net
 {
     public interface IEntity
     {
-        Uid Id { get; set; }
+        public Uid Id { get; set; }
 
-        ICollection<string> DgraphType { get; set; }
+        public ICollection<string> DgraphType { get; set; }
     }
 }

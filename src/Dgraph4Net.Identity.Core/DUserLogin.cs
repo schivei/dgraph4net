@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Dgraph4Net.Annotations;
-using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
@@ -10,12 +7,10 @@ namespace Dgraph4Net.Identity
     [DgraphType("AspNetUserLogin")]
     public class DUserLogin : DUserLogin<DUserLogin>
     {
-        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
-        public override Uid UserId { get; set; }
     }
 
-    public abstract class DUserLogin<TUserLogin> : AEntity, IEquatable<DUserLogin<TUserLogin>>
-    where TUserLogin : DUserLogin<TUserLogin>
+    public abstract class DUserLogin<TUserLogin> : AEntity, IEquatable<DUserLogin<TUserLogin>>,
+        IUserLogin where TUserLogin : class, IUserLogin, new()
     {
         public bool Equals(DUserLogin<TUserLogin> other)
         {
@@ -54,13 +49,8 @@ namespace Dgraph4Net.Identity
         [JsonProperty("provider_display_name"), StringPredicate(Fulltext = true, Token = StringToken.Term)]
         public virtual string ProviderDisplayName { get; set; }
 
-        /// <summary>
-        /// Gets or sets the primary key of the user associated with this login.
-        /// </summary>
-        public abstract Uid UserId { get; set; }
-
         public static bool operator ==(DUserLogin<TUserLogin> usr, object other) =>
-            usr != null && usr.Equals(other);
+            !(usr is null) && usr.Equals(other);
 
         public static bool operator !=(DUserLogin<TUserLogin> usr, object other) =>
             !usr?.Equals(other) == true;

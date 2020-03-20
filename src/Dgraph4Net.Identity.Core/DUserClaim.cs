@@ -1,9 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using Dgraph4Net.Annotations;
-using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
@@ -11,13 +8,11 @@ namespace Dgraph4Net.Identity
     [DgraphType("AspNetUserClaim")]
     public class DUserClaim : DUserClaim<DUserClaim, DUser>
     {
-        [JsonProperty("user_id"), PredicateReferencesTo(typeof(DUser)), CommonPredicate]
-        public override Uid UserId { get; set; }
     }
 
-    public abstract class DUserClaim<TUserClaim, TUser> : AEntity
-        where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
-        where TUser : IEntity, new()
+    public abstract class DUserClaim<TUserClaim, TUser> : AEntity, IUserClaim
+        where TUserClaim : class, IUserClaim, new()
+        where TUser : class, IUser, new()
     {
         protected bool Equals(DUserClaim<TUserClaim, TUser> other)
         {
@@ -41,22 +36,25 @@ namespace Dgraph4Net.Identity
 
         [JsonProperty("claim_type"), StringPredicate(Token = StringToken.Exact)]
         public virtual string ClaimType { get; set; }
-
-        public abstract Uid UserId { get; set; }
+        
+        [JsonProperty("~claims")]
+        public virtual Uid UserId { get; set; }
 
         public static TUserClaim InitializeFrom(TUser user, Claim claim)
         {
-            return new TUserClaim
+            var tr = new TUserClaim
             {
                 ClaimType = claim.Type,
-                ClaimValue = claim.Value,
-                Id = Uid.NewUid(),
-                UserId = user.Id
+                ClaimValue = claim.Value
             };
+
+            user.Claims.Add(tr);
+
+            return tr;
         }
 
         public static bool operator ==(DUserClaim<TUserClaim, TUser> usr, object other) =>
-            usr != null && usr.Equals(other);
+            !(usr is null) && usr.Equals(other);
 
         public static bool operator !=(DUserClaim<TUserClaim, TUser> usr, object other) =>
             !usr?.Equals(other) == true;

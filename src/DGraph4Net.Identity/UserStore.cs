@@ -59,13 +59,13 @@ namespace Dgraph4Net.Identity
         IProtectedUserStore<TUser>,
         IAsyncDisposable,
         IUserRoleStore<TUser>
-        where TUser : DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken>, new()
-        where TRole : DRole<TRole, TRoleClaim>, new()
-        where TUserClaim : DUserClaim<TUserClaim, TUser>, new()
+        where TUser : class, IUser<TRole, TUserClaim, TUserLogin, TUserToken>, new()
+        where TRole : class, IRole<TRoleClaim>, new()
+        where TUserClaim : class, IUserClaim, new()
         where TUserRole : DUserRole, new()
-        where TUserLogin : DUserLogin<TUserLogin>, new()
-        where TUserToken : DUserToken<TUserToken, TUser>, new()
-        where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
+        where TUserLogin : class, IUserLogin, new()
+        where TUserToken : class, IUserToken, new()
+        where TRoleClaim : class, IRoleClaim, new()
     {
         private readonly ILogger<UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim>> _logger;
         private bool _disposed;
@@ -322,26 +322,10 @@ namespace Dgraph4Net.Identity
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
 
-            var userResp = await Context.NewTransaction(true, true, cancellationToken)
-                .QueryWithVars(@"query Q($userId: string) {
-                    user(func: uid($userId)) {
-                        logins {
-                            uid
-                            expand(_all_)
-                        }
-                    }
-                }", new Dictionary<string, string> { { "$userId", userId } })
-                .ConfigureAwait(false);
+            var user = await FindByIdAsync(userId, cancellationToken);
 
-            var userLogin = JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
-                .First(x => x.Key == "user").Value?.FirstOrDefault()?
-                .Logins.FirstOrDefault(ul => ul.LoginProvider == loginProvider &&
+            return user.Logins.Find(ul => ul.LoginProvider == loginProvider &&
                                                       ul.ProviderKey == providerKey);
-
-            if (userLogin != null)
-                userLogin.UserId = userId;
-
-            return userLogin;
         }
 
         /// <summary>
@@ -393,14 +377,15 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.Roles is null))
-                return user.Roles.Select(DRole<TRole, TRoleClaim>.Initialize).ToList();
+            if (!(user.Roles is null) && user.Roles.Count > 0)
+                return user.Roles;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
 
-            return user.Roles?.Select(DRole<TRole, TRoleClaim>.Initialize).ToList() ?? new List<TRole>();
+            user.Roles = usr.Roles;
+
+            return user.Roles;
         }
 
         /// <summary>
@@ -508,14 +493,27 @@ namespace Dgraph4Net.Identity
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
-            var userLogin = await FindUserLoginAsync(loginProvider, providerKey, cancellationToken)
-                .ConfigureAwait(false);
-            if (userLogin != null)
-            {
-                return await FindUserAsync(userLogin.UserId, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            return null;
+
+            var userResp = await Context.NewTransaction(true, true, cancellationToken)
+                .QueryWithVars(@"query Q($loginProvider: string, $providerKey: string) {
+                    userLogin(func: eq(login_provider, $loginProvider)) @filter(eq(provider_key, $providerKey)) @normalize {
+                        ~logins {
+                            uid
+                        }
+                    }
+                }", new Dictionary<string, string>
+                {
+                    { "$loginProvider", loginProvider },
+                    { "$providerKey", providerKey }
+                }).ConfigureAwait(false);
+
+            var user = JsonConvert.DeserializeObject<Dictionary<string, List<TUser>>>(userResp.Json.ToStringUtf8())
+                .First(x => x.Key == "userLogin").Value?.FirstOrDefault();
+
+            if (user is null)
+                return null;
+
+            return await FindByIdAsync(user.Id, cancellationToken);
         }
 
         public virtual async Task SetEmailAsync(TUser user, string email, CancellationToken cancellationToken)
@@ -540,7 +538,8 @@ namespace Dgraph4Net.Identity
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
+
+            user.Email = usr.Email;
 
             return user.Email;
         }
@@ -607,7 +606,8 @@ namespace Dgraph4Net.Identity
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
+
+            user.NormalizedUserName = usr.NormalizedUserName;
 
             return user.NormalizedUserName;
         }
@@ -749,13 +749,10 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            TUserToken token;
             if (user.Tokens?.Count > 0)
             {
-                token = user.Tokens
+                return user.Tokens
                     .LastOrDefault(x => x.LoginProvider == loginProvider && x.Name == name);
-
-                return token is null ? null : DUserToken<TUserToken, TUser>.Initialize(token);
             }
 
             var uttn = new TUserToken().GetDType();
@@ -777,11 +774,9 @@ namespace Dgraph4Net.Identity
                               .First(x => x.Key == "tokens").Value ??
                           new List<TUserToken>();
 
-            token = user.Tokens
+            return user.Tokens
                 .OrderByDescending(x => x.Id)
                 .FirstOrDefault(x => x.LoginProvider == loginProvider && x.Name == name);
-
-            return token is null ? null : DUserToken<TUserToken, TUser>.Initialize(token);
         }
 
         public virtual Task SetPasswordHashAsync(TUser user, string passwordHash, CancellationToken cancellationToken)
@@ -803,9 +798,8 @@ namespace Dgraph4Net.Identity
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
 
-            return user.PasswordHash;
+            return user.PasswordHash = usr.PasswordHash;
         }
 
         public virtual async Task<bool> HasPasswordAsync(TUser user, CancellationToken cancellationToken)
@@ -834,9 +828,8 @@ namespace Dgraph4Net.Identity
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
 
-            return user.SecurityStamp;
+            return user.SecurityStamp = usr.SecurityStamp;
         }
 
         public virtual async Task<DateTimeOffset?> GetLockoutEndDateAsync(TUser user, CancellationToken cancellationToken)
@@ -848,9 +841,8 @@ namespace Dgraph4Net.Identity
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
 
-            return user.LockoutEnd;
+            return user.LockoutEnd = usr.LockoutEnd;
         }
 
         public virtual Task SetLockoutEndDateAsync(TUser user, DateTimeOffset? lockoutEnd, CancellationToken cancellationToken)
@@ -925,9 +917,8 @@ namespace Dgraph4Net.Identity
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
                 .ConfigureAwait(false);
-            user.Populate(usr);
 
-            return user.PhoneNumber;
+            return user.PhoneNumber = usr.PhoneNumber;
         }
 
         public virtual Task<bool> GetPhoneNumberConfirmedAsync(TUser user, CancellationToken cancellationToken)
@@ -985,17 +976,13 @@ namespace Dgraph4Net.Identity
             {
                 LoginProvider = loginProvider,
                 Name = name,
-                UserId = user.Id,
                 Value = value
             };
 
-            await AddUserTokenAsync(token).ConfigureAwait(false);
+            user.Tokens ??= new List<TUserToken>();
+            user.Tokens.Add(token);
 
-            if (!token.Id.IsReferenceOnly && !token.Id.IsEmpty)
-            {
-                user.Tokens ??= new List<TUserToken>();
-                user.Tokens.Add(token);
-            }
+            await UpdateAsync(user, cancellationToken);
         }
 
         public virtual async Task RemoveTokenAsync(TUser user, string loginProvider, string name,
@@ -1004,7 +991,7 @@ namespace Dgraph4Net.Identity
             var ut = await FindTokenAsync(user, loginProvider, name, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (ut != null)
+            if (!(ut is null))
             {
                 await RemoveUserTokenAsync(ut).ConfigureAwait(false);
 
@@ -1315,7 +1302,7 @@ namespace Dgraph4Net.Identity
 
                 var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken)
                     .ConfigureAwait(false);
-                if (roleEntity != null)
+                if (!(roleEntity is null))
                     user.Roles?.Add(roleEntity);
             }
             catch (Exception ex)
@@ -1377,7 +1364,7 @@ namespace Dgraph4Net.Identity
 
                 var ur = user.Roles?.FirstOrDefault(x => x.NormalizedName == normalizedRoleName);
 
-                if (ur != null)
+                if (!(ur is null))
                     user.Roles?.Remove(ur);
             }
             catch (Exception ex)
@@ -1528,13 +1515,16 @@ namespace Dgraph4Net.Identity
         /// <returns></returns>
         public virtual TUserLogin CreateUserLogin(TUser user, UserLoginInfo login)
         {
-            return new TUserLogin
+            var ul = new TUserLogin
             {
-                UserId = user.Id,
                 ProviderKey = login.ProviderKey,
                 LoginProvider = login.LoginProvider,
                 ProviderDisplayName = login.ProviderDisplayName
             };
+
+            user.Logins.Add(ul);
+
+            return ul;
         }
 
         /// <summary>
@@ -1681,25 +1671,17 @@ namespace Dgraph4Net.Identity
         {
             CheckNull(token, nameof(token));
 
-            var uttn = new TUserToken().GetDType();
-
-            var q = $@"
-            query Q($userId: string, $loginProvider: string, $name: string) {{
-                p as var(func: eq(name, $name)) @filter(eq(login_provider, $loginProvider) AND type({uttn}) AND uid_in(user_id, $userId))
-            }}";
-
             var mu = new Mutation
             {
-                DelNquads = ByteString.CopyFromUtf8("uid(p) * * ."),
                 CommitNow = true,
-                Cond = "@if(gt(len(p), 0))"
+                DeleteJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(new
+                {
+                    uid = token.Id.ToString()
+                }))
             };
 
-            var req = new Request { Query = q, CommitNow = true };
+            var req = new Request { CommitNow = true };
             req.Mutations.Add(mu);
-            req.Vars.Add("$userId", token.UserId);
-            req.Vars.Add("$loginProvider", token.LoginProvider);
-            req.Vars.Add("$name", token.Name);
 
             await using var txn = GetTransaction();
 

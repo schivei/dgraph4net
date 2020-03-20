@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -9,7 +9,7 @@ namespace Dgraph4Net
 {
     public static class ClassFactory
     {
-        public static Dictionary<Type, Type> Proxies { get; } = new Dictionary<Type, Type>();
+        public static Dictionary<Type, Type> Proxies { get; set; } = new Dictionary<Type, Type>();
 
         [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
         public static void MapAssembly(Assembly assembly)
@@ -32,33 +32,58 @@ namespace Dgraph4Net
             }
         }
 
+        public static Type GetDerivedType(Type type)
+        {
+            if (Proxies.Keys.Any(type.IsAssignableFrom))
+                return Proxies.Keys.FirstOrDefault(type.IsAssignableFrom);
+
+            return Proxies.ContainsKey(type) ? type : null;
+        }
+
+        public static Type MapType(Type type)
+        {
+            if (!Proxies.ContainsKey(type) && CompileResultType(type) is { } t)
+                Proxies.Add(type, t);
+
+            return Proxies[type];
+        }
+
         public static T CreateNewObject<T>() where T : class, IEntity, new()
         {
-            if (!Proxies.ContainsKey(typeof(T)) && CompileResultType(typeof(T)) is Type t)
+            if (!Proxies.ContainsKey(typeof(T)) && CompileResultType(typeof(T)) is { } t)
                 Proxies.Add(typeof(T), t);
 
             if (!Proxies.ContainsKey(typeof(T)))
                 throw new InvalidCastException("Can't create a new type");
 
-            var d = Activator.CreateInstance(Proxies[typeof(T)]) as T;
+            if (!(Activator.CreateInstance(Proxies[typeof(T)]) is T instance))
+                return null;
 
-            if (Array.Find(d.GetType().GetMethods(), m => m.Name == "Populate" && m.IsPublic) is MethodInfo mi)
-                (mi.IsGenericMethod ? mi.MakeGenericMethod(typeof(T)) : mi).Invoke(d, new object[] { new T() });
+            var methods = instance.GetType().GetMethods();
 
-            return d;
+            if (Array.Find(methods, m => m.Name == "Populate" && m.IsPublic) is { } mi)
+                (mi.IsGenericMethod ? mi.MakeGenericMethod(typeof(T)) : mi).Invoke(instance, new object[] { new T() });
+
+            return instance;
         }
 
         public static Type CompileResultType(Type baseType)
         {
+            if (baseType is null)
+                throw new ArgumentNullException(nameof(baseType));
+
             var tb = GetTypeBuilder(baseType);
 
             tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
-            foreach (var prop in baseType.GetProperties().Where(prop => prop.CanWrite && prop.CanRead &&
-                !prop.GetGetMethod().IsFinal &&
-                !prop.GetSetMethod().IsFinal &&
-                !prop.GetGetMethod().IsAbstract &&
-                !prop.GetSetMethod().IsAbstract))
+            foreach (var prop in baseType.GetProperties()
+                .Where(prop => prop.CanWrite && prop.CanRead &&
+                               !(prop.GetGetMethod() is null) &&
+                               !(prop.GetSetMethod() is null) &&
+                              !prop.GetGetMethod().IsFinal &&
+                              !prop.GetSetMethod().IsFinal &&
+                              !prop.GetGetMethod().IsAbstract &&
+                              !prop.GetSetMethod().IsAbstract))
             {
                 CreateProperty(tb, prop);
             }
@@ -102,7 +127,7 @@ namespace Dgraph4Net
 
             var setter = baseProperty.GetSetMethod();
 
-            var sets = tb.DefineMethod(setter.Name, attrs, null, new Type[] { getter.ReturnType });
+            var sets = tb.DefineMethod(setter.Name, attrs, null, new[] { getter.ReturnType });
 
             il = sets.GetILGenerator();
 

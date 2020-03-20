@@ -1,23 +1,18 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Dgraph4Net.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
 {
-
     public abstract class DUserToken<TUserToken, TUser> : AEntity,
         IEquatable<DUserToken<TUserToken, TUser>>,
         IEqualityComparer<DUserToken<TUserToken, TUser>>,
-        IEqualityComparer
-        where TUserToken : DUserToken<TUserToken, TUser>, new()
+        IEqualityComparer, IUserToken where TUserToken : DUserToken<TUserToken, TUser>, new()
         where TUser : class, new()
     {
-        public abstract Uid UserId { get; set; }
-
         [JsonProperty("login_provider"), StringPredicate(Token = StringToken.Exact)]
         public virtual string LoginProvider { get; set; }
 
@@ -28,19 +23,6 @@ namespace Dgraph4Net.Identity
         [ProtectedPersonalData]
         public virtual string Value { get; set; }
 
-        internal static TUserToken Initialize(DUserToken<TUserToken, TUser> userToken)
-        {
-            var t = new TUserToken();
-            t.Populate(userToken);
-            return t;
-        }
-
-        internal void Populate(DUserToken<TUserToken, TUser> usr)
-        {
-            GetType().GetProperties().ToList()
-                .ForEach(prop => prop.SetValue(this, prop.GetValue(usr)));
-        }
-        
         public bool Equals(DUserToken<TUserToken, TUser> x, DUserToken<TUserToken, TUser> y) =>
             x?.Equals(y) ?? false;
 
@@ -58,14 +40,14 @@ namespace Dgraph4Net.Identity
             return obj.GetType() == GetType() && Equals((DUserToken<TUserToken, TUser>)obj);
         }
 
-        new public bool Equals(object x, object y)
+        public new bool Equals(object x, object y)
         {
             if (x == y)
             {
                 return true;
             }
 
-            if (x == null || y == null)
+            if (x is null || y is null)
             {
                 return false;
             }
@@ -89,17 +71,12 @@ namespace Dgraph4Net.Identity
 
         public int GetHashCode(object obj)
         {
-            if (obj == null)
+            return obj switch
             {
-                return 0;
-            }
-
-            if (obj is DUserToken<TUserToken, TUser> x)
-            {
-                return GetHashCode(x);
-            }
-
-            throw new ArgumentException("", nameof(obj));
+                null => 0,
+                DUserToken<TUserToken, TUser> x => GetHashCode(x),
+                _ => throw new ArgumentException("", nameof(obj)),
+            };
         }
 
         public static bool operator ==(DUserToken<TUserToken, TUser> usr, object other) =>

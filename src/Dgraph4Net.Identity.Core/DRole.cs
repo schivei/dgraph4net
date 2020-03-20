@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dgraph4Net.Annotations;
-using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
@@ -12,9 +11,10 @@ namespace Dgraph4Net.Identity
     {
     }
 
-    public class DRole<TRole, TRoleClaim> : AEntity, IEquatable<DRole<TRole, TRoleClaim>>
-    where TRole : DRole<TRole, TRoleClaim>, new()
-    where TRoleClaim : DRoleClaim<TRoleClaim, TRole>, new()
+    public class DRole<TRole, TRoleClaim> : AEntity,
+        IEquatable<DRole<TRole, TRoleClaim>>, IRole<TRoleClaim>
+        where TRole : class, IRole<TRoleClaim>, new()
+        where TRoleClaim : class, IRoleClaim, new()
     {
         public bool Equals(DRole<TRole, TRoleClaim> other)
         {
@@ -23,9 +23,11 @@ namespace Dgraph4Net.Identity
 
         public override bool Equals(object obj)
         {
-            if (obj is null) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((DRole<TRole, TRoleClaim>) obj);
+            if (obj is null)
+                return false;
+            if (ReferenceEquals(this, obj))
+                return true;
+            return obj.GetType() == GetType() && Equals((DRole<TRole, TRoleClaim>)obj);
         }
 
         public override int GetHashCode()
@@ -33,11 +35,8 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(Id);
         }
 
-        [JsonProperty("claims")]
-        public virtual ICollection<TRoleClaim> Claims { get; set; } = new List<TRoleClaim>();
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S3400:Methods should not return constants", Justification = "<Pending>")]
-        public virtual bool ShouldSerializeClaims() => false;
+        [PredicateReferencesTo(typeof(IRoleClaim)), ReversePredicate, JsonProperty("claims")]
+        public virtual List<TRoleClaim> Claims { get; set; } = new List<TRoleClaim>();
 
         /// <summary>
         /// Gets or sets the name for this role.
@@ -57,21 +56,14 @@ namespace Dgraph4Net.Identity
         [JsonProperty("concurrency_stamp"), StringPredicate]
         public virtual string ConcurrencyStamp { get; set; }
 
-        internal static TRole Initialize(TRole role)
+        List<IRoleClaim> IRole.Claims
         {
-            var tRole = new TRole();
-            tRole.Populate(role);
-            return tRole;
-        }
-
-        internal void Populate(TRole usr)
-        {
-            GetType().GetProperties().ToList()
-                .ForEach(prop => prop.SetValue(this, prop.GetValue(usr)));
+            get => Claims.Cast<IRoleClaim>().ToList();
+            set => Claims = value.Cast<TRoleClaim>().ToList();
         }
 
         public static bool operator ==(DRole<TRole, TRoleClaim> usr, object other) =>
-            usr != null && usr.Equals(other);
+            !(usr is null) && usr.Equals(other);
 
         public static bool operator !=(DRole<TRole, TRoleClaim> usr, object other) =>
             !usr?.Equals(other) == true;

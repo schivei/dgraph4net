@@ -224,7 +224,8 @@ namespace Dgraph4Net.Identity
 
             var rl = await FindByIdAsync(role.Id, cancellationToken)
                 .ConfigureAwait(false);
-            role.Populate(rl);
+
+            role.Claims = rl.Claims;
 
             return role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
         }

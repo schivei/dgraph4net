@@ -1,6 +1,4 @@
 using System;
-using Microsoft.AspNetCore.Identity;
-using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
 {
@@ -23,14 +21,12 @@ namespace Dgraph4Net.Identity
             return HashCode.Combine(UserId, RoleId);
         }
 
-        [JsonProperty("user_id")]
         public virtual Uid UserId { get; set; }
 
-        [JsonProperty("role_id")]
         public virtual Uid RoleId { get; set; }
 
         public static bool operator ==(DUserRole usr, object other) =>
-            usr != null && usr.Equals(other);
+            !(usr is null) && usr.Equals(other);
 
         public static bool operator !=(DUserRole usr, object other) =>
             !usr?.Equals(other) == true;

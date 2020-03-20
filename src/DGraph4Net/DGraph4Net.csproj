@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Version>0.3.0</Version>
+    <Version>0.4.2</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>

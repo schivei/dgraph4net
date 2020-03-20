@@ -37,10 +37,12 @@ namespace Dgraph4Net.Identity.Example
             services.AddTransient(sp =>
                 new Dgraph4NetClient(sp.GetRequiredService<ChannelBase>()));
 
+            ClassFactory.MapAssembly(typeof(DUser).Assembly);
+
             var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
             var dgraph = new Dgraph4NetClient(channel);
             // sends mapping to Dgraph
-            var types = dgraph.Map(typeof(DUser).Assembly);
+            dgraph.Map(typeof(DUser).Assembly);
 
             services.AddIdentity<DUser, DRole>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoleStore<RoleStore>()

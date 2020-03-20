@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Transactions;
 using Dgraph4Net.Services;
 using Grpc.Core;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using static Dgraph4Net.Services.Dgraph;
 
 namespace Dgraph4Net
@@ -155,7 +157,7 @@ namespace Dgraph4Net
                 BestEffort = _bestEffort
             };
 
-            if (vars != null)
+            if (!(vars is null))
             {
                 foreach (var v in vars)
                     req.Vars.Add(v.Key, v.Value);
@@ -359,7 +361,7 @@ namespace Dgraph4Net
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Txn));
 
-            if (txn != null)
+            if (!(txn is null))
                 _context = txn;
 
             if (_context.StartTs != 0 && request.StartTs == 0)
@@ -531,5 +533,45 @@ namespace Dgraph4Net
             }));
         }
         #endregion
+    }
+
+    public static class TxnExtensions
+    {
+        private static List<T> From<T>(string json, string param) where T : class, IEntity, new()
+        {
+            if (!(JsonConvert.DeserializeObject(json) is JObject d) || !d.ContainsKey(param))
+                return new List<T>();
+
+            var children = d[param] as JArray;
+
+            return children?.ToObject<List<T>>() ?? new List<T>();
+        }
+
+        public static async Task<List<T>> QueryWithVars<T>(this Txn txn, string param, string query, Dictionary<string, string> vars) where T : class, IEntity, new()
+        {
+            var resp = await txn.QueryWithVars(query, vars).ConfigureAwait(false);
+
+            return From<T>(resp.Json.ToStringUtf8(), param);
+        }
+
+        public static async Task<List<T>> Query<T>(this Txn txn, string param, string query) where T : class, IEntity, new()
+        {
+            var resp = await txn.Query(query).ConfigureAwait(false);
+
+            return From<T>(resp.Json.ToStringUtf8(), param);
+        }
+
+        public static Task<Response> MutateWithQuery(this Txn txn, Mutation mutation, string query, Dictionary<string, string> vars = null)
+        {
+            var req = new Request { Query = query };
+            vars ??= new Dictionary<string, string>();
+
+            foreach (var (key, value) in vars)
+                req.Vars.Add(key, value);
+
+            req.Mutations.Add(mutation);
+
+            return txn.Do(req);
+        }
     }
 }
