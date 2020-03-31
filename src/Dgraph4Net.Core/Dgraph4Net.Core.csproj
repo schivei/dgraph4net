@@ -8,7 +8,7 @@
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Dgraph4Net.Core</PackageId>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>
     <Product>Dgraph for .NET Standard 2.1</Product>

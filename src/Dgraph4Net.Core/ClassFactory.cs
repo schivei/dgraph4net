@@ -76,14 +76,17 @@ namespace Dgraph4Net
 
             tb.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 
-            foreach (var prop in baseType.GetProperties()
+            foreach (var prop in baseType
+                .GetProperties(BindingFlags.Public)
                 .Where(prop => prop.CanWrite && prop.CanRead &&
                                !(prop.GetGetMethod() is null) &&
                                !(prop.GetSetMethod() is null) &&
-                              !prop.GetGetMethod().IsFinal &&
-                              !prop.GetSetMethod().IsFinal &&
-                              !prop.GetGetMethod().IsAbstract &&
-                              !prop.GetSetMethod().IsAbstract))
+                               !prop.GetGetMethod().IsFinal &&
+                               !prop.GetSetMethod().IsFinal &&
+                               !prop.GetGetMethod().IsAbstract &&
+                               !prop.GetSetMethod().IsAbstract &&
+                               prop.GetGetMethod().IsVirtual &&
+                               prop.GetSetMethod().IsVirtual))
             {
                 CreateProperty(tb, prop);
             }
