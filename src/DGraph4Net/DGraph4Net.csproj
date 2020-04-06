@@ -17,6 +17,7 @@
     <PackageTags>Dgraph,client,dotnet,standard</PackageTags>
     <PackageReleaseNotes>Dgraph 4 Net</PackageReleaseNotes>
     <DebugType>Full</DebugType>
+    <PackageVersion>0.4.4</PackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -26,10 +27,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.11.4" />
-    <PackageReference Include="Grpc.Core" Version="2.27.0" />
+    <PackageReference Include="Grpc.Core" Version="2.28.1" />
     <PackageReference Include="Grpc.Net.Client" Version="2.27.0" />
     <PackageReference Include="Grpc.Net.ClientFactory" Version="2.27.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.27.0">
+    <PackageReference Include="Grpc.Tools" Version="2.28.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

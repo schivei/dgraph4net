@@ -9,6 +9,7 @@ using System.Runtime;
 using System.Text;
 using Dgraph4Net.Annotations;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Dgraph4Net
 {
@@ -134,8 +135,18 @@ namespace Dgraph4Net
                         "GeometryCollection"
                     }.Contains(princType.Name);
 
+                    var isEnum = princType.IsEnum;
+
                     string propType;
-                    if (isUid)
+                    if (isEnum)
+                    {
+                        var converter = princType.GetCustomAttribute<JsonConverterAttribute>();
+                        if (converter != null && typeof(StringEnumConverter).IsAssignableFrom(converter.ConverterType))
+                            propType = "string";
+                        else
+                            propType = "int";
+                    }
+                    else if (isUid)
                     {
                         propType = "uid";
                     }
@@ -167,6 +178,13 @@ namespace Dgraph4Net
                     {
                         propType = "default";
                     }
+
+                    propType = pAttr switch
+                    {
+                        StringPredicateAttribute _ => "string",
+                        DateTimePredicateAttribute _ => "datetime",
+                        _ => propType
+                    };
 
                     var predicate = $"<{jattr.PropertyName}>: ";
                     predicate += isList ? "[{0}]" : "{0}";
@@ -253,7 +271,7 @@ namespace Dgraph4Net
             var ambiguous = triples.GroupBy(x => x.PropertyName)
                 .Where(x => x.Select(y => y.predicate).Distinct().Count() > 1);
 
-            var imps = ambiguous.SelectMany(s => s.Select(p => (p.prop.Name, p.prop.DeclaringType.Name))).ToArray();
+            var imps = ambiguous.SelectMany(s => s.Select(p => (p.prop.Name, p.prop.DeclaringType?.Name))).ToArray();
 
             if (imps.Length > 1)
             {
@@ -428,6 +446,7 @@ namespace Dgraph4Net
                                  attr is ReversePredicateAttribute ||
                                  attr is JsonPropertyAttribute)).Select(prop => (type, prop)));
 
+            var col = column;
             var triples =
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
@@ -450,7 +469,7 @@ namespace Dgraph4Net
                         return (null, null);
 
                     return (jattr.PropertyName, pp.prop.Name);
-                }).Where(p => !(p.PropertyName is null) && !(p.Name is null) && (p.Name == column || p.PropertyName == column))
+                }).Where(p => !(p.PropertyName is null) && !(p.Name is null) && (p.Name == col || p.PropertyName == col))
                 .Select(p => p.PropertyName);
 
             var def = entity.GetType().GetProperty(column)?.GetCustomAttribute<JsonPropertyAttribute>();
@@ -558,8 +577,18 @@ namespace Dgraph4Net
                         "GeometryCollection"
                     }.Contains(princType.Name);
 
+                    var isEnum = princType.IsEnum;
+
                     string propType;
-                    if (isUid)
+                    if (isEnum)
+                    {
+                        var converter = princType.GetCustomAttribute<JsonConverterAttribute>();
+                        if (converter != null && typeof(StringEnumConverter).IsAssignableFrom(converter.ConverterType))
+                            propType = "string";
+                        else
+                            propType = "int";
+                    }
+                    else if (isUid)
                     {
                         propType = "uid";
                     }
@@ -591,6 +620,13 @@ namespace Dgraph4Net
                     {
                         propType = "default";
                     }
+
+                    propType = pAttr switch
+                    {
+                        StringPredicateAttribute _ => "string",
+                        DateTimePredicateAttribute _ => "datetime",
+                        _ => propType
+                    };
 
                     var isPasswd = pAttr is PasswordPredicateAttribute &&
                                    (propType == "string" || propType == "default");

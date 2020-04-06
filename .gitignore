@@ -349,3 +349,12 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 *.dt
+/.idea/.idea.DGraph4Net/.idea/.name
+/.idea/.idea.DGraph4Net/.idea/contentModel.xml
+/.idea/.idea.DGraph4Net/.idea/encodings.xml
+/.idea/.idea.DGraph4Net/.idea/indexLayout.xml
+/.idea/.idea.DGraph4Net/.idea/modules.xml
+/.idea/.idea.DGraph4Net/.idea/projectSettingsUpdater.xml
+/.idea/.idea.DGraph4Net/riderModule.iml
+/.idea/.idea.DGraph4Net/.idea/vcs.xml
+/.idea/.idea.DGraph4Net/.idea/workspace.xml

@@ -19,6 +19,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>Dgraph4NetClient,client,dotnet,standard,identity</PackageTags>
     <PackageReleaseNotes>Data Annotations for Dgraph4NetClient</PackageReleaseNotes>
+    <PackageVersion>0.4.4</PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
