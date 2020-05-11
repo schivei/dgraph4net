@@ -282,7 +282,7 @@ namespace Dgraph4Net
             var sb = new StringBuilder();
 
             foreach (var predicate in triples.OrderBy(p => p.PropertyName).GroupBy(tp => tp.predicate)
-                .Select(tp => tp.Key))
+                .Select(tp => tp.Key).Distinct())
                 sb.AppendLine(predicate);
 
             sb.AppendLine();
@@ -313,7 +313,7 @@ namespace Dgraph4Net
                             tn = $"[{tn}]";
 
                         return $"{nm}: {tn}";
-                    });
+                    }).GroupBy(x => x).Select(x => x.Key);
 
                     var names = string.Join("\n", typeProperties
                         .Select(s => $"  {s}"));
@@ -331,9 +331,16 @@ namespace Dgraph4Net
             if (File.Exists("schema.dgraph") && File.ReadAllText("schema.dgraph", Encoding.UTF8) == schema)
                 return sb;
 
-            dgraph.Alter(schema).ConfigureAwait(false).GetAwaiter().GetResult();
-
             File.WriteAllText("schema.dgraph", schema, Encoding.UTF8);
+
+            try
+            {
+                dgraph.Alter(schema).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch
+            {
+                throw;
+            }
 
             return sb;
         }
