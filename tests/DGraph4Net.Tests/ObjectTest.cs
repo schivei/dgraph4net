@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Google.Protobuf;
 using Newtonsoft.Json;
 using Xunit;

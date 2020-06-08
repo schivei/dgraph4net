@@ -1,5 +1,7 @@
 using System;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Grpc.Core;
 using Grpc.Net.Client;
 using Xunit;

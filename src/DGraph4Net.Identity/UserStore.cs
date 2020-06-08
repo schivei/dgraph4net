@@ -6,7 +6,9 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Identity;
@@ -111,7 +113,7 @@ namespace Dgraph4Net.Identity
         protected void ThrowIfDisposed(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (Context?.Disposed == true)
+            if (Context?.IsDisposed() == true)
                 throw new ObjectDisposedException(nameof(Context));
 
             ThrowIfDisposed();

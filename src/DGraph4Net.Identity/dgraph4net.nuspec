@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Dgraph4Net.Identity</id>
-    <version>0.4.4</version>
+    <version>0.5.0</version>
     <title>Dgraph4NetClient for .NET Standard 2.1</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>

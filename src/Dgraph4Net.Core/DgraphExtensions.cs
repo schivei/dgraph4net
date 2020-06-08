@@ -7,7 +7,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime;
 using System.Text;
+
 using Dgraph4Net.Annotations;
+
+using GeoJSON.Net.Geometry;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -37,7 +41,8 @@ namespace Dgraph4Net
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
                                  attr is PasswordPredicateAttribute ||
-                                 attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
+                                 attr is ReversePredicateAttribute ||
+                                 attr is GeoPredicateAttribute)).Select(prop => (type, prop)));
 
             var triples =
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
@@ -66,7 +71,8 @@ namespace Dgraph4Net
                                                             attr is CommonPredicateAttribute ||
                                                             attr is DateTimePredicateAttribute ||
                                                             attr is PasswordPredicateAttribute ||
-                                                            attr is ReversePredicateAttribute) ??
+                                                            attr is ReversePredicateAttribute ||
+                                                            attr is GeoPredicateAttribute) ??
                                 new CommonPredicateAttribute();
 
                     var princType = prop.PropertyType.IsGenericType
@@ -129,10 +135,10 @@ namespace Dgraph4Net
                                  princType == typeof(DateTime?) ||
                                  princType == typeof(DateTimeOffset?);
 
-                    var isGeo = new[]
+                    var isGeo = pAttr is GeoPredicateAttribute && new[]
                     {
-                        "Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon",
-                        "GeometryCollection"
+                        nameof(Point), nameof(LineString), nameof(Polygon), nameof(MultiPoint),
+                        nameof(MultiLineString), nameof(MultiPolygon), nameof(GeometryCollection)
                     }.Contains(princType.Name);
 
                     var isEnum = princType.IsEnum;
@@ -234,6 +240,15 @@ namespace Dgraph4Net
                             {
                                 predicate += $" @index({propType})";
                                 predicate += pa.Upsert ? " @upsert" : "";
+                            }
+                            break;
+
+                        case GeoPredicateAttribute ga:
+                            predicate = string.Format(predicate, propType);
+                            if (ga.Upsert || ga.Index)
+                            {
+                                predicate += $" @index({propType})";
+                                predicate += ga.Upsert ? " @upsert" : "";
                             }
                             break;
 

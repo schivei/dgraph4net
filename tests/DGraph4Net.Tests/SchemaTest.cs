@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Xunit;
 
 namespace Dgraph4Net.Tests

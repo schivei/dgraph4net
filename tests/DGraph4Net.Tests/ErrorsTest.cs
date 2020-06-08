@@ -1,7 +1,9 @@
 using System.Data;
 using System.Threading.Tasks;
 using System.Transactions;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Google.Protobuf;
 using Xunit;
 using Assert = Dgraph4Net.Tests.Assert;

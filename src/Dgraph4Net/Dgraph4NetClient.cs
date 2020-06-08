@@ -2,23 +2,21 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Grpc.Core;
-using static Dgraph4Net.Services.Dgraph;
+
+using static Api.Dgraph;
 
 namespace Dgraph4Net
 {
-    public class Dgraph4NetClient : IDgraph4NetClient
+    public class Dgraph4NetClient : Dgraph.DgraphClient, IDgraph4NetClient
     {
-        private CancellationTokenSource _cancellationTokenSource;
-        private Mutex _mtx;
-        private DgraphClient[] _dgraphClients;
+        private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly Mutex _mtx;
+        private readonly DgraphClient[] _dgraphClients;
         private Jwt _jwt;
-
-        /// <summary>
-        /// Check if context is disposed
-        /// </summary>
-        public bool Disposed { get; private set; }
 
         private Dgraph4NetClient()
         {
@@ -84,44 +82,6 @@ namespace Dgraph4Net
             finally
             {
                 _mtx.ReleaseMutex();
-            }
-        }
-
-        /// <summary>
-        /// Can be used to do the following by setting various fields of <see cref="Operation"/>:
-        /// </summary>
-        /// <remarks>
-        /// <list type="number">
-        /// <item>Modify the schema.</item>
-        /// <item>Drop a predicate.</item>
-        /// <item>Drop a database.</item>
-        /// </list>
-        /// </remarks>
-        /// <param name="operation"></param>
-        /// <exception cref="RpcException">If login has failed.</exception>
-        /// <exception cref="NotSupportedException">If no Refresh Jwt are defined.</exception>
-        /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
-        public async Task<Payload> Alter(Operation operation)
-        {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
-
-            var dc = AnyClient();
-
-            var co = GetOptions();
-
-            try
-            {
-                return await dc.AlterAsync(operation, co);
-            }
-            catch (RpcException err)
-            {
-                if (!IsJwtExpired(err))
-                    throw;
-
-                await RetryLogin().ConfigureAwait(false);
-                co = GetOptions();
-                return await dc.AlterAsync(operation, co);
             }
         }
 
@@ -254,35 +214,10 @@ namespace Dgraph4Net
             new Txn(this, readOnly, bestEffort, cancellationToken);
 
         #region IDisposable Support
-        protected virtual void Dispose(bool disposing)
-        {
-            if (Disposed)
-                return;
-
-            Disposed = true;
-
-            if (disposing)
-            {
-                _dgraphClients = Array.Empty<DgraphClient>();
-                _mtx?.Dispose();
-                _cancellationTokenSource?.Cancel(false);
-            }
-
-            _jwt = null;
-            _mtx = null;
-            _cancellationTokenSource = null;
-        }
-
-        ~Dgraph4NetClient()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(false);
-        }
-
         /// <inheritdoc/>
-        public void Dispose()
+        public new void Dispose()
         {
-            Dispose(true);
+            base.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -290,9 +225,11 @@ namespace Dgraph4Net
         {
             return new ValueTask(Task.Run(delegate
             {
-                Dispose(true);
+                Dispose();
             }));
         }
+
+        public bool IsDisposed() => Disposed;
         #endregion
     }
 }

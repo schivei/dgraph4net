@@ -5,11 +5,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
-using Dgraph4Net.Services;
+
+using Api;
+
 using Grpc.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using static Dgraph4Net.Services.Dgraph;
+
+using static Api.Dgraph;
 
 namespace Dgraph4Net
 {
