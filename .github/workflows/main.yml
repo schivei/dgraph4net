@@ -26,6 +26,12 @@ jobs:
       uses: actions/setup-dotnet@v1.5.0
       with:
         dotnet-version: 3.1
-    
+
+    - name: ls
+      run: ls -las
+
+    - name: ls src
+      run: ls -las src
+
     - name: pack
       run: bash pack.sh ${{ secrets.NugetKey }}
