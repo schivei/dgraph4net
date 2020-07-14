@@ -28,5 +28,4 @@ jobs:
         dotnet-version: 3.1
     
     - name: pack
-      #run: bash pack.sh ${{ secrets.NugetKey }}
-      run: ls -las
+      run: bash pack.sh ${{ secrets.NugetKey }}

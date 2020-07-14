@@ -359,3 +359,4 @@ MigrationBackup/
 /.idea/.idea.DGraph4Net/.idea/vcs.xml
 /.idea/.idea.DGraph4Net/.idea/workspace.xml
 schema.dgraph
+packages/*.nupkg
