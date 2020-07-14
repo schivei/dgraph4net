@@ -140,7 +140,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByNameAsync(userName.ToUpperInvariant(), cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr != user)
+            if (!(usr is null) && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Name already exists.");
 
             user.UserName = userName;
@@ -160,7 +160,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByNameAsync(normalizedName, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr != user)
+            if (!(usr is null) && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Name already exists.");
 
             user.NormalizedUserName = normalizedName;
@@ -525,7 +525,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByEmailAsync(email.ToUpperInvariant(), cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr != user)
+            if (!(usr is null) && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Email already exists.");
 
             user.Email = email;
@@ -621,7 +621,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByEmailAsync(normalizedEmail, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr != user)
+            if (!(usr is null) && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Email already exists.");
 
             user.NormalizedEmail = normalizedEmail;
@@ -1128,9 +1128,14 @@ namespace Dgraph4Net.Identity
 
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            var usr = JsonConvert.SerializeObject(user);
+            var usr = JsonConvert.SerializeObject(user, new JsonSerializerSettings {
+                NullValueHandling = NullValueHandling.Include,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
 
+            var req = new Request { CommitNow = true };
             var mu = new Mutation { CommitNow = true, SetJson = ByteString.CopyFromUtf8(usr) };
+            req.Mutations.Add(mu);
 
             if (user.Id.IsEmpty || user.Id.IsReferenceOnly)
                 return IdentityResult.Failed(ErrorDescriber.DuplicateUserName(user.UserName));
@@ -1138,7 +1143,7 @@ namespace Dgraph4Net.Identity
             await using var txn = GetTransaction(cancellationToken);
             try
             {
-                await txn.Mutate(mu).ConfigureAwait(false);
+                await txn.Do(req).ConfigureAwait(false);
             }
             catch (RpcException re)
             {

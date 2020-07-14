@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -14,13 +15,33 @@ using GeoJSON.Net.Geometry;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 
 namespace Dgraph4Net
 {
-
     [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public static class DgraphExtensions
     {
+        private static void WalkNode(JToken node, Action<JObject> action)
+        {
+            if (node.Type == JTokenType.Object)
+            {
+                action((JObject)node);
+
+                foreach (JProperty child in node.Children<JProperty>())
+                {
+                    WalkNode(child.Value, action);
+                }
+            }
+            else if (node.Type == JTokenType.Array)
+            {
+                foreach (JToken child in node.Children())
+                {
+                    WalkNode(child, action);
+                }
+            }
+        }
+
         /// <summary>
         /// Generates mapping
         /// </summary>

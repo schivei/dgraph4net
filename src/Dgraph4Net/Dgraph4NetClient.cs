@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 
 using Api;
 
+using FluentResults;
+
 using Grpc.Core;
 
 using static Api.Dgraph;
@@ -85,8 +87,61 @@ namespace Dgraph4Net
             }
         }
 
-        public Task Alter(string schema, bool dropAll = false) =>
-            Alter(new Operation { DropAll = dropAll, Schema = schema });
+        /// <summary>
+        /// Can be used to do the following by setting various fields of <see cref="Operation"/>:
+        /// </summary>
+        /// <remarks>
+        /// <list type="number">
+        /// <item>Modify the schema.</item>
+        /// <item>Drop a predicate.</item>
+        /// <item>Drop a database.</item>
+        /// </list>
+        /// </remarks>
+        /// <param name="operation"></param>
+        /// <exception cref="RpcException">If login has failed.</exception>
+        /// <exception cref="NotSupportedException">If no Refresh Jwt are defined.</exception>
+        /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
+        public new async Task<Result> Alter(Operation operation)
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
+
+            try
+            {
+                return await base.Alter(operation);
+            }
+#pragma warning disable CA1031 // Do not catch general exception types
+            catch
+            {
+                var dc = AnyClient();
+
+                var co = GetOptions();
+
+                try
+                {
+                    await dc.AlterAsync(operation, co);
+                    return Results.Ok();
+                }
+                catch (RpcException err)
+                {
+                    if (!IsJwtExpired(err))
+                        throw;
+
+                    await RetryLogin().ConfigureAwait(false);
+                    co = GetOptions();
+                    return Results.Ok();
+                }
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
+        }
+
+        public async Task Alter(string schema, bool dropAll = false)
+        {
+            var result = await Alter(new Operation { DropAll = dropAll, Schema = schema });
+
+            if (!result.IsSuccess)
+                throw new Exception(result.Errors.First().Message);
+        }
 
         /// <summary>
         /// DeleteEdges sets the edges corresponding to predicates

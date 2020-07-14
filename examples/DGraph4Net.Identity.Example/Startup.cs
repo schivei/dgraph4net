@@ -49,6 +49,9 @@ namespace Dgraph4Net.Identity.Example
                 .AddUserStore<UserStore>()
                 .AddDefaultTokenProviders()
                 .AddDefaultUI();
+
+            services.AddTransient<UserStore, UserStore>();
+
             services.AddRazorPages();
         }
 

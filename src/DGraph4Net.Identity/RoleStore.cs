@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,8 +10,10 @@ using System.Threading.Tasks;
 using Api;
 
 using Google.Protobuf;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+
 using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
@@ -116,8 +120,19 @@ namespace Dgraph4Net.Identity
             var rtn = new TRole().GetDType();
 
             var req = new Request { CommitNow = true, Query = $@"query Q($id: string) {{ u as var(func: uid($id))  @filter(type({rtn})) }}" };
-            var mu = new Mutation { CommitNow = true, Cond = "@if(eq(len(u, 1)))", SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(role)) };
+            var mu = new Mutation
+            {
+                CommitNow = true,
+                Cond = "@if(eq(len(u, 1)))",
+                SetJson =
+                ByteString.CopyFromUtf8(JsonConvert.SerializeObject(role, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Include,
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                }))
+            };
             req.Mutations.Add(mu);
+
             await using var txn = GetTransaction(cancellationToken);
             try
             {
@@ -429,11 +444,17 @@ namespace Dgraph4Net.Identity
         /// <param name="roleName">The name of the role.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual Task SetRoleNameAsync(TRole role, string roleName, CancellationToken cancellationToken = default)
+        public virtual async Task SetRoleNameAsync(TRole role, string roleName, CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
+
+            var rl = await FindByNameAsync(roleName.ToUpperInvariant(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!(rl is null) && rl.Id != role.Id)
+                throw new AmbiguousMatchException("Name already exists.");
+
             role.Name = roleName;
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -464,12 +485,18 @@ namespace Dgraph4Net.Identity
         /// <param name="normalizedName">The normalized name to set</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-        public virtual Task SetNormalizedRoleNameAsync(TRole role, string normalizedName,
+        public virtual async Task SetNormalizedRoleNameAsync(TRole role, string normalizedName,
             CancellationToken cancellationToken = default)
         {
             CheckRole(role, cancellationToken);
+
+            var rl = await FindByNameAsync(normalizedName.ToUpperInvariant(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!(rl is null) && rl.Id != role.Id)
+                throw new AmbiguousMatchException("Name already exists.");
+
             role.NormalizedName = normalizedName;
-            return Task.CompletedTask;
         }
 
         ~RoleStore()

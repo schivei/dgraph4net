@@ -358,3 +358,4 @@ MigrationBackup/
 /.idea/.idea.DGraph4Net/riderModule.iml
 /.idea/.idea.DGraph4Net/.idea/vcs.xml
 /.idea/.idea.DGraph4Net/.idea/workspace.xml
+schema.dgraph
