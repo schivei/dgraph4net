@@ -20,7 +20,7 @@
         <dependency id="Google.Protobuf.Tools" Version="3.11.3" />
         <dependency id="Grpc.Net.ClientFactory" Version="2.27.0" />
         <dependency id="Grpc.Tools" Version="2.27.0"/>
-        <dependency id="Dgraph4Net.Core" Version="0.3.0"/>
+        <dependency id="Dgraph4Net.Core" Version="1.0.1"/>
         <dependency id="Newtonsoft.Json" Version="12.0.3" />
       </group>
     </dependencies>

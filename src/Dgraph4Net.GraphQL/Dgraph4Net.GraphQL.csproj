@@ -1,26 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Dgraph4Net</RootNamespace>
     <PackageIcon>logo.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>Dgraph4Net.Core</PackageId>
-    <Version>1.0.1</Version>
+    <PackageId>Dgraph4Net.GraphQL</PackageId>
+    <Version>1.0.0</Version>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Ciência em Cena</Company>
-    <Product>Dgraph for .NET Standard 2.1</Product>
+    <Product>Dgraph for .NET Core 3.1</Product>
     <Description>Dgraph for dotnet Core</Description>
     <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
     <PackageIconUrl />
     <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>Dgraph,client,dotnet,standard,annotations</PackageTags>
-    <PackageReleaseNotes>Ignore Mapping</PackageReleaseNotes>
-    <PackageVersion>1.0.1</PackageVersion>
-    <Title>Dgraph4Net.Core</Title>
+    <PackageTags>Dgraph,client,dotnet,core,graphql</PackageTags>
+    <PackageReleaseNotes>Data Annotations for Dgraph</PackageReleaseNotes>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>Dgraph4Net.GraphQL</Title>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,8 +37,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="GeoJSON.Net" Version="1.2.19" />
+    <PackageReference Include="Castle.Core" Version="4.4.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Microsoft.ReverseProxy" Version="1.0.0-preview.4.20424.2" />
+    <PackageReference Include="graphiql" Version="2.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.7" />
   </ItemGroup>
 
 </Project>

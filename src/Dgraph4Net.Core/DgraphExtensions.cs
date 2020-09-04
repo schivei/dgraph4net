@@ -58,12 +58,14 @@ namespace Dgraph4Net
             var properties =
             types.SelectMany(type => type.GetProperties()
                 .Where(prop => prop.GetCustomAttributes()
-                    .Any(attr => attr is StringPredicateAttribute ||
+                    .Any(attr => (attr is StringPredicateAttribute ||
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
                                  attr is PasswordPredicateAttribute ||
                                  attr is ReversePredicateAttribute ||
-                                 attr is GeoPredicateAttribute)).Select(prop => (type, prop)));
+                                 attr is GeoPredicateAttribute) &&
+                                 !(attr is IgnoreMappingAttribute ||
+                                 attr is JsonIgnoreAttribute))).Select(prop => (type, prop)));
 
             var triples =
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
