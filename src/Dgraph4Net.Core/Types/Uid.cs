@@ -103,8 +103,8 @@ namespace System
         public int CompareTo(Uid other) =>
             string.CompareOrdinal(_uid, other.ToString());
 
-        public int CompareTo(object obj) =>
-            string.CompareOrdinal(_uid, obj.ToString());
+        public int CompareTo(object? obj) =>
+            string.CompareOrdinal(_uid, obj?.ToString());
 
         public bool Equals(Uid other) =>
             string.Equals(_uid, other.ToString());

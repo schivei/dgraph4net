@@ -113,8 +113,6 @@ namespace Dgraph4Net.Identity
         protected void ThrowIfDisposed(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (Context?.IsDisposed() == true)
-                throw new ObjectDisposedException(nameof(Context));
 
             ThrowIfDisposed();
         }
@@ -1072,11 +1070,6 @@ namespace Dgraph4Net.Identity
                 return;
 
             _disposed = true;
-
-            if (disposing)
-            {
-                Context?.Dispose();
-            }
         }
 
         public ValueTask DisposeAsync()
@@ -1128,8 +1121,9 @@ namespace Dgraph4Net.Identity
 
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            var usr = JsonConvert.SerializeObject(user, new JsonSerializerSettings {
-                NullValueHandling = NullValueHandling.Include,
+            var usr = JsonConvert.SerializeObject(user, new JsonSerializerSettings
+            {
+            	NullValueHandling = NullValueHandling.Include,
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore
             });
 

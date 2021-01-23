@@ -12,9 +12,9 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task GetSchemaTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
-            await dg.Alter(new Operation { DropAll = true });
+            //await dg.Alter(new Operation { DropAll = true });
 
             var op = new Operation
             {

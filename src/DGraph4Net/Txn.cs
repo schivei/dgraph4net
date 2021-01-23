@@ -96,7 +96,7 @@ namespace Dgraph4Net
         /// Link the cancellation tokens
         /// </summary>
         internal void LinkTokens(CancellationTokenSource tokenSource) =>
-            _cancellationTokenSource = tokenSource ?? new CancellationTokenSource();
+            _cancellationTokenSource = /*tokenSource ??*/ new CancellationTokenSource();
 
         /// <summary>
         /// Enables best effort in read-only queries.
@@ -228,8 +228,9 @@ namespace Dgraph4Net
             if (reqs.Length == 0)
             {
                 _finished = true;
-                return new[] { new Response { Txn = _context, Latency = new Latency(), Metrics = new Metrics() } };
+                return new[] { new Response { Txn = _context, Latency = new Latency() } };
             }
+
 
             if (reqs.Any(x => x.CommitNow))
             {
@@ -262,14 +263,19 @@ namespace Dgraph4Net
 
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
                 {
                     _finished = false;
-                    await Abort(resp?.Txn, request, true).ConfigureAwait(false);
+                    try
+                    {
+                        await Abort(resp?.Txn, request, true).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
                     throw;
                 }
-#pragma warning restore CA1031 // Do not catch general exception types
                 finally
                 {
                     _finished = false;
@@ -279,9 +285,14 @@ namespace Dgraph4Net
                 {
                     MergeContext(resp?.Txn ?? _context);
                 }
-
-                await Abort(resp?.Txn, request).ConfigureAwait(false);
-
+                try
+                {
+                    await Abort(resp?.Txn, request).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // ignore
+                }
                 return resp;
             })).ConfigureAwait(false);
 
@@ -502,16 +513,11 @@ namespace Dgraph4Net
                     _dgraphClient = null;
                     _cancellationTokenSource?.Cancel(false);
                 }
-
-                _cancellationTokenSource?.Dispose();
-                _cancellationTokenSource = null;
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch
             {
                 // ignore
             }
-#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         ~Txn()

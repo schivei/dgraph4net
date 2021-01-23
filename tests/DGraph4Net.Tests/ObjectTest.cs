@@ -142,9 +142,9 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task SetObjectTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
-            await dg.Alter(new Operation { DropAll = true });
+            //await dg.Alter(new Operation { DropAll = true });
 
             var dob = new DateTimeOffset(new DateTime(1980, 01, 01, 23, 0, 0, 0, DateTimeKind.Utc));
             // While setting an object if a struct has a Uid then its properties in the graph are updated
@@ -292,20 +292,20 @@ namespace Dgraph4Net.Tests
             Json(expected, resp.Json.ToStringUtf8());
         }
 
-        [Fact]
-        public async Task DropAllTest()
-        {
-            var dg = GetDgraphClient();
+        //[Fact]
+        //public async Task DropAllTest()
+        //{
+        //    var dg = GetDgraphClient();
 
-            var op = new Operation { DropAll = true };
+        //    var op = new Operation { DropAll = true };
 
-            await TaskAsync(dg.Alter, op);
-        }
+        //    await TaskAsync(dg.Alter, op);
+        //}
 
         [Fact]
         public async Task TxnQueryVariablesTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             var op = new Operation
             {
@@ -357,7 +357,7 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task TxnMutateTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             // While setting an object if a struct has a Uid then its properties in the
             // graph are updated else a new node is created.
@@ -486,7 +486,7 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task TxnMutateBytesTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             var op = new Operation
             {
@@ -544,7 +544,7 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task TxnQueryUnmarshalTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             var op = new Operation
             {
@@ -678,7 +678,7 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task TxnQueryBestEffortTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             var txn = dg.NewTransaction(true, true);
             var resp = await txn.Query("{ q(func: uid(0x1)) { uid } }");
@@ -689,7 +689,7 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task TxnMutateFacetsTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             var op = new Operation
             {
@@ -818,7 +818,7 @@ namespace Dgraph4Net.Tests
         [Fact]
         public async Task TxnMutateVarsTest()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             // While setting an object if a struct has a Uid then its properties in the
             // graph are updated else a new node is created.
@@ -970,7 +970,7 @@ namespace Dgraph4Net.Tests
         }
 
         //        func ExampleTxn_Mutate_list() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel() // This example shows example for SetObject for predicates with list type.
         //	        type Person struct {
         //		        Uid         string   `json:"uid"`
@@ -1048,7 +1048,7 @@ namespace Dgraph4Net.Tests
         //        }
 
         //        func ExampleDeleteEdges() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel()
         //	        op := &api.Operation{}
         //	        op.Schema = `
@@ -1205,7 +1205,7 @@ namespace Dgraph4Net.Tests
         //        }
 
         //        func ExampleTxn_Mutate_deleteNode() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel()
         //	        // In this test we check S * * deletion.
         //	        type Person struct {
@@ -1377,7 +1377,7 @@ namespace Dgraph4Net.Tests
         //        }
 
         //        func ExampleTxn_Mutate_deletePredicate() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel()
         //	        type Person struct {
         //		        Uid     string   `json:"uid,omitempty"`
@@ -1504,7 +1504,7 @@ namespace Dgraph4Net.Tests
         //        }
 
         //        func ExampleTxn_Discard() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel()
 
         //	        ctx, toCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1552,7 +1552,7 @@ namespace Dgraph4Net.Tests
         //        }
 
         //        func ExampleTxn_Mutate_upsert() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel()
 
         //	        ctx, toCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1620,7 +1620,7 @@ namespace Dgraph4Net.Tests
         //        }
 
         //        func ExampleTxn_Mutate_upsertJSON() {
-        //	        dg, cancel := getDgraphClient()
+        //	        dg, cancel := GetDgraphClient()
         //	        defer cancel()
 
         //	        // Warn: Cleaning up the database

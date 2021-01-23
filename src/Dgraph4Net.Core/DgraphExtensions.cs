@@ -83,7 +83,7 @@ namespace Dgraph4Net
                         prop.GetCustomAttributes()
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(NormalizeName(prop.Name));
+                        new JsonPropertyAttribute(prop.Name.NormalizeName());
 
                     if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
                         return (null, null, null, null, null);
@@ -313,8 +313,8 @@ namespace Dgraph4Net
 
             if (imps.Length > 1)
             {
-                throw new AmbiguousImplementationException($@"There are two or more different implementations of: {(string.Join(',', imps.Select(i => i.Item1).Distinct())
-                    .Trim(',').Replace(",", ", "))}.\n\nImplementations: \n{string.Join("\n", imps.Select(i => $"{i.Item2}::{i.Item1}"))}");
+                throw new AmbiguousImplementationException($@"There are two or more different implementations of: {string.Join(',', imps.Select(i => i.Item1).Distinct())
+                    .Trim(',').Replace(",", ", ")}.\n\nImplementations: \n{string.Join("\n", imps.Select(i => $"{i.Item2}::{i.Item1}"))}");
             }
 
             var sb = new StringBuilder();
@@ -423,7 +423,7 @@ namespace Dgraph4Net
                         prop.GetCustomAttributes()
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(NormalizeName(prop.Name));
+                        new JsonPropertyAttribute(prop.Name.NormalizeName());
 
                     if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
                         return null;
@@ -463,7 +463,7 @@ namespace Dgraph4Net
                         prop.GetCustomAttributes()
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(NormalizeName(prop.Name));
+                        new JsonPropertyAttribute(prop.Name.NormalizeName());
 
                     if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
                         return null;
@@ -508,7 +508,7 @@ namespace Dgraph4Net
                         prop.GetCustomAttributes()
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(NormalizeName(prop.Name));
+                        new JsonPropertyAttribute(prop.Name.NormalizeName());
 
                     if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
                         return (null, null);

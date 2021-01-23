@@ -5,7 +5,9 @@ using System.Transactions;
 using Api;
 
 using Google.Protobuf;
+
 using Xunit;
+
 using Assert = Dgraph4Net.Tests.Assert;
 
 namespace Dgraph4Net.Tests
@@ -16,7 +18,7 @@ namespace Dgraph4Net.Tests
         [Fact(DisplayName = "should have returned ErrFinished")]
         public async Task TestTxnErrFinished()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
             var op = new Operation
             {
@@ -41,58 +43,76 @@ namespace Dgraph4Net.Tests
         [Fact(DisplayName = "should have returned ErrReadOnly")]
         public async Task TestTxnErrReadOnly()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
-            var op = new Operation { Schema = "email: string @index(exact) ." };
-            await dg.Alter(op);
-
-            var mu = new Mutation
+            try
             {
-                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                CommitNow = true
-            };
+                var op = new Operation { Schema = "email: string @index(exact) ." };
+                await dg.Alter(op);
 
-            await ThrowsAsync<ReadOnlyException>(() => dg.NewTransaction(true).Mutate(mu));
+                var mu = new Mutation
+                {
+                    SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                    CommitNow = true
+                };
+
+                await ThrowsAsync<ReadOnlyException>(() => dg.NewTransaction(true).Mutate(mu));
+            }
+            finally
+            {
+                await CleanPredicates("email");
+            }
         }
 
         [Fact(DisplayName = "2nd transaction should have aborted")]
         public async Task TestTxnErrAborted()
         {
-            await using var dg = GetDgraphClient();
+            var dg = GetDgraphClient();
 
-            var op = new Operation { Schema = "email: string @index(exact) ." };
-            await dg.Alter(op);
-
-            var mu = new Mutation
+            try
             {
-                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                CommitNow = true
-            };
+                var op = new Operation { Schema = "email: string @index(exact) ." };
 
-            // Insert first record.
-            await dg.NewTransaction().Mutate(mu);
+                await dg.Alter(op);
 
-            const string q = @"{
-                v as var(func: eq(email, ""user1@company1.io""))
-            }";
+                var mu = new Mutation
+                {
+                    SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                    CommitNow = true
+                };
 
-            mu = new Mutation
+                // Insert first record.
+                await using (var txnInsert = dg.NewTransaction())
+                    await txnInsert.Mutate(mu);
+
+                const string q = @"{
+                    v as var(func: eq(email, ""user1@company1.io""))
+                }";
+
+                mu = new Mutation
+                {
+                    SetNquads = ByteString.CopyFromUtf8(@"uid(v) <email> ""updated1@company1.io""."),
+                    CommitNow = false
+                };
+
+                await using (var txn = dg.NewTransaction())
+                {
+                    var req = new Request { Query = q };
+
+                    req.Mutations.Add(mu);
+
+                    await txn.Do(req);
+
+                    await txn.Abort(req);
+
+                    await ThrowsAsync<TransactionAbortedException>(() => txn.Commit());
+                }
+            }
+            finally
             {
-                SetNquads = ByteString.CopyFromUtf8(@"uid(v) <email> ""updated1@company1.io""."),
-                CommitNow = false
-            };
-
-            var txn = dg.NewTransaction();
-
-            var req = new Request { Query = q };
-
-            req.Mutations.Add(mu);
-
-            await txn.Do(req);
-
-            await txn.Abort(req);
-
-            await ThrowsAsync<TransactionAbortedException>(() => txn.Commit());
+                await Task.Delay(5000);
+                await CleanPredicates("email");
+            }
         }
     }
 }

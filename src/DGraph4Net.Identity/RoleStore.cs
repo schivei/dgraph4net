@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Api;
 
 using Google.Protobuf;
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
@@ -385,8 +384,6 @@ namespace Dgraph4Net.Identity
         protected void ThrowIfDisposed(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (Context?.IsDisposed() == true)
-                throw new ObjectDisposedException(nameof(Context));
 
             // ReSharper disable once MethodSupportsCancellation
             ThrowIfDisposed();
@@ -518,11 +515,6 @@ namespace Dgraph4Net.Identity
                 return;
 
             _disposed = true;
-
-            if (disposing)
-            {
-                Context?.Dispose();
-            }
         }
 
         public ValueTask DisposeAsync()

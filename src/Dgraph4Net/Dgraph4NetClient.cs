@@ -5,19 +5,17 @@ using System.Threading.Tasks;
 
 using Api;
 
-using FluentResults;
-
 using Grpc.Core;
 
 using static Api.Dgraph;
 
 namespace Dgraph4Net
 {
-    public class Dgraph4NetClient : Dgraph.DgraphClient, IDgraph4NetClient
+    public class Dgraph4NetClient : IDgraph4NetClient
     {
-        private readonly CancellationTokenSource _cancellationTokenSource;
-        private readonly Mutex _mtx;
-        private readonly DgraphClient[] _dgraphClients;
+        private CancellationTokenSource _cancellationTokenSource;
+        private Mutex _mtx;
+        private DgraphClient[] _dgraphClients;
         private Jwt _jwt;
 
         private Dgraph4NetClient()
@@ -62,9 +60,6 @@ namespace Dgraph4Net
         // ReSharper disable once UnusedMember.Global
         public async Task Login(string userid, string password)
         {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
-
             _mtx.WaitOne();
 
             try
@@ -101,47 +96,29 @@ namespace Dgraph4Net
         /// <exception cref="RpcException">If login has failed.</exception>
         /// <exception cref="NotSupportedException">If no Refresh Jwt are defined.</exception>
         /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
-        public new async Task<Result> Alter(Operation operation)
+        public async Task<Payload> Alter(Operation operation)
         {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
+            var dc = AnyClient();
+
+            var co = GetOptions();
 
             try
             {
-                return await base.Alter(operation);
+                return await dc.AlterAsync(operation, co);
             }
-#pragma warning disable CA1031 // Do not catch general exception types
-            catch
+            catch (RpcException err)
             {
-                var dc = AnyClient();
+                if (!IsJwtExpired(err))
+                    throw;
 
-                var co = GetOptions();
-
-                try
-                {
-                    await dc.AlterAsync(operation, co);
-                    return Results.Ok();
-                }
-                catch (RpcException err)
-                {
-                    if (!IsJwtExpired(err))
-                        throw;
-
-                    await RetryLogin().ConfigureAwait(false);
-                    co = GetOptions();
-                    return Results.Ok();
-                }
+                await RetryLogin().ConfigureAwait(false);
+                co = GetOptions();
+                return await dc.AlterAsync(operation, co);
             }
-#pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        public async Task Alter(string schema, bool dropAll = false)
-        {
-            var result = await Alter(new Operation { DropAll = dropAll, Schema = schema });
-
-            if (!result.IsSuccess)
-                throw new Exception(result.Errors.First().Message);
-        }
+        public Task Alter(string schema, bool dropAll = false) =>
+            Alter(new Operation { /*DropAll = dropAll,*/ Schema = schema });
 
         /// <summary>
         /// DeleteEdges sets the edges corresponding to predicates
@@ -175,7 +152,9 @@ namespace Dgraph4Net
         }
 
         internal DgraphClient AnyClient() =>
-            _dgraphClients[new Random().Next(0, _dgraphClients.Length)];
+            _dgraphClients.Length <= 1 ?
+            _dgraphClients.FirstOrDefault() :
+            _dgraphClients[new Random().Next(0, _dgraphClients.Length - 1)];
 
         /// <summary>
         /// Current Cancellation Token Source
@@ -190,9 +169,6 @@ namespace Dgraph4Net
         /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
         internal CallOptions GetOptions()
         {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
-
             _mtx.WaitOne();
 
             try
@@ -231,9 +207,6 @@ namespace Dgraph4Net
         /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
         internal async Task RetryLogin()
         {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(Dgraph4NetClient));
-
             _mtx.WaitOne();
 
             try
@@ -267,24 +240,5 @@ namespace Dgraph4Net
         /// <returns cref="Txn">Transaction</returns>
         public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) =>
             new Txn(this, readOnly, bestEffort, cancellationToken);
-
-        #region IDisposable Support
-        /// <inheritdoc/>
-        public new void Dispose()
-        {
-            base.Dispose();
-            GC.SuppressFinalize(this);
-        }
-
-        public ValueTask DisposeAsync()
-        {
-            return new ValueTask(Task.Run(delegate
-            {
-                Dispose();
-            }));
-        }
-
-        public bool IsDisposed() => Disposed;
-        #endregion
     }
 }

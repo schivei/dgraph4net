@@ -1,9 +1,12 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Api;
 
 using Grpc.Core;
 using Grpc.Net.Client;
+
 using Xunit;
 
 namespace Dgraph4Net.Tests
@@ -24,10 +27,35 @@ namespace Dgraph4Net.Tests
 
             var dg = new Dgraph4NetClient(channel);
 
-            dg.Alter(new Operation { DropAll = true }).ConfigureAwait(false)
-                .GetAwaiter().GetResult();
-
             return dg;
+        }
+
+        protected static async Task CleanPredicates(params string[] preds)
+        {
+            var dg = GetDgraphClient();
+
+            foreach (var attr in preds)
+            {
+                await dg.Alter(new Operation
+                {
+                    DropValue = attr,
+                    DropOp = Operation.Types.DropOp.Attr
+                });
+            }
+        }
+
+        protected static async Task CleanTypes(params string[] types)
+        {
+            var dg = GetDgraphClient();
+
+            foreach (var type in types)
+            {
+                await dg.Alter(new Operation
+                {
+                    DropValue = type,
+                    DropOp = Operation.Types.DropOp.Type
+                });
+            }
         }
     }
 }
