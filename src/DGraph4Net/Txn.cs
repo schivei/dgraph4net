@@ -513,6 +513,8 @@ namespace Dgraph4Net
                     _dgraphClient = null;
                     _cancellationTokenSource?.Cancel(false);
                 }
+
+                _cancellationTokenSource?.Dispose();
             }
             catch
             {

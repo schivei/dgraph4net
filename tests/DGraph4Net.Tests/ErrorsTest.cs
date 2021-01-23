@@ -20,24 +20,31 @@ namespace Dgraph4Net.Tests
         {
             var dg = GetDgraphClient();
 
-            var op = new Operation
+            try
             {
-                Schema = "email: string @index(exact) .\n"
-            };
+                var op = new Operation
+                {
+                    Schema = "email: string @index(exact) .\n"
+                };
 
-            await dg.Alter(op);
+                await dg.Alter(op);
 
-            var txn = new Txn(dg);
+                var txn = new Txn(dg);
 
-            var mu = new Mutation
+                var mu = new Mutation
+                {
+                    SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                    CommitNow = true
+                };
+
+                await txn.Mutate(mu);
+
+                await ThrowsAsync<TransactionException>(() => txn.Mutate(mu));
+            }
+            finally
             {
-                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                CommitNow = true
-            };
-
-            await txn.Mutate(mu);
-
-            await ThrowsAsync<TransactionException>(() => txn.Mutate(mu));
+                await CleanPredicates("email");
+            }
         }
 
         [Fact(DisplayName = "should have returned ErrReadOnly")]
@@ -110,7 +117,6 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await Task.Delay(5000);
                 await CleanPredicates("email");
             }
         }

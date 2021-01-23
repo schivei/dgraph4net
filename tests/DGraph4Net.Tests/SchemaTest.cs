@@ -14,26 +14,31 @@ namespace Dgraph4Net.Tests
         {
             var dg = GetDgraphClient();
 
-            //await dg.Alter(new Operation { DropAll = true });
-
-            var op = new Operation
+            try
             {
-                Schema = @"
-		            name: string @index(exact) .
-		            age: int .
-		            married: bool .
-		            loc: geo .
-		            dob: datetime .
-                "
-            };
-            await dg.Alter(op);
+                var op = new Operation
+                {
+                    Schema = @"
+		                name: string @index(exact) .
+		                age: int .
+		                married: bool .
+		                loc: geo .
+		                dob: datetime .
+                    "
+                };
+                await dg.Alter(op);
 
-            // Ask for the type of name and age.
-            var resp = await dg.NewTransaction().Query("schema(pred: [name, age]) {type}");
+                // Ask for the type of name and age.
+                var resp = await dg.NewTransaction().Query("schema(pred: [name, age]) {type}");
 
-            const string expected = @"{""schema"":[{""predicate"":""age"",""type"":""int""},{""predicate"":""name"",""type"":""string""}]}";
+                const string expected = @"{""schema"":[{""predicate"":""age"",""type"":""int""},{""predicate"":""name"",""type"":""string""}]}";
 
-            Json(expected, resp.Json.ToStringUtf8());
+                Json(expected, resp.Json.ToStringUtf8());
+            }
+            finally
+            {
+                await CleanPredicates("name", "age", "married", "loc", "dob");
+            }
         }
     }
 }

@@ -102,19 +102,31 @@ namespace Dgraph4Net
 
             var co = GetOptions();
 
-            try
+            var tries = 3;
+            while (tries-- > 0)
             {
-                return await dc.AlterAsync(operation, co);
-            }
-            catch (RpcException err)
-            {
-                if (!IsJwtExpired(err))
-                    throw;
+                try
+                {
+                    return await dc.AlterAsync(operation, co);
+                }
+                catch (RpcException err) when (err.Message.ToLowerInvariant().Contains("retry operation") && tries > 0)
+                {
+                    await Task.Delay(5000);
+                    continue;
+                }
+                catch (RpcException err)
+                {
+                    if (!IsJwtExpired(err))
+                        throw;
 
-                await RetryLogin().ConfigureAwait(false);
-                co = GetOptions();
-                return await dc.AlterAsync(operation, co);
+                    await RetryLogin().ConfigureAwait(false);
+                    co = GetOptions();
+
+                    return await dc.AlterAsync(operation, co);
+                }
             }
+
+            return null;
         }
 
         public Task Alter(string schema, bool dropAll = false) =>
