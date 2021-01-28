@@ -6,7 +6,7 @@
     <PackageIcon>logo.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <DebugType>Full</DebugType>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>Dgraph4Net.Identity.Core</PackageId>
     <Version>1.1.0</Version>
     <Authors>Elton Schivei Costa</Authors>
