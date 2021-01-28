@@ -7,26 +7,23 @@ name: Package Publisher
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  publish:
     name: Create Packages
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
-
+    runs-on: ubuntu-latest
+    
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - name: Setup .NET Core SDK
-      uses: actions/setup-dotnet@v1.5.0
-      with:
-        dotnet-version: 5.0.102
+      uses: actions/setup-dotnet@v1.7.2
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+    - name: Checkout Source
+      uses: actions/checkout@v2
 
     - name: pack
       run: ./pack.sh ${{ secrets.NugetKey }}
