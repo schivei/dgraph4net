@@ -14,16 +14,14 @@ jobs:
   publish:
     name: Create Packages
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: windows-2019
     
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - name: Setup .NET Core SDK
-      uses: actions/setup-dotnet@v1.7.2
-
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout Source
       uses: actions/checkout@v2
 
-    - name: pack
-      run: ./pack.sh ${{ secrets.NugetKey }}
+    - name: Build Binary
+      shell: cmd
+      run: call .\pack.bat ${{ secrets.NugetKey }}
