@@ -8,10 +8,10 @@
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Dgraph4Net.Core</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Ciência em Cena</Company>
-    <Product>Dgraph for .NET Standard 2.1</Product>
+    <Product>Dgraph for .NET 5</Product>
     <Description>Dgraph for dotnet Core</Description>
     <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>

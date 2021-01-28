@@ -23,27 +23,27 @@ jobs:
       - name: Publish Dgraph4Net.Core package
         uses: brandedoutcast/publish-nuget@v2.5.5
         with:
-          PROJECT_FILE_PATH: src/Dgraph4Net.Core/Dgraph4Net.Core.csproj
+          PROJECT_FILE_PATH: /home/runner/work/dgraph4net/dgraph4net/src/Dgraph4Net.Core/Dgraph4Net.Core.csproj
           PACKAGE_NAME: Dgraph4Net.Core
           NUGET_KEY: ${{ secrets.NugetKey }}
 
       - name: Publish Dgraph4Net package
         uses: brandedoutcast/publish-nuget@v2.5.5
         with:
-          PROJECT_FILE_PATH: src/Dgraph4Net/Dgraph4Net.csproj
+          PROJECT_FILE_PATH: /home/runner/work/dgraph4net/dgraph4net/src/Dgraph4Net/Dgraph4Net.csproj
           PACKAGE_NAME: Dgraph4Net
           NUGET_KEY: ${{ secrets.NugetKey }}
 
       - name: Publish Dgraph4Net.Identity.Core package
         uses: brandedoutcast/publish-nuget@v2.5.5
         with:
-          PROJECT_FILE_PATH: src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj
+          PROJECT_FILE_PATH: /home/runner/work/dgraph4net/dgraph4net/src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj
           PACKAGE_NAME: Dgraph4Net.Identity.Core
           NUGET_KEY: ${{ secrets.NugetKey }}
 
       - name: Publish Dgraph4Net.Identity package
         uses: brandedoutcast/publish-nuget@v2.5.5
         with:
-          PROJECT_FILE_PATH: src/Dgraph4Net.Identity/Dgraph4Net.Identity.csproj
+          PROJECT_FILE_PATH: /home/runner/work/dgraph4net/dgraph4net/src/Dgraph4Net.Identity/Dgraph4Net.Identity.csproj
           PACKAGE_NAME: Dgraph4Net.Identity
           NUGET_KEY: ${{ secrets.NugetKey }}
