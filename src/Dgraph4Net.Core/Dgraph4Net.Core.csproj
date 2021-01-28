@@ -14,13 +14,14 @@
     <Product>Dgraph for .NET Standard 2.1</Product>
     <Description>Dgraph for dotnet Core</Description>
     <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
-    <PackageIconUrl />
     <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Dgraph,client,dotnet,standard,annotations</PackageTags>
     <PackageReleaseNotes>Ignore Mapping</PackageReleaseNotes>
-    <PackageVersion>1.0.1</PackageVersion>
+    <PackageVersion>1.1.0</PackageVersion>
     <Title>Dgraph4Net.Core</Title>
+    <PackOnBuild>true</PackOnBuild>
+    <ReleaseVersion>1.1.0</ReleaseVersion>
   </PropertyGroup>
 
   <ItemGroup>

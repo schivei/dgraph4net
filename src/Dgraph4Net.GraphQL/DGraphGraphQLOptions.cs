@@ -6,7 +6,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 
 using Castle.DynamicProxy;
-using Castle.DynamicProxy.Internal;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;

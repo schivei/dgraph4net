@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<package>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Dgraph4Net.Identity.Core</id>
     <version>1.0.0</version>
-    <title>Dgraph for .NET Standard 2.1</title>
+    <title>Dgraph for .NET 5</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -15,13 +15,10 @@
     <copyright>Copyright 2020, Ciência em Cena</copyright>
     <tags>Dgraph,client,dotnet,annotations</tags>
     <dependencies>
-      <group targetFramework=".NETStandard2.1">
-        <dependency id="Google.Protobuf" Version="3.11.3" />
-        <dependency id="Google.Protobuf.Tools" Version="3.11.3" />
-        <dependency id="Grpc.Net.ClientFactory" Version="2.27.0" />
-        <dependency id="Grpc.Tools" Version="2.27.0"/>
+      <group targetFramework="netcore50">
+        <dependency id="Microsoft.Extensions.Identity.Core" Version="5.0.2" />
         <dependency id="Newtonsoft.Json" Version="12.0.3" />
-        <dependency id="Dgraph4Net.Identity.Core" Version="0.3.0"/>
+        <dependency id="Dgraph4Net.Core" Version="1.1.0"/>
       </group>
     </dependencies>
   </metadata>

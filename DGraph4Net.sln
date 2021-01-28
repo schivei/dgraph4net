@@ -36,7 +36,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Core", "src\Dgra
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Identity.Core", "src\Dgraph4Net.Identity.Core\Dgraph4Net.Identity.Core.csproj", "{5250E6AA-83D4-4F72-A3F0-25ADFBDD4C20}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.GraphQL", "src\Dgraph4Net.GraphQL\Dgraph4Net.GraphQL.csproj", "{6673A9AB-4E63-4530-A024-73751C9159E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dgraph4Net.GraphQL", "src\Dgraph4Net.GraphQL\Dgraph4Net.GraphQL.csproj", "{6673A9AB-4E63-4530-A024-73751C9159E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -147,5 +147,12 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B638F473-88B7-4796-80A9-6E0A92B4985A}
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		Policies = $0
+		$0.DotNetNamingPolicy = $1
+		$1.DirectoryNamespaceAssociation = PrefixedHierarchical
+		$0.StandardHeader = $2
+		version = 1.1.0
 	EndGlobalSection
 EndGlobal

@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddDgraphQL(this IServiceCollection services,
             IConfiguration configuration,
-            Action<DGraphQLOptions> optionsBuilder = null)
+            Action<DGraphQLOptions>? optionsBuilder = null)
         {
             optionsBuilder ??= delegate { };
 
@@ -55,7 +55,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return app;
         }
 
-        public static IEndpointRouteBuilder UseDGraphQL(this IEndpointRouteBuilder endpoints, Action<IApplicationBuilder> configureApp = null)
+        public static IEndpointRouteBuilder UseDGraphQL(this IEndpointRouteBuilder endpoints, Action<IApplicationBuilder>? configureApp = null)
         {
             configureApp ??= _ => { };
 

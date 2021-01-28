@@ -5,6 +5,7 @@
     <UserSecretsId>aspnet-Dgraph4Net.Identity.Example-561BEFAF-3A8B-419F-86CA-72411C1D8872</UserSecretsId>
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
     <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+    <ReleaseVersion>1.1.0</ReleaseVersion>
   </PropertyGroup>
 
 

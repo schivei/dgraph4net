@@ -12,14 +12,15 @@
     <Description>Dgraph4NetClient for Asp.Net Core Identity</Description>
     <PackageLicenseExpression></PackageLicenseExpression>
     <PackageIcon>logo.png</PackageIcon>
-    <PackageIconUrl />
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Dgraph4NetClient,client,dotnet,standard,identity</PackageTags>
     <PackageReleaseNotes>Data Annotations for Dgraph4NetClient</PackageReleaseNotes>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageVersion>1.1.0</PackageVersion>
+    <PackOnBuild>true</PackOnBuild>
+    <ReleaseVersion>1.1.0</ReleaseVersion>
   </PropertyGroup>
 
   <ItemGroup>

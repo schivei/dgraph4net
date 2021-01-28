@@ -16,14 +16,14 @@ jobs:
   build:
     name: Create Packages
     # The type of runner that the job will run on
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - name: Setup .NET Core SDK
       uses: actions/setup-dotnet@v1.5.0
       with:
-        dotnet-version: 3.1
+        dotnet-version: 5.0.102
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
