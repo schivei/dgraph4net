@@ -1202,7 +1202,7 @@ namespace Dgraph4Net.Identity
                 if (response.Uids.Count == 0)
                     return IdentityResult.Failed(ErrorDescriber.DuplicateUserName(user.UserName));
 
-                user.Id = response.Uids.First().Value;
+                //user.Id = response.Uids.First().Value;
 
                 return IdentityResult.Success;
             }
@@ -1653,7 +1653,7 @@ namespace Dgraph4Net.Identity
             try
             {
                 var tkResp = await txn.Mutate(mu).ConfigureAwait(false);
-                token.Id = tkResp.Uids.First().Value;
+                //token.Id = tkResp.Uids.First().Value;
             }
             catch (Exception ex)
             {

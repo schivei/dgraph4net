@@ -1,4 +1,6 @@
 using System;
+using System.Threading.Tasks;
+
 using Newtonsoft.Json;
 using Xunit;
 
@@ -17,21 +19,28 @@ namespace Dgraph4Net.Tests
         }
 
         [Fact]
-        public void ExpTest()
+        public async Task ExpTest()
         {
-            Uid id = "<0x1>";
-            Uid refs = "_:0";
-
-            var tes = JsonConvert.SerializeObject(new Testing
+            try
             {
-                uid = id,
-                name = "test",
-                TestingId = refs
-            });
+                Uid id = "<0x1>";
+                Uid refs = "_:0";
 
-            var t = JsonConvert.DeserializeObject<Testing>(tes);
+                var tes = JsonConvert.SerializeObject(new Testing
+                {
+                    uid = id,
+                    name = "test",
+                    TestingId = refs
+                });
 
-            Equal(tes, JsonConvert.SerializeObject(t));
+                var t = JsonConvert.DeserializeObject<Testing>(tes);
+
+                Equal(tes, JsonConvert.SerializeObject(t));
+            }
+            finally
+            {
+                await ClearDB();
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -7,7 +9,50 @@ using Api;
 
 using Grpc.Core;
 
+using Newtonsoft.Json;
+
 using static Api.Dgraph;
+
+namespace Api
+{
+    public sealed partial class Operation
+    {
+        public bool AlsoDropDgraphSchema { get; set; }
+    }
+}
+
+namespace Dgraph4Net.SchemaReader
+{
+    internal class Schema
+    {
+        [JsonProperty("predicate")]
+        internal string Predicate { get; set; }
+    }
+
+    internal class Field
+    {
+        [JsonProperty("name")]
+        internal string Name { get; set; }
+    }
+
+    internal class Type
+    {
+        [JsonProperty("fields")]
+        internal List<Field> Fields { get; set; }
+
+        [JsonProperty("name")]
+        internal string Name { get; set; }
+    }
+
+    internal class Root
+    {
+        [JsonProperty("schema")]
+        internal List<Schema> Schema { get; set; }
+
+        [JsonProperty("types")]
+        internal List<Type> Types { get; set; }
+    }
+}
 
 namespace Dgraph4Net
 {
@@ -107,6 +152,33 @@ namespace Dgraph4Net
             {
                 try
                 {
+                    if (operation.DropAll && !operation.AlsoDropDgraphSchema)
+                    {
+                        await using var txn = NewTransaction();
+                        var resp = await txn.Query("schema{name}");
+
+                        var sr = JsonConvert.DeserializeObject<SchemaReader.Root>(resp.Json.ToStringUtf8());
+
+                        var types = sr.Types.Select(x => x.Name).Where(x => !x.StartsWith("dgraph.")).ToList();
+                        var predicates = sr.Schema.Select(x => x.Predicate).Where(x => !x.StartsWith("dgraph.")).ToList();
+
+                        if (types.Count + predicates.Count == 0)
+                        {
+                            return new Payload {
+                                Data = Google.Protobuf.ByteString.CopyFromUtf8(string.Empty)
+                            };
+                        }
+
+                        var payloads = await
+                            Task.WhenAll(types.Distinct().Select(t => new Operation { DropOp = Operation.Types.DropOp.Type, DropValue = t, RunInBackground = true })
+                                .Concat(predicates.Distinct().Select(p => new Operation { DropOp = Operation.Types.DropOp.Attr, DropValue = p, RunInBackground = true }))
+                                .AsParallel().Select(Alter));
+
+                        var result = payloads.Select(p => p.Data.ToStringUtf8()).Aggregate(new StringBuilder(), (sb, js) => sb.Append(',').Append(js), sb => $"[{sb}]");
+
+                        return new Payload { Data = Google.Protobuf.ByteString.CopyFromUtf8(result) };
+                    }
+
                     return await dc.AlterAsync(operation, co);
                 }
                 catch (RpcException err) when (err.Message.ToLowerInvariant().Contains("retry operation") && tries > 0)
@@ -130,7 +202,7 @@ namespace Dgraph4Net
         }
 
         public Task Alter(string schema, bool dropAll = false) =>
-            Alter(new Operation { /*DropAll = dropAll,*/ Schema = schema });
+            Alter(new Operation { DropAll = dropAll, Schema = schema });
 
         /// <summary>
         /// DeleteEdges sets the edges corresponding to predicates
