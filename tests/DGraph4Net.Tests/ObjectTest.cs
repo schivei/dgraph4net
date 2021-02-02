@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 
 using Api;
 
+using Dgraph4Net.Annotations;
+
 using Google.Protobuf;
 
 using Newtonsoft.Json;
@@ -130,10 +132,10 @@ namespace Dgraph4Net.Tests
             [JsonProperty("friend|since")]
             public DateTimeOffset? Since { get; set; }
 
-            [JsonProperty("friend|family")]
+            [JsonProperty("family")]
             public string Family { get; set; }
 
-            [JsonProperty("friend|age")]
+            [JsonProperty("age")]
             public int? Age { get; set; }
 
             [JsonProperty("friend|close")]
@@ -733,7 +735,60 @@ namespace Dgraph4Net.Tests
             Json(@"{""q"":[{""uid"":""0x1""}]}", resp.Json.ToStringUtf8());
         }
 
-#if DISABLED
+#nullable enable
+
+        private class SSchool : IEntity
+        {
+            [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
+            public string? Name { get; set; } //`json:"name,omitempty"`
+
+            [JsonProperty("school|since", NullValueHandling = NullValueHandling.Ignore)]
+            public DateTime? Since { get; set; } // time.Time `json:"school|since,omitempty"`
+
+            [JsonProperty("uid", NullValueHandling = NullValueHandling.Ignore)]
+            public Uid Id { get; set; }
+
+            [JsonProperty("dgraph.type", NullValueHandling = NullValueHandling.Ignore)]
+            public ICollection<string> DgraphType { get; set; } = new[] { "Institution" };
+        }
+
+        class SPerson : IEntity
+        {
+            [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
+            public string? Name { get; set; } // `json:"name,omitempty"`
+
+            [JsonProperty("name|origin", NullValueHandling = NullValueHandling.Ignore)]
+            public string? NameOrigin { get; set; } // `json:"name|origin,omitempty"`
+
+            [JsonProperty("friends", NullValueHandling = NullValueHandling.Ignore)]
+            public SPerson[] Friends { get; set; } = new SPerson[0]; // `json:"friends,omitempty"`
+
+            // These are facets on the friend edge.
+            [JsonProperty("friend|since", NullValueHandling = NullValueHandling.Ignore)]
+            public DateTime? Since { get; set; } // time.Time `json:"friends|since,omitempty"`
+
+            [JsonProperty("friend|family", NullValueHandling = NullValueHandling.Ignore)]
+            public string? Family { get; set; } // `json:"friends|family,omitempty"`
+
+            [JsonProperty("friend|age", NullValueHandling = NullValueHandling.Ignore)]
+            public double? Age { get; set; } // `json:"friends|age,omitempty"`
+
+            [JsonProperty("friend|close", NullValueHandling = NullValueHandling.Ignore)]
+            public bool Close { get; set; } = false; // `json:"friends|close,omitempty"`
+
+            [JsonProperty("school", NullValueHandling = NullValueHandling.Ignore)]
+            public SSchool[] School { get; set; } = new SSchool[0]; //`json:"school,omitempty"`
+
+            [JsonProperty("uid", NullValueHandling = NullValueHandling.Ignore)]
+            public Uid Id { get; set; }
+
+            [JsonProperty("dgraph.type", NullValueHandling = NullValueHandling.Ignore)]
+            public ICollection<string> DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
+
+        }
+#nullable restore
+
+        //#if !DISABLED
         [Fact]
         public async Task TxnMutateFacetsTest()
         {
@@ -744,31 +799,30 @@ namespace Dgraph4Net.Tests
                 var op = new Operation
                 {
                     Schema = @"
-                        name: string @index(exact) .
-                        age: int .
-                        married: bool .
-                        name_origin: string .
-                        since: datetime .
-                        family: string .
-                        age: int .
-                        close: bool .
-                        friend: [uid] .
-                        school: [uid] .
-                        type Person {
-                            name: strng
-                            age: int
-                            married: bool
-                            name_origin: string
-                            since: datetime
-                            family: string
-                            close: bool
-                            friend: [Person]
-                            school: [Institution]
-                        }
-                        type Institution {
-                            name: string
-                            since: date
-                        }
+		                name: string @index(exact) .
+		                age: int .
+		                married: bool .
+		                name_origin: string .
+		                since: string .
+		                family: string .
+		                close: bool .
+		                school: [uid] .
+		                friends: [uid] .
+		                type Person {
+			                name
+			                age
+			                married
+			                name_origin
+			                since
+			                family
+			                school
+			                close
+			                friends
+		                }
+		                type Institution {
+			                name
+			                since
+		                }
                     "
                 };
 
@@ -776,35 +830,64 @@ namespace Dgraph4Net.Tests
 
                 var ti = new DateTime(2009, 11, 10, 23, 0, 0, 0, DateTimeKind.Utc);
 
-                var p = new PersonFacet
+                var p = new SPerson
                 {
-                    Uid = "_:alice",
+                    Id = "_:alice",
                     Name = "Alice",
                     NameOrigin = "Indonesia",
-                    DTypes = new[] { "Person" },
-                    Friends = new[]
-                    {
-                    new PersonFacet{Name="Bob",Since=ti,Family="yes",Age=13,Close=true,DTypes=new[]{"Person"}},
-                    new PersonFacet{Name="Charlie",Family="maybe",Age=16,DTypes=new[]{"Person"}}
-                },
-                    Schools = new[] { new SchoolFacet { Name = "Wellington School", Since = ti, DTypes = new[] { "Institution" } } }
+                    Friends = new[] {
+                        new SPerson {
+                            Name = "Bob",
+                            Since = ti,
+                            Family = "yes",
+                            Age = 13,
+                            Close = true
+                        },
+                        new SPerson {
+                            Name = "Charlie",
+                            Family = "maybe",
+                            Age = 16
+                        },
+                    },
+                    School = new[] {
+                        new SSchool {
+                            Name = "Wellington School",
+                            Since = ti
+                        }
+                    }
                 };
 
-                var mu = new Mutation { SetJson = ByteString.CopyFromUtf8(JsonConvert.SerializeObject(p)), CommitNow = true };
+                var serialized = JsonConvert.SerializeObject(p, Formatting.Indented);
 
-                var response = await dg.NewTransaction().Mutate(mu);
+                try
+                {
+                    var mu = new Mutation { SetJson = ByteString.CopyFromUtf8(serialized), CommitNow = true };
 
-                var auid = response.Uids["alice"];
-                var variables = new Dictionary<string, string> { { "$id", auid } };
+                    Response response = await dg.NewTransaction().Mutate(mu);
 
-                const string q = @"
+                    var auid = response.Uids["alice"];
+                    var variables = new Dictionary<string, string> { { "$id", auid } };
+
+                    const string q = @"
                 query Me($id: string) {
                     me(func: uid($id)) {
                         name @facets
                         dgraph.type
+                        age
+                        married
+                        family
                         friend @filter(eq(name, ""Bob"")) @facets {
                             name
                             dgraph.type
+                            name @facets
+                            dgraph.type
+                            age
+                            married
+                            family
+                            school @facets {
+                                name
+                                dgraph.type
+                            }
                         }
                         school @facets {
                             name
@@ -814,11 +897,11 @@ namespace Dgraph4Net.Tests
                 }
                 ";
 
-                var resp = await dg.NewTransaction().QueryWithVars(q, variables);
+                    var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
-                var me = resp.Json.ToStringUtf8();
+                    var me = resp.Json.ToStringUtf8();
 
-                const string expected = @"
+                    const string expected = @"
                 {
                     ""me"": [
                         {
@@ -835,13 +918,13 @@ namespace Dgraph4Net.Tests
         			                ]
         		                }
         	                ],
-        	                ""friend|age"": {
+        	                ""age"": {
         		                ""0"": 13
         	                },
         	                ""friend|close"": {
         		                ""0"": true
         	                },
-        	                ""friend|family"": {
+        	                ""family"": {
         		                ""0"": ""yes""
         	                },
         	                ""friend|since"": {
@@ -862,16 +945,22 @@ namespace Dgraph4Net.Tests
                     ]
                 }";
 
-                Json(expected, me);
+                    Json(expected, me, JsonConvert.SerializeObject(p, Formatting.Indented));
+                }
+                catch
+                {
+                    Console.ForegroundColor = ConsoleColor.Magenta;
+                    Console.Error.WriteLine(serialized);
+                    Console.ResetColor();
+                    throw;
+                }
             }
             finally
             {
-                await CleanTypes("Institution", "Person", "Loc");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin", "type", "coords", "Friend");
+                await ClearDB();
             }
         }
-#endif
+        //#endif
 
         [Fact]
         public async Task TxnMutateVarsTest()

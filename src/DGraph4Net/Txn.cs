@@ -9,6 +9,7 @@ using System.Transactions;
 using Api;
 
 using Grpc.Core;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -95,7 +96,7 @@ namespace Dgraph4Net
         /// <summary>
         /// Link the cancellation tokens
         /// </summary>
-        internal void LinkTokens(CancellationTokenSource tokenSource) =>
+        internal void LinkTokens(CancellationTokenSource _) =>
             _cancellationTokenSource = /*tokenSource ??*/ new CancellationTokenSource();
 
         /// <summary>
@@ -255,6 +256,9 @@ namespace Dgraph4Net
                 try
                 {
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+
+                    if(resp.Uids is not null)
+                        Uid.Resolve(resp.Uids);
                 }
                 catch (RpcException err) when (_dgraph.IsJwtExpired(err))
                 {
@@ -262,6 +266,9 @@ namespace Dgraph4Net
                     await _dgraph.RetryLogin().ConfigureAwait(false);
 
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
+
+                    if (resp.Uids is not null)
+                        Uid.Resolve(resp.Uids);
                 }
                 catch
                 {
@@ -501,7 +508,8 @@ namespace Dgraph4Net
         {
             try
             {
-                if (_disposed) return;
+                if (_disposed)
+                    return;
 
                 _disposed = true;
                 _finished = true;
@@ -550,7 +558,7 @@ namespace Dgraph4Net
     {
         private static List<T> From<T>(string json, string param) where T : class, IEntity, new()
         {
-            if (!(JsonConvert.DeserializeObject(json) is JObject d) || !d.ContainsKey(param))
+            if (JsonConvert.DeserializeObject(json) is not JObject d || !d.ContainsKey(param))
                 return new List<T>();
 
             var children = d[param] as JArray;

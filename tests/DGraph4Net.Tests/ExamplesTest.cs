@@ -30,6 +30,13 @@ namespace Dgraph4Net.Tests
             return dg;
         }
 
+        protected static async Task ClearDB()
+        {
+            var dg = GetDgraphClient();
+
+            await dg.Alter(new Operation { DropAll = true });
+        }
+
         protected static async Task CleanPredicates(params string[] preds)
         {
             var dg = GetDgraphClient();
