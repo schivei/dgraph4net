@@ -249,7 +249,7 @@ catch
 
 You can use ASP.NET Identity for a complete native ASP.NET user access security.
 
-Check out the example code [`example/DGraph4Net.Identity.Example`](example/DGraph4Net.Identity.Example).
+Check out the example code [`examples/DGraph4Net.Identity.Example`](examples/DGraph4Net.Identity.Example).
 
 
 ### In Development
