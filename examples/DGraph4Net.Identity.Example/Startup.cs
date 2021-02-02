@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.IO;
 
 namespace Dgraph4Net.Identity.Example
 {
@@ -41,6 +42,10 @@ namespace Dgraph4Net.Identity.Example
 
             var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
             var dgraph = new Dgraph4NetClient(channel);
+
+            if (!File.Exists("schema.dgraph"))
+                dgraph.Alter(new Api.Operation { DropAll = true }).GetAwaiter().GetResult();
+
             // sends mapping to Dgraph
             dgraph.Map(typeof(DUser).Assembly);
 

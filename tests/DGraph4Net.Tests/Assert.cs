@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+
 using Newtonsoft.Json.Linq;
 
 namespace Dgraph4Net.Tests
@@ -32,7 +33,7 @@ namespace Dgraph4Net.Tests
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        public static async Task TaskAsync(Func<Task> act)
+        public static async Task TaskAsync(Func<Task> act, string msg = null)
         {
             try
             {
@@ -42,15 +43,18 @@ namespace Dgraph4Net.Tests
 #pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
-                True(false, ex.Message);
+                if (msg is null)
+                    True(false, ex.Message);
+                else
+                    True(false, $"{msg}: {ex.Message}");
             }
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        public static Task TaskAsync<T>(Func<T, Task> act, T obj) =>
-            TaskAsync(() => act.Invoke(obj));
+        public static Task TaskAsync<T>(Func<T, Task> act, T obj, string msg = null) =>
+            TaskAsync(() => act.Invoke(obj), msg);
 
-        public static Task TaskAsync<T, TE>(Func<T, TE, Task> act, T obj, TE obj2) =>
-            TaskAsync(() => act.Invoke(obj, obj2));
+        public static Task TaskAsync<T, TE>(Func<T, TE, Task> act, T obj, TE obj2, string msg = null) =>
+            TaskAsync(() => act.Invoke(obj, obj2), msg);
     }
 }

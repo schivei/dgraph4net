@@ -8,7 +8,7 @@
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>Dgraph4Net.Identity.Core</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>
     <Product>Dgraph for .NET 5</Product>
@@ -18,9 +18,9 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>Dgraph,client,dotnet,standard,annotations</PackageTags>
     <PackageReleaseNotes>Data Annotations for Dgraph</PackageReleaseNotes>
-    <PackageVersion>1.1.0</PackageVersion>
+    <PackageVersion>1.1.1</PackageVersion>
     <PackOnBuild>true</PackOnBuild>
-    <ReleaseVersion>1.1.0</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
 
   <ItemGroup>

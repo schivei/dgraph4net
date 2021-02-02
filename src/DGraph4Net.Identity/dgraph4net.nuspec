@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Dgraph4Net.Identity</id>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <title>Dgraph4NetClient for .NET 5</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>
@@ -19,9 +19,9 @@
         <dependency id="Microsoft.AspNetCore.Identity" Version="2.2.0" />
         <dependency id="Microsoft.Extensions.Identity.Core" Version="5.0.2" />
         <dependency id="Microsoft.Extensions.Identity.Stores" Version="5.0.2" />
-        <dependency id="Dgraph4Net" Version="1.1.0"/>
-        <dependency id="Dgraph4Net.Core" Version="1.1.0"/>
-        <dependency id="Dgraph4Net.Identity.Core" Version="1.1.0"/>
+        <dependency id="Dgraph4Net" Version="1.1.1"/>
+        <dependency id="Dgraph4Net.Core" Version="1.1.1"/>
+        <dependency id="Dgraph4Net.Identity.Core" Version="1.1.1"/>
       </group>
     </dependencies>
   </metadata>

@@ -37,7 +37,11 @@ namespace System
 
             public void Resolve(MapField<string, string> uids)
             {
-                uids.ToList().ForEach(kv => Resolve(kv.Key, kv.Value));
+                uids.ToList().ForEach(kv =>
+                {
+                    if (IsValid($"_:{kv.Key}") && IsValid(kv.Value))
+                        Resolve($"_:{kv.Key}", kv.Value);
+                });
             }
 
             public void Resolve(Uid source, Uid target)
@@ -229,16 +233,31 @@ namespace System
         public override string ToString() =>
             _uid?.Value ?? string.Empty;
 
-        private static string Clear(string uid, bool @throw = true)
+        public static bool IsValid(string uid) =>
+            IsValid(uid, out _);
+
+        public static bool IsValid(string uid, out MatchCollection matches)
         {
             var reg = new Regex("^(<)?(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})(>)?$");
-            if (!reg.IsMatch(uid) && @throw)
+
+            matches = reg.Matches(uid);
+
+            if (reg.IsMatch(uid))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string Clear(string uid, bool @throw = true)
+        {
+            var isValid = IsValid(uid, out var matches);
+            if (!isValid && @throw)
                 throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
-            if (!reg.IsMatch(uid))
+            if (!isValid)
                 return string.Empty;
-
-            var matches = reg.Matches(uid);
 
             return matches[0].Groups[2].Value.ToLowerInvariant();
         }

@@ -299,21 +299,22 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanTypes("Institution", "Person");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin");
+                await ClearDB();
             }
         }
 
-        //[Fact]
-        //public async Task DropAllTest()
-        //{
-        //    var dg = GetDgraphClient();
+        [Fact(DisplayName = "DropAll: Only deleting user types and predicates instead of all objects.")]
+        public async Task DropAllTest()
+        {
+            var dg = GetDgraphClient();
 
-        //    var op = new Operation { DropAll = true };
+            var op = new Operation
+            {
+                DropAll = true, /*AlsoDropDgraphSchema = true // if you want to force DropAll including native dgraph objects*/
+            };
 
-        //    await TaskAsync(dg.Alter, op);
-        //}
+            await TaskAsync(dg.Alter, op);
+        }
 
         [Fact]
         public async Task TxnQueryVariablesTest()
@@ -370,9 +371,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanTypes("Institution", "Person");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin");
+                await ClearDB();
             }
         }
 
@@ -508,9 +507,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanTypes("Institution", "Person");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin");
+                await ClearDB();
             }
         }
 
@@ -575,9 +572,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanTypes("Institution", "Person");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin");
+                await ClearDB();
             }
         }
 
@@ -718,9 +713,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanTypes("Institution", "Person");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin");
+                await ClearDB();
             }
         }
 
@@ -735,18 +728,16 @@ namespace Dgraph4Net.Tests
             Json(@"{""q"":[{""uid"":""0x1""}]}", resp.Json.ToStringUtf8());
         }
 
-#nullable enable
-
         private class SSchool : IEntity
         {
             [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-            public string? Name { get; set; } //`json:"name,omitempty"`
+            public string Name { get; set; } //`json:"name,omitempty"`
 
             [JsonProperty("school|since", NullValueHandling = NullValueHandling.Ignore)]
             public DateTime? Since { get; set; } // time.Time `json:"school|since,omitempty"`
 
             [JsonProperty("uid", NullValueHandling = NullValueHandling.Ignore)]
-            public Uid Id { get; set; }
+            public Uid Id { get; set; } = Uid.NewUid();
 
             [JsonProperty("dgraph.type", NullValueHandling = NullValueHandling.Ignore)]
             public ICollection<string> DgraphType { get; set; } = new[] { "Institution" };
@@ -755,10 +746,10 @@ namespace Dgraph4Net.Tests
         class SPerson : IEntity
         {
             [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-            public string? Name { get; set; } // `json:"name,omitempty"`
+            public string Name { get; set; } // `json:"name,omitempty"`
 
             [JsonProperty("name|origin", NullValueHandling = NullValueHandling.Ignore)]
-            public string? NameOrigin { get; set; } // `json:"name|origin,omitempty"`
+            public string NameOrigin { get; set; } // `json:"name|origin,omitempty"`
 
             [JsonProperty("friends", NullValueHandling = NullValueHandling.Ignore)]
             public SPerson[] Friends { get; set; } = new SPerson[0]; // `json:"friends,omitempty"`
@@ -768,25 +759,24 @@ namespace Dgraph4Net.Tests
             public DateTime? Since { get; set; } // time.Time `json:"friends|since,omitempty"`
 
             [JsonProperty("friend|family", NullValueHandling = NullValueHandling.Ignore)]
-            public string? Family { get; set; } // `json:"friends|family,omitempty"`
+            public string Family { get; set; } // `json:"friends|family,omitempty"`
 
             [JsonProperty("friend|age", NullValueHandling = NullValueHandling.Ignore)]
-            public double? Age { get; set; } // `json:"friends|age,omitempty"`
+            public double Age { get; set; } // `json:"friends|age,omitempty"`
 
             [JsonProperty("friend|close", NullValueHandling = NullValueHandling.Ignore)]
             public bool Close { get; set; } = false; // `json:"friends|close,omitempty"`
 
             [JsonProperty("school", NullValueHandling = NullValueHandling.Ignore)]
-            public SSchool[] School { get; set; } = new SSchool[0]; //`json:"school,omitempty"`
+            public SSchool[] School { get; set; } //`json:"school,omitempty"`
 
             [JsonProperty("uid", NullValueHandling = NullValueHandling.Ignore)]
-            public Uid Id { get; set; }
+            public Uid Id { get; set; } = Uid.NewUid();
 
             [JsonProperty("dgraph.type", NullValueHandling = NullValueHandling.Ignore)]
             public ICollection<string> DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
 
         }
-#nullable restore
 
         //#if !DISABLED
         [Fact]
@@ -866,84 +856,71 @@ namespace Dgraph4Net.Tests
                     Response response = await dg.NewTransaction().Mutate(mu);
 
                     var auid = response.Uids["alice"];
+
+                    Equal(auid, p.Id.ToString());
+
                     var variables = new Dictionary<string, string> { { "$id", auid } };
 
                     const string q = @"
-                query Me($id: string) {
-                    me(func: uid($id)) {
-                        name @facets
-                        dgraph.type
-                        age
-                        married
-                        family
-                        friend @filter(eq(name, ""Bob"")) @facets {
-                            name
-                            dgraph.type
-                            name @facets
-                            dgraph.type
-                            age
-                            married
-                            family
-                            school @facets {
-                                name
+                        query Me($id: string) {
+                            me(func: uid($id)) {
+                                name @facets
                                 dgraph.type
+                                age
+                                married
+                                family
+                                friends @filter(eq(name, ""Bob"")) @facets {
+                                    name @facets
+                                    dgraph.type
+                                    age
+                                    married
+                                    family
+                                    school @facets {
+                                        name
+                                        dgraph.type
+                                    }
+                                }
+                                school @facets {
+                                    name
+                                    dgraph.type
+                                }
                             }
                         }
-                        school @facets {
-                            name
-                            dgraph.type
-                        }
-                    }
-                }
-                ";
+                    ";
 
                     var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
                     var me = resp.Json.ToStringUtf8();
 
                     const string expected = @"
-                {
-                    ""me"": [
-                        {
-        	                ""name|origin"": ""Indonesia"",
-        	                ""name"": ""Alice"",
-        	                ""dgraph.type"": [
-        		                ""Person""
-        	                ],
-        	                ""friend"": [
-        		                {
-        			                ""name"": ""Bob"",
-        			                ""dgraph.type"": [
-        				                ""Person""
-        			                ]
-        		                }
-        	                ],
-        	                ""age"": {
-        		                ""0"": 13
-        	                },
-        	                ""friend|close"": {
-        		                ""0"": true
-        	                },
-        	                ""family"": {
-        		                ""0"": ""yes""
-        	                },
-        	                ""friend|since"": {
-        		                ""0"": ""2009-11-10T23:00:00Z""
-        	                },
-        	                ""school"": [
-        		                {
-        			                ""name"": ""Wellington School"",
-        			                ""dgraph.type"": [
-        				                ""Institution""
-        			                ]
-        		                }
-        	                ],
-        	                ""school|since"": {
-        		                ""0"": ""2009-11-10T23:00:00Z""
-        	                }
-                        }
-                    ]
-                }";
+                    {
+                        ""me"": [
+                            {
+                                ""name|origin"": ""Indonesia"",
+                                ""name"": ""Alice"",
+                                ""dgraph.type"": [
+                                    ""Person""
+                                ],
+                                ""friends"": [
+                                    {
+                                        ""name"": ""Bob"",
+                                        ""dgraph.type"": [
+                                            ""Person""
+                                        ]
+                                    }
+                                ],
+                                ""school"": [
+                                    {
+                                        ""name"": ""Wellington School"",
+                                        ""dgraph.type"": [
+                                            ""Institution""
+                                        ],
+                                        ""school|since"": ""2009-11-10T23:00:00Z""
+                                    }
+                                ]
+                            }
+                        ]
+                    }";
 
                     Json(expected, me, JsonConvert.SerializeObject(p, Formatting.Indented));
                 }
@@ -1119,9 +1096,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanTypes("Institution", "Person");
-                await CleanPredicates("name", "age", "married", "loc", "dob", "raw_bytes", "friend", "school",
-                    "since", "coordinates", "family", "close", "name_origin");
+                await ClearDB();
             }
         }
 

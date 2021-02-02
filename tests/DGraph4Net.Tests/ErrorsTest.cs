@@ -43,7 +43,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanPredicates("email");
+                await ClearDB();
             }
         }
 
@@ -67,7 +67,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanPredicates("email");
+                await ClearDB();
             }
         }
 
@@ -117,7 +117,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanPredicates("email");
+                await ClearDB();
             }
         }
     }

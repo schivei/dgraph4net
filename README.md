@@ -20,12 +20,14 @@ and understand how to run and work with Dgraph.
     - [Creating a Client](#creating-a-client)
     - [Mapping Classes](#mapping-classes)
     - [Altering the Database](#altering-the-database)
+      - [Secure DropAll](#secure-dropall)
     - [Creating a Transaction](#creating-a-transaction)
     - [Running a Mutation](#running-a-mutation)
     - [Running a Query](#running-a-query)
-    - [Running an Upsert: Query + Mutation](#running-an-upsert-query--mutation)
+    - [Running an Upsert: Query + Mutation](#running-an-upsert-query-mutation)
     - [Committing a Transaction](#committing-a-transaction)
     - [ASP.NET Identity](#asp.net-identity)
+    - [Uid propagation after Mutation](#uid-propagation-after-mutation)
     - [In Development](#in-development)
 
 ## Packages
@@ -53,10 +55,10 @@ dotnet add package Dgraph4Net.Identity.Core
 
 ## Supported Versions
 
-Dgraph version   | Dgraph4Net version
----------------  | ------------------
-  1.1.Y          |  0.3.Y        
-  20.03.Y        |  1.X.Y     
+Dgraph version   | Dgraph4Net version | dotnet Version
+---------------  | ------------------ | --------------
+  1.1.Y          |  0.3.Y             | Standard 2.1
+  20.03.Y        |  1.X.Y             | .NET5
 
 ## Using a Client
 
@@ -102,6 +104,22 @@ var schema = "`name: string @index(exact) .";
 await client.Alter(new Operation{ Schema = schema });
 ```
 
+#### Secure DropAll
+
+The Dgraph4Net prevents dgraph objects (types and attributes) to be deleted when DropAll.
+
+To perform DropAll:
+
+```c#
+var op = new Operation { DropAll = true };
+await client.Alter(op);
+```
+
+To perform original dgraph method and drop all including dgraph objects:
+```c#
+var op = new Operation { DropAll = true, AlsoDropDgraphSchema = true };
+await client.Alter(op);
+```
 
 ### Creating a Transaction
 
@@ -252,9 +270,28 @@ You can use ASP.NET Identity for a complete native ASP.NET user access security.
 Check out the example code [`examples/DGraph4Net.Identity.Example`](examples/DGraph4Net.Identity.Example).
 
 
+### Uid propagation after Mutation
+
+DGraph4Net propagates for all instances of Uid struct when a Mutation are performed.
+To ensure this functionality make sure you are initializing Uid instance.
+
+```c#
+class MyClass {
+  Uid Id { get; set; } = Uid.NewUid();
+}
+
+....
+await client.Mutate(mutation);
+```
+
+When mutation occurs, all instances of Uid returned by dgraph mutation are updated with the real Uid, 
+it is useful for deep id propagation when you send many objects to dgraph and 
+reduces the async calling to check an object propagation to database or making new queries 
+to retieve the last inserted data or navigating to Uids property returned from mutation.
+
+
 ### In Development
 
 * Documentation - More, more and more
 * Linq to DQL - Linq support for queries
-* Deep Uid propagation after mutation - Set UID for all objects after mutation
 * Tenant implementation examples - Physical and Logical tenants examples

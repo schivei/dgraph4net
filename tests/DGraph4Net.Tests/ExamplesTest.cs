@@ -36,33 +36,5 @@ namespace Dgraph4Net.Tests
 
             await dg.Alter(new Operation { DropAll = true });
         }
-
-        protected static async Task CleanPredicates(params string[] preds)
-        {
-            var dg = GetDgraphClient();
-
-            foreach (var attr in preds)
-            {
-                await dg.Alter(new Operation
-                {
-                    DropValue = attr,
-                    DropOp = Operation.Types.DropOp.Attr
-                });
-            }
-        }
-
-        protected static async Task CleanTypes(params string[] types)
-        {
-            var dg = GetDgraphClient();
-
-            foreach (var type in types)
-            {
-                await dg.Alter(new Operation
-                {
-                    DropValue = type,
-                    DropOp = Operation.Types.DropOp.Type
-                });
-            }
-        }
     }
 }

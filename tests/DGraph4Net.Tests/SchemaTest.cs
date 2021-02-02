@@ -37,7 +37,7 @@ namespace Dgraph4Net.Tests
             }
             finally
             {
-                await CleanPredicates("name", "age", "married", "loc", "dob");
+                await ClearDB();
             }
         }
     }
