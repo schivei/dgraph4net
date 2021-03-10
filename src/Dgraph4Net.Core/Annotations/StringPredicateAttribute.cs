@@ -10,8 +10,6 @@ namespace Dgraph4Net.Annotations
     /// If the property is an IEnumerable (expt. by KeyValue or Dictionary), thats marked as list and count automatic.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
-    [SuppressMessage("ReSharper", "RedundantAttributeUsageProperty")]
-    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public sealed class StringPredicateAttribute : Attribute
     {
         public bool Fulltext { get; set; }
@@ -23,5 +21,20 @@ namespace Dgraph4Net.Annotations
         public StringToken Token { get; set; }
 
         public bool Lang { get; set; }
+
+        public void Merge(StringPredicateAttribute spa)
+        {
+            Fulltext |= spa.Fulltext;
+            Trigram |= spa.Trigram;
+            Upsert |= spa.Upsert;
+            Token = spa.Token != StringToken.None ? spa.Token : Token;
+            Lang = spa.Lang;
+        }
+
+        public static StringPredicateAttribute operator |(StringPredicateAttribute spa1, StringPredicateAttribute spa2)
+        {
+            spa1.Merge(spa2);
+            return spa1;
+        }
     }
 }

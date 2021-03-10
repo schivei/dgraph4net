@@ -10,12 +10,22 @@ namespace Dgraph4Net.Annotations
     /// If the property is an IEnumerable (expt. by KeyValue or Dictionary), thats marked as list and count automatic.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
-    [SuppressMessage("ReSharper", "RedundantAttributeUsageProperty")]
-    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public sealed class DateTimePredicateAttribute : Attribute
     {
         public bool Upsert { get; set; }
 
         public DateTimeToken Token { get; set; }
+
+        public void Merge(DateTimePredicateAttribute spa)
+        {
+            Token = spa.Token != DateTimeToken.None ? spa.Token : Token;
+            Upsert |= spa.Upsert;
+        }
+
+        public static DateTimePredicateAttribute operator |(DateTimePredicateAttribute spa1, DateTimePredicateAttribute spa2)
+        {
+            spa1.Merge(spa2);
+            return spa1;
+        }
     }
 }
