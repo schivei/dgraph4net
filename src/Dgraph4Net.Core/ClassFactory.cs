@@ -91,7 +91,7 @@ namespace Dgraph4Net
                 CreateProperty(tb, prop);
             }
 
-            return tb.CreateType();
+            return tb.CreateTypeInfo()?.AsType();
         }
 
         private static TypeBuilder GetTypeBuilder(Type baseType)

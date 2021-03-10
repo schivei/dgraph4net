@@ -10,8 +10,6 @@ namespace Dgraph4Net.Annotations
     /// If the property is an IEnumerable (expt. by KeyValue or Dictionary), thats marked as list and count automatic.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
-    [SuppressMessage("ReSharper", "RedundantAttributeUsageProperty")]
-    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public sealed class CommonPredicateAttribute : Attribute
     {
         private bool _upsert;
@@ -28,6 +26,18 @@ namespace Dgraph4Net.Annotations
 
                 _upsert = value;
             }
+        }
+
+        public void Merge(CommonPredicateAttribute spa)
+        {
+            Index |= spa.Index;
+            Upsert |= spa.Upsert;
+        }
+
+        public static CommonPredicateAttribute operator |(CommonPredicateAttribute spa1, CommonPredicateAttribute spa2)
+        {
+            spa1.Merge(spa2);
+            return spa1;
         }
     }
 }

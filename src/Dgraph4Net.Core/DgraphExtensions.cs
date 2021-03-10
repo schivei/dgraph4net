@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -19,7 +17,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Dgraph4Net
 {
-    [SuppressMessage("ReSharper", "UnusedMember.Global")]
     public static class DgraphExtensions
     {
         private static void WalkNode(JToken node, Action<JObject> action)
@@ -42,6 +39,167 @@ namespace Dgraph4Net
             }
         }
 
+        private static readonly Dictionary<Type, CustomTypeMetadata> s_customTypes = new();
+
+        public static void AddCustomType(Type userType, params Attribute[] Attributes)
+        {
+            var attributes = Attributes.Where(attr => (attr is StringPredicateAttribute ||
+                                 attr is CommonPredicateAttribute ||
+                                 attr is DateTimePredicateAttribute ||
+                                 attr is PasswordPredicateAttribute ||
+                                 attr is ReversePredicateAttribute ||
+                                 attr is GeoPredicateAttribute ||
+                                 attr is DgraphTypeAttribute) &&
+                                 !(attr is IgnoreMappingAttribute ||
+                                 attr is JsonIgnoreAttribute)).ToArray();
+
+            if (attributes.Length == 0)
+            {
+                throw new ArgumentException("The parameter '{0}' has no valid attribute to map user types.");
+            }
+
+            var meta = new CustomTypeMetadata(attributes);
+
+            if (s_customTypes.ContainsKey(userType))
+            {
+                s_customTypes[userType] = meta;
+            }
+            else
+            {
+                s_customTypes.Add(userType, meta);
+            }
+        }
+
+        private static bool HasCustomType(Type type) =>
+            s_customTypes.ContainsKey(type);
+
+        private static IEnumerable<Attribute> GetTypeAttributes(Type type)
+        {
+            var attrs = new HashSet<Attribute>();
+            if (HasCustomType(type))
+            {
+                s_customTypes[type].Attributes.ToList()
+                    .ForEach(a => attrs.Add(a));
+            }
+
+            if (attrs.Count == 0)
+            {
+                type.GetCustomAttributes().ToList()
+                    .ForEach(a => attrs.Add(a));
+            }
+            else
+            {
+                foreach (var attr in type.GetCustomAttributes())
+                {
+                    var pre = attrs.FirstOrDefault(x => x.GetType() == attr.GetType());
+                    if (pre is null)
+                    {
+                        attrs.Add(attr);
+                    }
+                    else
+                    {
+                        switch (pre)
+                        {
+                            case StringPredicateAttribute spa:
+                                spa |= attr as StringPredicateAttribute;
+                                break;
+                            case CommonPredicateAttribute cpa:
+                                cpa |= attr as CommonPredicateAttribute;
+                                break;
+                            case DateTimePredicateAttribute dtpa:
+                                dtpa |= attr as DateTimePredicateAttribute;
+                                break;
+                            case GeoPredicateAttribute spa:
+                                spa |= attr as GeoPredicateAttribute;
+                                break;
+                            case PasswordPredicateAttribute:
+                            case ReversePredicateAttribute:
+                            case IgnoreMappingAttribute:
+                            case JsonIgnoreAttribute:
+                                break;
+                            default:
+                                attrs.Add(attr);
+                                break;
+                        }
+                    }
+                }
+            }
+
+            return attrs.Distinct();
+        }
+
+        private static IEnumerable<Attribute> GetPropertyAttributes(PropertyInfo prop)
+        {
+            var attrs = new HashSet<Attribute>();
+            if (HasCustomType(prop.PropertyType))
+            {
+                s_customTypes[prop.PropertyType].Attributes.ToList()
+                    .ForEach(a => attrs.Add(a));
+            }
+
+            if (attrs.Count == 0)
+            {
+                prop.GetCustomAttributes().ToList()
+                    .ForEach(a => attrs.Add(a));
+            }
+            else
+            {
+                foreach (var attr in GetPropertyAttributes(prop))
+                {
+                    var pre = attrs.FirstOrDefault(x => x.GetType() == attr.GetType());
+                    if (pre is null)
+                    {
+                        attrs.Add(attr);
+                    }
+                    else
+                    {
+                        switch (pre)
+                        {
+                            case StringPredicateAttribute spa:
+                                spa |= attr as StringPredicateAttribute;
+                                break;
+                            case CommonPredicateAttribute cpa:
+                                cpa |= attr as CommonPredicateAttribute;
+                                break;
+                            case DateTimePredicateAttribute dtpa:
+                                dtpa |= attr as DateTimePredicateAttribute;
+                                break;
+                            case GeoPredicateAttribute spa:
+                                spa |= attr as GeoPredicateAttribute;
+                                break;
+                            case PasswordPredicateAttribute:
+                            case ReversePredicateAttribute:
+                            case IgnoreMappingAttribute:
+                            case JsonIgnoreAttribute:
+                                break;
+                            default:
+                                attrs.Add(attr);
+                                break;
+                        }
+                    }
+                }
+            }
+
+            return attrs.Distinct();
+        }
+
+        private static T GetPropertyAttribute<T>(PropertyInfo prop) where T : Attribute
+        {
+            if (prop is null)
+                return null;
+
+            var attrs = GetPropertyAttributes(prop);
+
+            return attrs.FirstOrDefault(x => x is T) as T ?? prop.GetCustomAttribute<T>();
+        }
+
+        private static T GetTypeAttribute<T>(Type type) where T : Attribute
+        {
+            var attrs = GetTypeAttributes(type);
+
+            return attrs.FirstOrDefault(x => x is T) as T ?? type.GetCustomAttribute<T>();
+        }
+
         /// <summary>
         /// Generates mapping
         /// </summary>
@@ -49,15 +207,15 @@ namespace Dgraph4Net
         {
             var types = assemblies
                 .SelectMany(assembly => assembly.GetTypes()
-                    .Where(t => t.GetCustomAttributes()
+                    .Where(t => GetTypeAttributes(t)
                         .Any(att => att is DgraphTypeAttribute)))
                 .OrderBy(t => t.GetProperties()
-                    .Any(pi => pi.GetCustomAttributes()
+                    .Any(pi => GetPropertyAttributes(pi)
                         .Any(a => a is PredicateReferencesToAttribute)));
 
             var properties =
             types.SelectMany(type => type.GetProperties()
-                .Where(prop => prop.GetCustomAttributes()
+                .Where(prop => GetPropertyAttributes(prop)
                     .Any(attr => (attr is StringPredicateAttribute ||
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
@@ -65,13 +223,14 @@ namespace Dgraph4Net
                                  attr is ReversePredicateAttribute ||
                                  attr is GeoPredicateAttribute) &&
                                  !(attr is IgnoreMappingAttribute ||
-                                 attr is JsonIgnoreAttribute))).Select(prop => (type, prop)));
+                                 attr is JsonIgnoreAttribute))
+                    ).Select(prop => (type, prop)));
 
             var triples =
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     pp.prop.GetCustomAttributes()
+                                     GetPropertyAttributes(pp.prop)
                                          .Where(attr => attr is JsonPropertyAttribute)
                                          .OfType<JsonPropertyAttribute>()
                                          .All(jattr =>
@@ -80,7 +239,7 @@ namespace Dgraph4Net
                 {
                     var (type, prop) = pp;
                     var jattr =
-                        prop.GetCustomAttributes()
+                        GetPropertyAttributes(prop)
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
                         new JsonPropertyAttribute(prop.Name.NormalizeName());
@@ -88,8 +247,7 @@ namespace Dgraph4Net
                     if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
                         return (null, null, null, null, null);
 
-                    var pAttr = prop
-                                    .GetCustomAttributes()
+                    var pAttr = GetPropertyAttributes(prop)
                                     .FirstOrDefault(attr => attr is StringPredicateAttribute ||
                                                             attr is CommonPredicateAttribute ||
                                                             attr is DateTimePredicateAttribute ||
@@ -169,7 +327,7 @@ namespace Dgraph4Net
                     string propType;
                     if (isEnum)
                     {
-                        var converter = princType.GetCustomAttribute<JsonConverterAttribute>();
+                        var converter = GetTypeAttribute<JsonConverterAttribute>(princType);
                         if (converter != null && typeof(StringEnumConverter).IsAssignableFrom(converter.ConverterType))
                             propType = "string";
                         else
@@ -303,7 +461,7 @@ namespace Dgraph4Net
 
                     predicate += isReverse ? rev : lt;
 
-                    return (jattr.PropertyName, predicate, type.GetCustomAttribute<DgraphTypeAttribute>().Name, propType, prop);
+                    return (jattr.PropertyName, predicate, GetTypeAttribute<DgraphTypeAttribute>(type).Name, propType, prop);
                 }).Where(x => !(x.PropertyName is null)).ToArray();
 
             var ambiguous = triples.GroupBy(x => x.PropertyName)
@@ -334,8 +492,7 @@ namespace Dgraph4Net
                         var (propertyName, predicate, _, _, prop) = pred;
                         var nm = predicate.Contains("@reverse") ? $"<~{propertyName}>" : $"<{propertyName}>";
 
-                        var r =
-                            prop.GetCustomAttributes()
+                        var r = GetPropertyAttributes(prop)
                                 .Where(a => a is PredicateReferencesToAttribute)
                                 .OfType<PredicateReferencesToAttribute>()
                                 .FirstOrDefault();
@@ -345,7 +502,7 @@ namespace Dgraph4Net
 
                         var refType = ClassFactory.GetDerivedType(r.RefType) ?? r.RefType;
 
-                        var tn = refType.GetCustomAttribute<DgraphTypeAttribute>().Name;
+                        var tn = GetTypeAttribute<DgraphTypeAttribute>(refType).Name;
 
                         if (predicate.Contains("["))
                             tn = $"[{tn}]";
@@ -385,8 +542,7 @@ namespace Dgraph4Net
 
         public static string GetDType(this object entity)
         {
-            var attr =
-                entity.GetType().GetCustomAttributes()
+            var attr = GetTypeAttributes(entity.GetType())
                         .FirstOrDefault(dt => dt is DgraphTypeAttribute)
                     as DgraphTypeAttribute;
 
@@ -404,14 +560,14 @@ namespace Dgraph4Net
 
             var properties =
             types.SelectMany(type => type.GetProperties()
-                .Where(prop => prop.GetCustomAttributes()
+                .Where(prop => GetPropertyAttributes(prop)
                     .Any(attr => attr is StringPredicateAttribute spa && spa.Fulltext)).Select(prop => (type, prop)));
 
             var triples =
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     pp.prop.GetCustomAttributes()
+                                     GetPropertyAttributes(pp.prop)
                                          .Where(attr => attr is JsonPropertyAttribute)
                                          .OfType<JsonPropertyAttribute>()
                                          .All(jattr =>
@@ -419,8 +575,7 @@ namespace Dgraph4Net
                 .Select(pp =>
                 {
                     var (_, prop) = pp;
-                    var jattr =
-                        prop.GetCustomAttributes()
+                    var jattr = GetPropertyAttributes(prop)
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
                         new JsonPropertyAttribute(prop.Name.NormalizeName());
@@ -440,7 +595,7 @@ namespace Dgraph4Net
 
             var properties =
             types.SelectMany(type => type.GetProperties()
-                .Where(prop => prop.GetCustomAttributes()
+                .Where(prop => GetPropertyAttributes(prop)
                     .Any(attr => attr is StringPredicateAttribute ||
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
@@ -451,7 +606,7 @@ namespace Dgraph4Net
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     pp.prop.GetCustomAttributes()
+                                     GetPropertyAttributes(pp.prop)
                                          .Where(attr => attr is JsonPropertyAttribute)
                                          .OfType<JsonPropertyAttribute>()
                                          .All(jattr =>
@@ -459,8 +614,7 @@ namespace Dgraph4Net
                 .Select(pp =>
                 {
                     var (_, prop) = pp;
-                    var jattr =
-                        prop.GetCustomAttributes()
+                    var jattr = GetPropertyAttributes(prop)
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
                         new JsonPropertyAttribute(prop.Name.NormalizeName());
@@ -483,7 +637,7 @@ namespace Dgraph4Net
 
             var properties =
             types.SelectMany(type => type.GetProperties()
-                .Where(prop => prop.GetCustomAttributes()
+                .Where(prop => GetPropertyAttributes(prop)
                     .Any(attr => attr is StringPredicateAttribute ||
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
@@ -496,7 +650,7 @@ namespace Dgraph4Net
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     pp.prop.GetCustomAttributes()
+                                     GetPropertyAttributes(pp.prop)
                                          .Where(attr => attr is JsonPropertyAttribute)
                                          .OfType<JsonPropertyAttribute>()
                                          .All(jattr =>
@@ -505,7 +659,7 @@ namespace Dgraph4Net
                 {
                     var (_, prop) = pp;
                     var jattr =
-                        prop.GetCustomAttributes()
+                        GetPropertyAttributes(prop)
                             .Where(attr => attr is JsonPropertyAttribute)
                             .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
                         new JsonPropertyAttribute(prop.Name.NormalizeName());
@@ -517,7 +671,7 @@ namespace Dgraph4Net
                 }).Where(p => !(p.PropertyName is null) && !(p.Name is null) && (p.Name == col || p.PropertyName == col))
                 .Select(p => p.PropertyName);
 
-            var def = entity.GetType().GetProperty(column)?.GetCustomAttribute<JsonPropertyAttribute>();
+            var def = GetPropertyAttribute<JsonPropertyAttribute>(entity.GetType().GetProperty(column));
             column = def?.PropertyName ?? column;
 
             return triples.FirstOrDefault() ?? column;
@@ -529,7 +683,7 @@ namespace Dgraph4Net
 
             var properties =
             types.SelectMany(type => type.GetProperties()
-                .Where(prop => prop.GetCustomAttributes()
+                .Where(prop => GetPropertyAttributes(prop)
                     .Any(attr => attr is StringPredicateAttribute ||
                                  attr is CommonPredicateAttribute ||
                                  attr is DateTimePredicateAttribute ||
@@ -540,7 +694,7 @@ namespace Dgraph4Net
             properties.Where(pp => !(pp.prop.DeclaringType is null) &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     pp.prop.GetCustomAttributes()
+                                     GetPropertyAttributes(pp.prop)
                                          .Where(attr => attr is JsonPropertyAttribute)
                                          .OfType<JsonPropertyAttribute>()
                                          .All(jattr =>
@@ -548,8 +702,7 @@ namespace Dgraph4Net
                 .Select(pp =>
                 {
                     var (_, prop) = pp;
-                    var pAttr = prop
-                                    .GetCustomAttributes()
+                    var pAttr = GetPropertyAttributes(prop)
                                     .FirstOrDefault(attr => attr is StringPredicateAttribute ||
                                                             attr is CommonPredicateAttribute ||
                                                             attr is DateTimePredicateAttribute ||
@@ -627,7 +780,7 @@ namespace Dgraph4Net
                     string propType;
                     if (isEnum)
                     {
-                        var converter = princType.GetCustomAttribute<JsonConverterAttribute>();
+                        var converter = GetTypeAttribute<JsonConverterAttribute>(princType);
                         if (converter != null && typeof(StringEnumConverter).IsAssignableFrom(converter.ConverterType))
                             propType = "string";
                         else
