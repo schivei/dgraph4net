@@ -164,7 +164,8 @@ namespace Dgraph4Net
 
                         if (types.Count + predicates.Count == 0)
                         {
-                            return new Payload {
+                            return new Payload
+                            {
                                 Data = Google.Protobuf.ByteString.CopyFromUtf8(string.Empty)
                             };
                         }
@@ -323,6 +324,12 @@ namespace Dgraph4Net
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
         /// <returns cref="Txn">Transaction</returns>
         public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) =>
-            new Txn(this, readOnly, bestEffort, cancellationToken);
+            new(this, readOnly, bestEffort, cancellationToken);
+
+        public async Task<object> Alter(object operation) =>
+            await Alter(operation as Operation);
+
+        object IDgraph4NetClient.NewTransaction(bool readOnly, bool bestEffort, CancellationToken? cancellationToken) =>
+            NewTransaction(readOnly, bestEffort, cancellationToken);
     }
 }

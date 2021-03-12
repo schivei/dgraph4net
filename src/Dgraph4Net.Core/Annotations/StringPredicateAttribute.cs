@@ -20,15 +20,12 @@ namespace Dgraph4Net.Annotations
 
         public StringToken Token { get; set; }
 
-        public bool Lang { get; set; }
-
         public void Merge(StringPredicateAttribute spa)
         {
             Fulltext |= spa.Fulltext;
             Trigram |= spa.Trigram;
             Upsert |= spa.Upsert;
             Token = spa.Token != StringToken.None ? spa.Token : Token;
-            Lang = spa.Lang;
         }
 
         public static StringPredicateAttribute operator |(StringPredicateAttribute spa1, StringPredicateAttribute spa2)

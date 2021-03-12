@@ -3,6 +3,9 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+using Dgraph4Net;
+using Dgraph4Net.Annotations;
+
 using Google.Protobuf.Collections;
 
 using Newtonsoft.Json;
@@ -14,7 +17,7 @@ namespace System
 {
 
     [JsonConverter(typeof(UidConverter))]
-    public readonly struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>
+    public readonly struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IEntityBase
     {
         private readonly IDisposable? _unsubscriber;
 

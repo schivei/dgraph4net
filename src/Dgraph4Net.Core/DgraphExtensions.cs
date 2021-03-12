@@ -1,11 +1,14 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using Dgraph4Net.Annotations;
 
@@ -41,7 +44,7 @@ namespace Dgraph4Net
 
         private static readonly Dictionary<Type, CustomTypeMetadata> s_customTypes = new();
 
-        public static void AddCustomType(Type userType, params Attribute[] Attributes)
+        public static void AddCustomType(this Type userType, params Attribute[] Attributes)
         {
             var attributes = Attributes.Where(attr => (attr is StringPredicateAttribute ||
                                  attr is CommonPredicateAttribute ||
@@ -49,7 +52,8 @@ namespace Dgraph4Net
                                  attr is PasswordPredicateAttribute ||
                                  attr is ReversePredicateAttribute ||
                                  attr is GeoPredicateAttribute ||
-                                 attr is DgraphTypeAttribute) &&
+                                 attr is DgraphTypeAttribute ||
+                                 (attr is StringLanguageAttribute && typeof(IEnumerable<LocalizedString>).IsAssignableFrom(userType))) &&
                                  !(attr is IgnoreMappingAttribute ||
                                  attr is JsonIgnoreAttribute)).ToArray();
 
@@ -70,10 +74,10 @@ namespace Dgraph4Net
             }
         }
 
-        private static bool HasCustomType(Type type) =>
+        public static bool HasCustomType(this Type type) =>
             s_customTypes.ContainsKey(type);
 
-        private static IEnumerable<Attribute> GetTypeAttributes(Type type)
+        public static IEnumerable<Attribute> GetTypeAttributes(this Type type)
         {
             var attrs = new HashSet<Attribute>();
             if (HasCustomType(type))
@@ -100,6 +104,52 @@ namespace Dgraph4Net
                     {
                         switch (pre)
                         {
+                            case StringLanguageAttribute sla when typeof(IEnumerable<LocalizedString>).IsAssignableFrom(type):
+                                sla |= attr as StringLanguageAttribute;
+                                break;
+                            case StringPredicateAttribute spa:
+                                spa |= attr as StringPredicateAttribute;
+                                break;
+                            case CommonPredicateAttribute cpa:
+                                cpa |= attr as CommonPredicateAttribute;
+                                break;
+                            case DateTimePredicateAttribute dtpa:
+                                dtpa |= attr as DateTimePredicateAttribute;
+                                break;
+                            case GeoPredicateAttribute spa:
+                                spa |= attr as GeoPredicateAttribute;
+                                break;
+                            case PasswordPredicateAttribute:
+                            case ReversePredicateAttribute:
+                            case IgnoreMappingAttribute:
+                            case JsonIgnoreAttribute:
+                                break;
+                            default:
+                                attrs.Add(attr);
+                                break;
+                        }
+                    }
+                }
+            }
+
+            if (type.BaseType is not null)
+            {
+                var baseAttrs = GetTypeAttributes(type.BaseType);
+
+                foreach (var attr in baseAttrs)
+                {
+                    var pre = attrs.FirstOrDefault(x => x.GetType() == attr.GetType());
+                    if (pre is null)
+                    {
+                        attrs.Add(attr);
+                    }
+                    else
+                    {
+                        switch (pre)
+                        {
+                            case StringLanguageAttribute sla when typeof(IEnumerable<LocalizedString>).IsAssignableFrom(type.BaseType):
+                                sla |= attr as StringLanguageAttribute;
+                                break;
                             case StringPredicateAttribute spa:
                                 spa |= attr as StringPredicateAttribute;
                                 break;
@@ -128,12 +178,12 @@ namespace Dgraph4Net
             return attrs.Distinct();
         }
 
-        private static IEnumerable<Attribute> GetPropertyAttributes(PropertyInfo prop)
+        public static IEnumerable<Attribute> GetPropertyAttributes(this PropertyInfo prop)
         {
             var attrs = new HashSet<Attribute>();
             if (HasCustomType(prop.PropertyType))
             {
-                s_customTypes[prop.PropertyType].Attributes.ToList()
+                GetTypeAttributes(prop.PropertyType).ToList()
                     .ForEach(a => attrs.Add(a));
             }
 
@@ -155,6 +205,9 @@ namespace Dgraph4Net
                     {
                         switch (pre)
                         {
+                            case StringLanguageAttribute sla when typeof(IEnumerable<LocalizedString>).IsAssignableFrom(prop.PropertyType):
+                                sla |= attr as StringLanguageAttribute;
+                                break;
                             case StringPredicateAttribute spa:
                                 spa |= attr as StringPredicateAttribute;
                                 break;
@@ -183,7 +236,7 @@ namespace Dgraph4Net
             return attrs.Distinct();
         }
 
-        private static T GetPropertyAttribute<T>(PropertyInfo prop) where T : Attribute
+        public static T GetPropertyAttribute<T>(this PropertyInfo prop) where T : Attribute
         {
             if (prop is null)
                 return null;
@@ -193,12 +246,14 @@ namespace Dgraph4Net
             return attrs.FirstOrDefault(x => x is T) as T ?? prop.GetCustomAttribute<T>();
         }
 
-        private static T GetTypeAttribute<T>(Type type) where T : Attribute
+        public static T GetTypeAttribute<T>(this Type type) where T : Attribute
         {
             var attrs = GetTypeAttributes(type);
 
             return attrs.FirstOrDefault(x => x is T) as T ?? type.GetCustomAttribute<T>();
         }
+
+        private static readonly ConcurrentBag<TypeMetadata> s_mappings = new();
 
         /// <summary>
         /// Generates mapping
@@ -221,7 +276,8 @@ namespace Dgraph4Net
                                  attr is DateTimePredicateAttribute ||
                                  attr is PasswordPredicateAttribute ||
                                  attr is ReversePredicateAttribute ||
-                                 attr is GeoPredicateAttribute) &&
+                                 attr is GeoPredicateAttribute ||
+                                 (attr is StringLanguageAttribute && typeof(IEnumerable<LocalizedString>).IsAssignableFrom(prop.PropertyType))) &&
                                  !(attr is IgnoreMappingAttribute ||
                                  attr is JsonIgnoreAttribute))
                     ).Select(prop => (type, prop)));
@@ -245,7 +301,7 @@ namespace Dgraph4Net
                         new JsonPropertyAttribute(prop.Name.NormalizeName());
 
                     if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
-                        return (null, null, null, null, null);
+                        return (null, null, null, null, null, null, false);
 
                     var pAttr = GetPropertyAttributes(prop)
                                     .FirstOrDefault(attr => attr is StringPredicateAttribute ||
@@ -253,7 +309,8 @@ namespace Dgraph4Net
                                                             attr is DateTimePredicateAttribute ||
                                                             attr is PasswordPredicateAttribute ||
                                                             attr is ReversePredicateAttribute ||
-                                                            attr is GeoPredicateAttribute) ??
+                                                            attr is GeoPredicateAttribute ||
+                                                            (attr is StringLanguageAttribute && typeof(IEnumerable<LocalizedString>).IsAssignableFrom(prop.PropertyType))) ??
                                 new CommonPredicateAttribute();
 
                     var princType = prop.PropertyType.IsGenericType
@@ -261,7 +318,8 @@ namespace Dgraph4Net
                         : prop.PropertyType;
 
                     var isList = prop.PropertyType != typeof(string) &&
-                                 typeof(IEnumerable).IsAssignableFrom(prop.PropertyType);
+                                 typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) &&
+                                 !typeof(IEnumerable<LocalizedString>).IsAssignableFrom(prop.PropertyType);
 
                     if (!isList && prop.PropertyType.IsGenericType)
                         princType = prop.PropertyType;
@@ -282,7 +340,8 @@ namespace Dgraph4Net
                                    princType == typeof(char[]) ||
                                    princType == typeof(char?) ||
                                    princType == typeof(TimeSpan) ||
-                                   princType == typeof(TimeSpan?);
+                                   princType == typeof(TimeSpan?) ||
+                                   pAttr is StringLanguageAttribute;
 
                     var isFloat = princType == typeof(float) ||
                                   princType == typeof(double) ||
@@ -368,8 +427,8 @@ namespace Dgraph4Net
 
                     propType = pAttr switch
                     {
-                        StringPredicateAttribute _ => "string",
-                        DateTimePredicateAttribute _ => "datetime",
+                        StringLanguageAttribute or StringPredicateAttribute => "string",
+                        DateTimePredicateAttribute => "datetime",
                         _ => propType
                     };
 
@@ -377,6 +436,20 @@ namespace Dgraph4Net
                     predicate += isList ? "[{0}]" : "{0}";
 
                     var isReverse = pAttr is ReversePredicateAttribute;
+
+                    var slAttr = pAttr as StringLanguageAttribute;
+                    var isLang = slAttr is not null && !isList;
+
+                    if (isLang)
+                    {
+                        pAttr = new StringPredicateAttribute
+                        {
+                            Fulltext = slAttr.Fulltext,
+                            Token = slAttr.Token,
+                            Trigram = slAttr.Trigram,
+                            Upsert = slAttr.Upsert
+                        };
+                    }
 
                     switch (pAttr)
                     {
@@ -406,12 +479,12 @@ namespace Dgraph4Net
 
                                 predicate += !string.IsNullOrEmpty(tk) ? fll : "";
 
-                                predicate += sa.Lang ? ") @lang" : ")";
+                                predicate += isLang ? ") @lang" : ")";
                                 predicate += sa.Upsert ? " @upsert" : "";
                             }
                             else
                             {
-                                predicate += sa.Lang ? " @lang" : "";
+                                predicate += isLang ? " @lang" : "";
                             }
                             break;
 
@@ -461,7 +534,9 @@ namespace Dgraph4Net
 
                     predicate += isReverse ? rev : lt;
 
-                    return (jattr.PropertyName, predicate, GetTypeAttribute<DgraphTypeAttribute>(type).Name, propType, prop);
+                    var isReference = isReverse || isUid || GetPropertyAttribute<PredicateReferencesToAttribute>(prop) is not null;
+
+                    return (jattr.PropertyName, predicate, type, GetTypeAttribute<DgraphTypeAttribute>(type).Name, propType, prop, isReference);
                 }).Where(x => !(x.PropertyName is null)).ToArray();
 
             var ambiguous = triples.GroupBy(x => x.PropertyName)
@@ -489,13 +564,10 @@ namespace Dgraph4Net
                     var typename = tp.Key;
                     var typeProperties = tp.Select(pred =>
                     {
-                        var (propertyName, predicate, _, _, prop) = pred;
+                        var (propertyName, predicate, _, _, _, prop, _) = pred;
                         var nm = predicate.Contains("@reverse") ? $"<~{propertyName}>" : $"<{propertyName}>";
 
-                        var r = GetPropertyAttributes(prop)
-                                .Where(a => a is PredicateReferencesToAttribute)
-                                .OfType<PredicateReferencesToAttribute>()
-                                .FirstOrDefault();
+                        var r = GetPropertyAttribute<PredicateReferencesToAttribute>(prop);
 
                         if (r is null)
                             return $"{nm}: {pred.propType}";
@@ -523,6 +595,8 @@ namespace Dgraph4Net
 
             var schema = sb.ToString().Replace("\r\n", "\n").Trim('\n') + '\n';
 
+            Map(triples);
+
             if (File.Exists("schema.dgraph") && File.ReadAllText("schema.dgraph", Encoding.UTF8) == schema)
                 return sb;
 
@@ -540,13 +614,43 @@ namespace Dgraph4Net
             return sb;
         }
 
-        public static string GetDType(this object entity)
+        private static void Map((string PropertyName, string predicate, Type type, string Name, string propType, PropertyInfo prop, bool isReference)[] triples)
         {
-            var attr = GetTypeAttributes(entity.GetType())
-                        .FirstOrDefault(dt => dt is DgraphTypeAttribute)
-                    as DgraphTypeAttribute;
+            triples.GroupBy(x => (x.type, x.Name)).AsParallel()
+                .ForAll(typeMetadata =>
+                {
+                    var (type, Name) = typeMetadata.Key;
+                    var mapping = s_mappings.FirstOrDefault(x => x.Type == type);
 
-            return attr?.Name;
+                    if (mapping is null)
+                    {
+                        mapping = new(type, Name, new());
+                        s_mappings.Add(mapping);
+                    }
+
+                    typeMetadata.AsParallel()
+                        .ForAll(info =>
+                        {
+                            var (PropertyName, predicate, _, _, propType, prop, isReference) = info;
+
+                            var predicateMetadata = mapping.Predicates.FirstOrDefault(x => x.Property == prop);
+
+                            if (predicateMetadata is null)
+                            {
+                                predicateMetadata = new(prop, PropertyName, propType, predicate, isReference, predicate.Contains("@reverse"));
+                                mapping.Predicates.Add(predicateMetadata);
+                            }
+                        });
+                });
+        }
+
+        public static string GetDType<T>(this T _) where T : IEntity
+        {
+            var t = typeof(T);
+
+            var type = s_mappings.FirstOrDefault(x => IsMapped(x.Type, t));
+
+            return type?.TypeName;
         }
 
         public static string NormalizeName(this string propName)
@@ -554,289 +658,169 @@ namespace Dgraph4Net
                     .Select(c => char.IsUpper(c) ? $"_{char.ToLowerInvariant(c)}" : c.ToString()))
                 .Trim('_');
 
-        public static string[] GetSearchColumns(this object entity)
+        public static string[] GetSearchColumns<T>(this T _) where T : class, IEntity, new()
         {
-            var types = new[] { entity.GetType() };
+            var t = typeof(T);
 
-            var properties =
-            types.SelectMany(type => type.GetProperties()
-                .Where(prop => GetPropertyAttributes(prop)
-                    .Any(attr => attr is StringPredicateAttribute spa && spa.Fulltext)).Select(prop => (type, prop)));
+            var type = s_mappings.FirstOrDefault(x => IsMapped(x.Type, t));
 
-            var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
-                                     !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     GetPropertyAttributes(pp.prop)
-                                         .Where(attr => attr is JsonPropertyAttribute)
-                                         .OfType<JsonPropertyAttribute>()
-                                         .All(jattr =>
-                                             jattr.PropertyName?.Contains("|") != true))
-                .Select(pp =>
-                {
-                    var (_, prop) = pp;
-                    var jattr = GetPropertyAttributes(prop)
-                            .Where(attr => attr is JsonPropertyAttribute)
-                            .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(prop.Name.NormalizeName());
+            if (type is null)
+                return Array.Empty<string>();
 
-                    if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
-                        return null;
-
-                    return jattr.PropertyName;
-                }).Where(x => !(x is null));
-
-            return triples.ToArray();
+            return type.Predicates.Where(x => x.Property.GetPropertyAttribute<StringPredicateAttribute>() is StringPredicateAttribute spa
+                && spa.Fulltext)
+                .Select(x => x.PredicateName).ToArray();
         }
 
-        public static string GetColumns(this object entity)
+        public static T To<T>(this Type type) where T : class, IEntity, new()
         {
-            var types = new[] { entity.GetType() };
-
-            var properties =
-            types.SelectMany(type => type.GetProperties()
-                .Where(prop => GetPropertyAttributes(prop)
-                    .Any(attr => attr is StringPredicateAttribute ||
-                                 attr is CommonPredicateAttribute ||
-                                 attr is DateTimePredicateAttribute ||
-                                 attr is PasswordPredicateAttribute ||
-                                 attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
-
-            var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
-                                     !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     GetPropertyAttributes(pp.prop)
-                                         .Where(attr => attr is JsonPropertyAttribute)
-                                         .OfType<JsonPropertyAttribute>()
-                                         .All(jattr =>
-                                             jattr.PropertyName?.Contains("|") != true))
-                .Select(pp =>
-                {
-                    var (_, prop) = pp;
-                    var jattr = GetPropertyAttributes(prop)
-                            .Where(attr => attr is JsonPropertyAttribute)
-                            .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(prop.Name.NormalizeName());
-
-                    if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
-                        return null;
-
-                    return jattr.PropertyName;
-                }).Where(x => !(x is null));
-
-            return string.Join('\n', triples);
+            return (T)Activator.CreateInstance(type);
         }
 
-        public static string NormalizeColumnName<T>(this string column) where T : class, IEntity, new() =>
-            new T().GetColumnName(column);
-
-        public static string GetColumnName<T>(this T entity, string column) where T : class, IEntity
+        public static T As<T>(this object obj) where T : class, IEntity, new()
         {
-            var types = new[] { entity.GetType() };
+            if (obj is null)
+                return default;
 
-            var properties =
-            types.SelectMany(type => type.GetProperties()
-                .Where(prop => GetPropertyAttributes(prop)
-                    .Any(attr => attr is StringPredicateAttribute ||
-                                 attr is CommonPredicateAttribute ||
-                                 attr is DateTimePredicateAttribute ||
-                                 attr is PasswordPredicateAttribute ||
-                                 attr is ReversePredicateAttribute ||
-                                 attr is JsonPropertyAttribute)).Select(prop => (type, prop)));
-
-            var col = column;
-            var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
-                                     !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     GetPropertyAttributes(pp.prop)
-                                         .Where(attr => attr is JsonPropertyAttribute)
-                                         .OfType<JsonPropertyAttribute>()
-                                         .All(jattr =>
-                                             jattr.PropertyName?.Contains("|") != true))
-                .Select(pp =>
-                {
-                    var (_, prop) = pp;
-                    var jattr =
-                        GetPropertyAttributes(prop)
-                            .Where(attr => attr is JsonPropertyAttribute)
-                            .OfType<JsonPropertyAttribute>().FirstOrDefault() ??
-                        new JsonPropertyAttribute(prop.Name.NormalizeName());
-
-                    if (jattr.PropertyName == "dgraph.type" || jattr.PropertyName == "uid")
-                        return (null, null);
-
-                    return (jattr.PropertyName, pp.prop.Name);
-                }).Where(p => !(p.PropertyName is null) && !(p.Name is null) && (p.Name == col || p.PropertyName == col))
-                .Select(p => p.PropertyName);
-
-            var def = GetPropertyAttribute<JsonPropertyAttribute>(entity.GetType().GetProperty(column));
-            column = def?.PropertyName ?? column;
-
-            return triples.FirstOrDefault() ?? column;
+            return (T)obj;
         }
 
-        public static string GetColumnType<T>(this T entity, string column) where T : class, IEntity
+        public static string GetColumns<T>(this T _, Func<Type, Type, string> expand = null) where T : class, IEntity, new()
         {
-            var types = new[] { entity.GetType() };
+            var t = typeof(T);
 
-            var properties =
-            types.SelectMany(type => type.GetProperties()
-                .Where(prop => GetPropertyAttributes(prop)
-                    .Any(attr => attr is StringPredicateAttribute ||
-                                 attr is CommonPredicateAttribute ||
-                                 attr is DateTimePredicateAttribute ||
-                                 attr is PasswordPredicateAttribute ||
-                                 attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
+            var type = s_mappings.FirstOrDefault(x => IsMapped(x.Type, t));
 
-            var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
-                                     !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
-                                     GetPropertyAttributes(pp.prop)
-                                         .Where(attr => attr is JsonPropertyAttribute)
-                                         .OfType<JsonPropertyAttribute>()
-                                         .All(jattr =>
-                                             jattr.PropertyName?.Contains("|") != true))
-                .Select(pp =>
+            if (type is null)
+                return null;
+
+            var sb = new StringBuilder();
+
+            foreach (var predicate in type.Predicates)
+            {
+                var pt = predicate.Property.PropertyType;
+                var rev = predicate.isReversed && typeof(IEnumerable).IsAssignableFrom(pt) ? "~" : "";
+                var pred = $"{rev}{predicate.PredicateName}";
+                sb.Append(pred);
+                if (predicate.isReversed || predicate.IsReference)
                 {
-                    var (_, prop) = pp;
-                    var pAttr = GetPropertyAttributes(prop)
-                                    .FirstOrDefault(attr => attr is StringPredicateAttribute ||
-                                                            attr is CommonPredicateAttribute ||
-                                                            attr is DateTimePredicateAttribute ||
-                                                            attr is PasswordPredicateAttribute ||
-                                                            attr is ReversePredicateAttribute) ??
-                                new CommonPredicateAttribute();
+                    sb.AppendLine("{");
 
-                    var princType = prop.PropertyType.IsGenericType
-                        ? prop.PropertyType.GetGenericArguments().First()
-                        : prop.PropertyType;
+                    var expanded = false;
 
-                    var isList = prop.PropertyType != typeof(string) &&
-                                 typeof(IEnumerable).IsAssignableFrom(prop.PropertyType);
-
-                    if (!isList && prop.PropertyType.IsGenericType)
-                        princType = prop.PropertyType;
-
-                    if (isList && typeof(char[]) == prop.PropertyType)
+                    if (expand is not null && pt != typeof(Uid))
                     {
-                        princType = prop.PropertyType;
+                        if (typeof(IEnumerable).IsAssignableFrom(pt) && pt.IsGenericType && pt.GenericTypeArguments.Length == 1)
+                        {
+                            pt = pt.GenericTypeArguments.First();
+                        }
+
+                        if (typeof(IEntity).IsAssignableFrom(pt))
+                        {
+                            var content = expand(t, pt);
+
+                            if (!string.IsNullOrEmpty(content?.Trim().Trim('\n')))
+                            {
+                                content = Regex.Replace(content, "^", "  ");
+                                sb.AppendLine(content);
+                                expanded = true;
+                            }
+                        }
                     }
 
-                    var isUid = princType == typeof(Uid) ||
-                                princType == typeof(Uid?) ||
-                                pAttr is ReversePredicateAttribute;
+                    if (!expanded)
+                    {
+                        sb.AppendLine("\tuid");
 
-                    var isString = princType.IsEnum ||
-                                   princType == typeof(string) ||
-                                   princType == typeof(char) ||
-                                   princType == typeof(char[]) ||
-                                   princType == typeof(char?) ||
-                                   princType == typeof(TimeSpan) ||
-                                   princType == typeof(TimeSpan?);
-
-                    var isFloat = princType == typeof(float) ||
-                                  princType == typeof(double) ||
-                                  princType == typeof(decimal) ||
-                                  princType == typeof(float?) ||
-                                  princType == typeof(double?) ||
-                                  princType == typeof(decimal?);
-
-                    var isInt = princType == typeof(int) ||
-                                princType == typeof(uint) ||
-                                princType == typeof(long) ||
-                                princType == typeof(ulong) ||
-                                princType == typeof(short) ||
-                                princType == typeof(ushort) ||
-                                princType == typeof(byte) ||
-                                princType == typeof(sbyte) ||
-                                princType == typeof(int?) ||
-                                princType == typeof(uint?) ||
-                                princType == typeof(long?) ||
-                                princType == typeof(ulong?) ||
-                                princType == typeof(short?) ||
-                                princType == typeof(ushort?) ||
-                                princType == typeof(byte?) ||
-                                princType == typeof(sbyte?);
-
-                    var isBool = princType == typeof(bool) ||
-                                 princType == typeof(bool?);
-
-                    var isDate = princType == typeof(DateTime) ||
-                                 princType == typeof(DateTimeOffset) ||
-                                 princType == typeof(DateTime?) ||
-                                 princType == typeof(DateTimeOffset?);
-
-                    var isGeo = new[]
-                    {
-                        "Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon",
-                        "GeometryCollection"
-                    }.Contains(princType.Name);
-
-                    var isEnum = princType.IsEnum;
-
-                    string propType;
-                    if (isEnum)
-                    {
-                        var converter = GetTypeAttribute<JsonConverterAttribute>(princType);
-                        if (converter != null && typeof(StringEnumConverter).IsAssignableFrom(converter.ConverterType))
-                            propType = "string";
-                        else
-                            propType = "int";
-                    }
-                    else if (isUid)
-                    {
-                        propType = "uid";
-                    }
-                    else if (isString)
-                    {
-                        propType = "string";
-                    }
-                    else if (isFloat)
-                    {
-                        propType = "float";
-                    }
-                    else if (isInt)
-                    {
-                        propType = "int";
-                    }
-                    else if (isBool)
-                    {
-                        propType = "bool";
-                    }
-                    else if (isDate)
-                    {
-                        propType = "datetime";
-                    }
-                    else if (isGeo)
-                    {
-                        propType = "geo";
-                    }
-                    else
-                    {
-                        propType = "default";
+                        if (predicate.Property.PropertyType != typeof(Uid))
+                            sb.AppendLine("\tdgraph.type");
                     }
 
-                    propType = pAttr switch
+                    sb.AppendLine("}");
+                }
+                else
+                {
+                    if (pt == typeof(LocalizedStrings))
                     {
-                        StringPredicateAttribute _ => "string",
-                        DateTimePredicateAttribute _ => "datetime",
-                        _ => propType
-                    };
+                        sb.Append("@*");
+                    }
 
-                    var isPasswd = pAttr is PasswordPredicateAttribute &&
-                                   (propType == "string" || propType == "default");
+                    if (predicate.Property.GetPropertyAttribute<HasFacetsAttribute>() is not null)
+                    {
+                        sb.Append(" @facets");
+                    }
 
-                    if (isPasswd)
-                        propType = "password";
+                    sb.AppendLine();
+                }
+            }
 
-                    return (propType, pp.prop);
-                }).Where(p => !(p.propType is null) && !(p.prop?.Name is null) && p.prop.Name == column)
-                .Select(p => p.propType);
-
-            return triples.FirstOrDefault() ?? "default";
+            return sb.Replace("\t", "  ").ToString().Replace("\r\n", "\n").Replace("\r", "\n");
         }
+
+        public static string GetColumnName<T, TE>(this T entity, Expression<Func<T, TE>> _, Expression<Func<TE, object>> expression) where T : class, IEntity, new()
+            where TE : class, IEntity, new()
+        {
+            MemberExpression memberExpr = null;
+            switch (expression.Body.NodeType)
+            {
+                case ExpressionType.Convert:
+                    memberExpr =
+                        ((UnaryExpression)expression.Body).Operand as MemberExpression;
+                    break;
+                case ExpressionType.MemberAccess:
+                    memberExpr = expression.Body as MemberExpression;
+                    break;
+            }
+
+            if (memberExpr is null)
+                return null;
+
+            var mType = memberExpr.Member.DeclaringType;
+            var mName = memberExpr.Member.Name;
+
+            if (typeof(T) == typeof(TE))
+                return entity.GetColumnName(mName);
+
+            return mType.To<TE>().GetColumnName(mName);
+        }
+
+        public static string GetColumnName<T>(this T entity, Expression<Func<T, object>> expression) where T : class, IEntity, new() =>
+            entity.GetColumnName(_ => entity, expression);
+
+        public static string GetColumnName<T>(this T _, string column) where T : class, IEntity
+        {
+            if (column == nameof(IEntity.DgraphType) || column == "dgraph.type")
+                return "dgrapth.type";
+
+            if (column == nameof(IEntity.Id) || column == "uid")
+                return "uid";
+
+            var type = typeof(T);
+
+            return s_mappings.SelectMany(x => x.Predicates.Select(y => (x.Type, y)))
+                .Where(x => IsMapped(x.Type, type) && (x.y.PredicateName == column || x.y.Property.Name == column))
+                .Select(x => x.y.PredicateName).FirstOrDefault();
+        }
+
+        private static bool IsMapped(Type meta, Type search)
+        {
+            if (meta == search)
+                return true;
+
+            return meta.IsAssignableFrom(search) || meta.IsAssignableFrom(search);
+        }
+
+        public static string GetColumnType<T>(this T _, string column) where T : class, IEntity
+        {
+            var type = typeof(T);
+
+            return s_mappings.SelectMany(x => x.Predicates.Select(y => (x.Type, y)))
+                .Where(x => IsMapped(x.Type, type) && (x.y.PredicateName == column || x.y.Property.Name == column))
+                .Select(x => x.y.PredicateType).FirstOrDefault() ?? "default";
+        }
+
+        private record TypeMetadata(Type Type, string TypeName, ConcurrentBag<PredicateMetadata> Predicates);
+
+        private record PredicateMetadata(PropertyInfo Property, string PredicateName, string PredicateType, string Predicate, bool IsReference, bool isReversed);
     }
 }

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenIddict.AspNetCore" Version="3.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Dgraph4Net.Identity\Dgraph4Net.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Dgraph4Net.OpenIddict\Dgraph4Net.OpenIddict.csproj" />
+  </ItemGroup>
+
+</Project>

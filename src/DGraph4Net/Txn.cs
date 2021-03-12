@@ -161,7 +161,7 @@ namespace Dgraph4Net
                 BestEffort = _bestEffort
             };
 
-            if (!(vars is null))
+            if (vars is not null)
             {
                 foreach (var v in vars)
                     req.Vars.Add(v.Key, v.Value);
