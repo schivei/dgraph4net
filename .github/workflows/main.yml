@@ -14,14 +14,34 @@ jobs:
   publish:
     name: Create Packages
     # The type of runner that the job will run on
-    runs-on: windows-2019
-    
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout Source
       uses: actions/checkout@v2
+    
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore DGraph4Net.sln
+      working-directory: ${{env.working-directory}}
+    
+    - name: Build solution
+      run: dotnet build -c Release --no-restore DGraph4Net.sln
+      working-directory: ${{env.working-directory}}
+    
+    - name: Generate Packages
+      run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false DGraph4Net.sln
+      
+    - name: Publish Packages
+      run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Core/Dgraph4Net.Core.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
 
-    - name: Build Binary
-      shell: cmd
-      run: call .\pack.bat ${{ secrets.NugetKey }}
+    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net/Dgraph4Net.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    
+    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    
+    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net.Identity/Dgraph4Net.Identity.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
