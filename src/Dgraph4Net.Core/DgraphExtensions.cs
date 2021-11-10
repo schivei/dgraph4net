@@ -227,7 +227,7 @@ namespace Dgraph4Net
                     ).Select(prop => (type, prop)));
 
             var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
+            properties.Where(pp => pp.prop.DeclaringType is not null &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
                                      GetPropertyAttributes(pp.prop)
@@ -462,7 +462,7 @@ namespace Dgraph4Net
                     predicate += isReverse ? rev : lt;
 
                     return (jattr.PropertyName, predicate, GetTypeAttribute<DgraphTypeAttribute>(type).Name, propType, prop);
-                }).Where(x => !(x.PropertyName is null)).ToArray();
+                }).Where(x => x.PropertyName is not null).ToArray();
 
             var ambiguous = triples.GroupBy(x => x.PropertyName)
                 .Where(x => x.Select(y => y.predicate).Distinct().Count() > 1);
@@ -564,7 +564,7 @@ namespace Dgraph4Net
                     .Any(attr => attr is StringPredicateAttribute spa && spa.Fulltext)).Select(prop => (type, prop)));
 
             var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
+            properties.Where(pp => pp.prop.DeclaringType is not null &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
                                      GetPropertyAttributes(pp.prop)
@@ -584,7 +584,7 @@ namespace Dgraph4Net
                         return null;
 
                     return jattr.PropertyName;
-                }).Where(x => !(x is null));
+                }).Where(x => x is not null);
 
             return triples.ToArray();
         }
@@ -603,7 +603,7 @@ namespace Dgraph4Net
                                  attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
 
             var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
+            properties.Where(pp => pp.prop.DeclaringType is not null &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
                                      GetPropertyAttributes(pp.prop)
@@ -623,7 +623,7 @@ namespace Dgraph4Net
                         return null;
 
                     return jattr.PropertyName;
-                }).Where(x => !(x is null));
+                }).Where(x => x is not null);
 
             return string.Join('\n', triples);
         }
@@ -647,7 +647,7 @@ namespace Dgraph4Net
 
             var col = column;
             var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
+            properties.Where(pp => pp.prop.DeclaringType is not null &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
                                      GetPropertyAttributes(pp.prop)
@@ -668,7 +668,7 @@ namespace Dgraph4Net
                         return (null, null);
 
                     return (jattr.PropertyName, pp.prop.Name);
-                }).Where(p => !(p.PropertyName is null) && !(p.Name is null) && (p.Name == col || p.PropertyName == col))
+                }).Where(p => p.PropertyName is not null && p.Name is not null && (p.Name == col || p.PropertyName == col))
                 .Select(p => p.PropertyName);
 
             var def = GetPropertyAttribute<JsonPropertyAttribute>(entity.GetType().GetProperty(column));
@@ -691,7 +691,7 @@ namespace Dgraph4Net
                                  attr is ReversePredicateAttribute)).Select(prop => (type, prop)));
 
             var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
+            properties.Where(pp => pp.prop.DeclaringType is not null &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
                                      GetPropertyAttributes(pp.prop)
@@ -833,7 +833,7 @@ namespace Dgraph4Net
                         propType = "password";
 
                     return (propType, pp.prop);
-                }).Where(p => !(p.propType is null) && !(p.prop?.Name is null) && p.prop.Name == column)
+                }).Where(p => p.propType is not null && p.prop?.Name is not null && p.prop.Name == column)
                 .Select(p => p.propType);
 
             return triples.FirstOrDefault() ?? "default";

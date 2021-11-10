@@ -2,8 +2,8 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Dgraph4Net</id>
-    <version>1.1.2</version>
-    <title>Dgraph for .NET Standard</title>
+    <version>2021.11.10</version>
+    <title>Dgraph for .NET 6</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -15,13 +15,13 @@
     <copyright>Copyright 2021, Ciência em Cena</copyright>
     <tags>Dgraph,client,dotnet</tags>
     <dependencies>
-      <group targetFramework="netstandard2.1">
-        <dependency Include="Google.Protobuf" Version="3.15.5" />
-        <dependency Include="Grpc.Core" Version="2.36.1" />
-        <dependency Include="Grpc.Net.ClientFactory" Version="2.35.0" />
-        <dependency Include="Grpc.Tools" Version="2.36.1"/>
-        <dependency Include="Newtonsoft.Json" Version="12.0.3" />
-        <dependency id="Dgraph4Net.Core" Version="1.1.2"/>
+      <group targetFramework="net6.0">
+        <dependency Include="Google.Protobuf" Version="3.19.1" />
+        <dependency Include="Grpc.Core" Version="2.41.1" />
+        <dependency Include="Grpc.Net.ClientFactory" Version="2.40.0" />
+        <dependency Include="Grpc.Tools" Version="2.41.1"/>
+        <dependency Include="Newtonsoft.Json" Version="13.0.1" />
+        <dependency id="Dgraph4Net.Core" Version="2021.11.10"/>
       </group>
     </dependencies>
   </metadata>

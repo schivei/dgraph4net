@@ -11,7 +11,6 @@ namespace Dgraph4Net
     {
         public static Dictionary<Type, Type> Proxies { get; set; } = new Dictionary<Type, Type>();
 
-        [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
         public static void MapAssembly(Assembly assembly)
         {
             var iet = typeof(IEntity);
@@ -56,7 +55,7 @@ namespace Dgraph4Net
             if (!Proxies.ContainsKey(typeof(T)))
                 throw new InvalidCastException("Can't create a new type");
 
-            if (!(Activator.CreateInstance(Proxies[typeof(T)]) is T instance))
+            if (Activator.CreateInstance(Proxies[typeof(T)]) is not T instance)
                 return null;
 
             var methods = instance.GetType().GetMethods();
@@ -79,8 +78,8 @@ namespace Dgraph4Net
             foreach (var prop in baseType
                 .GetProperties(BindingFlags.Public)
                 .Where(prop => prop.CanWrite && prop.CanRead &&
-                               !(prop.GetGetMethod() is null) &&
-                               !(prop.GetSetMethod() is null) &&
+                               prop.GetGetMethod() is not null &&
+                               prop.GetSetMethod() is not null &&
                                !prop.GetGetMethod().IsFinal &&
                                !prop.GetSetMethod().IsFinal &&
                                !prop.GetGetMethod().IsAbstract &&

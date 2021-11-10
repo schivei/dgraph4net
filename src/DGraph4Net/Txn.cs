@@ -161,7 +161,7 @@ namespace Dgraph4Net
                 BestEffort = _bestEffort
             };
 
-            if (!(vars is null))
+            if (vars is not null)
             {
                 foreach (var v in vars)
                     req.Vars.Add(v.Key, v.Value);
@@ -260,7 +260,7 @@ namespace Dgraph4Net
                     if(resp.Uids is not null)
                         Uid.Resolve(resp.Uids);
                 }
-                catch (RpcException err) when (_dgraph.IsJwtExpired(err))
+                catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
                 {
 
                     await _dgraph.RetryLogin().ConfigureAwait(false);
@@ -382,7 +382,7 @@ namespace Dgraph4Net
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Txn));
 
-            if (!(txn is null))
+            if (txn is not null)
                 _context = txn;
 
             if (_context.StartTs != 0 && request.StartTs == 0)
@@ -489,7 +489,7 @@ namespace Dgraph4Net
 
                 _finished = true;
             }
-            catch (RpcException err) when (_dgraph.IsJwtExpired(err))
+            catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
             {
 
                 await _dgraph.RetryLogin().ConfigureAwait(false);

@@ -44,7 +44,6 @@ namespace Dgraph4Net.Identity
     /// <typeparam name="TUserLogin">The type representing a user external login.</typeparam>
     /// <typeparam name="TUserToken">The type representing a user token.</typeparam>
     /// <typeparam name="TRoleClaim">The type representing a role claim.</typeparam>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     // ReSharper disable once UnusedTypeParameter
     public class UserStore<TUser, TRole, TUserClaim, TUserRole, TUserLogin, TUserToken, TRoleClaim> :
         IUserLoginStore<TUser>,
@@ -138,7 +137,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByNameAsync(userName.ToUpperInvariant(), cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr.Id != user.Id)
+            if (usr is not null && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Name already exists.");
 
             user.UserName = userName;
@@ -158,7 +157,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByNameAsync(normalizedName, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr.Id != user.Id)
+            if (usr is not null && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Name already exists.");
 
             user.NormalizedUserName = normalizedName;
@@ -207,7 +206,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars(@"query Q($userName: string) {
@@ -235,7 +234,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TRole> FindRoleAsync(string normalizedRoleName, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var resp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars(@"query Q($roleName: string) {
@@ -261,7 +260,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TUserRole> FindUserRoleAsync(Uid userId, Uid roleId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var resp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars(@"query Q($userId: string, $roleId: string) {
@@ -290,7 +289,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TUser> FindUserAsync(Uid userId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars(@"query Q($userId: string) {
@@ -320,7 +319,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TUserLogin> FindUserLoginAsync(Uid userId, string loginProvider, string providerKey, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var user = await FindByIdAsync(userId, cancellationToken);
 
@@ -338,7 +337,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TUserLogin> FindUserLoginAsync(string loginProvider, string providerKey, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars(@"query Q($loginProvider: string, $providerKey: string) {
@@ -377,7 +376,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.Roles is null) && user.Roles.Count > 0)
+            if (user.Roles is not null && user.Roles.Count > 0)
                 return user.Roles;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -418,7 +417,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.Claims is null))
+            if (user.Claims is not null)
                 return user.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
 
             var uctn = new TUserClaim().GetDType();
@@ -454,7 +453,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.Logins is null))
+            if (user.Logins is not null)
                 return user.Logins.Select(c => new UserLoginInfo(c.LoginProvider, c.ProviderKey, c.ProviderDisplayName)).ToList();
 
             var ultn = new TUserLogin().GetDType();
@@ -492,7 +491,7 @@ namespace Dgraph4Net.Identity
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var userResp = await Context.NewTransaction(true, true, cancellationToken)
                 .QueryWithVars(@"query Q($loginProvider: string, $providerKey: string) {
@@ -523,7 +522,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByEmailAsync(email.ToUpperInvariant(), cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr.Id != user.Id)
+            if (usr is not null && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Email already exists.");
 
             user.Email = email;
@@ -533,7 +532,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.Email is null))
+            if (user.Email is not null)
                 return user.Email;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -571,7 +570,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<TUser> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
 
             var utn = new TUser().GetDType();
 
@@ -601,7 +600,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.NormalizedUserName is null))
+            if (user.NormalizedUserName is not null)
                 return user.NormalizedUserName;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -619,7 +618,7 @@ namespace Dgraph4Net.Identity
             var usr = await FindByEmailAsync(normalizedEmail, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(usr is null) && usr.Id != user.Id)
+            if (usr is not null && usr.Id != user.Id)
                 throw new AmbiguousMatchException("Email already exists.");
 
             user.NormalizedEmail = normalizedEmail;
@@ -662,7 +661,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<IList<TUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
             CheckNull(claim, nameof(claim));
 
             var uctn = new TUserClaim().GetDType();
@@ -706,7 +705,7 @@ namespace Dgraph4Net.Identity
         public virtual async Task<IList<TUser>> GetUsersInRoleAsync(string normalizedRoleName, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
             CheckNull(normalizedRoleName, nameof(normalizedRoleName));
 
             var rtn = new TRole().GetDType();
@@ -793,7 +792,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.PasswordHash is null))
+            if (user.PasswordHash is not null)
                 return user.PasswordHash;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -823,7 +822,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.SecurityStamp is null))
+            if (user.SecurityStamp is not null)
                 return user.SecurityStamp;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -836,7 +835,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.LockoutEnd is null))
+            if (user.LockoutEnd is not null)
                 return user.LockoutEnd;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -912,7 +911,7 @@ namespace Dgraph4Net.Identity
         {
             CheckUser(user, cancellationToken);
 
-            if (!(user.PhoneNumber is null))
+            if (user.PhoneNumber is not null)
                 return user.PhoneNumber;
 
             var usr = await FindByIdAsync(user.Id, cancellationToken)
@@ -991,7 +990,7 @@ namespace Dgraph4Net.Identity
             var ut = await FindTokenAsync(user, loginProvider, name, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(ut is null))
+            if (ut is not null)
             {
                 await RemoveUserTokenAsync(ut).ConfigureAwait(false);
 
@@ -1074,10 +1073,14 @@ namespace Dgraph4Net.Identity
 
         public ValueTask DisposeAsync()
         {
-            return new ValueTask(Task.Run(delegate
+            var vt = new ValueTask(Task.Run(delegate
             {
                 Dispose(true);
             }));
+
+            GC.SuppressFinalize(this);
+
+            return vt;
         }
 
         #region Shared
@@ -1148,7 +1151,7 @@ namespace Dgraph4Net.Identity
             catch (Exception ex)
             {
                 var e = ErrorDescriber.ConcurrencyFailure();
-                _logger.LogError(ex, e.Description);
+                _logger.LogError(ex, ex.Message);
 
                 return IdentityResult.Failed(e);
             }
@@ -1303,7 +1306,7 @@ namespace Dgraph4Net.Identity
 
                 var roleEntity = await FindRoleAsync(normalizedRoleName, cancellationToken)
                     .ConfigureAwait(false);
-                if (!(roleEntity is null))
+                if (roleEntity is not null)
                     user.Roles?.Add(roleEntity);
             }
             catch (Exception ex)
@@ -1365,7 +1368,7 @@ namespace Dgraph4Net.Identity
 
                 var ur = user.Roles?.FirstOrDefault(x => x.NormalizedName == normalizedRoleName);
 
-                if (!(ur is null))
+                if (ur is not null)
                     user.Roles?.Remove(ur);
             }
             catch (Exception ex)
@@ -1489,7 +1492,7 @@ namespace Dgraph4Net.Identity
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public virtual async Task RemoveClaimsAsync(TUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken = default)
         {
-            ThrowIfDisposed();
+            ThrowIfDisposed(cancellationToken);
             CheckUser(user, cancellationToken);
             CheckNull(claims, nameof(claims));
 

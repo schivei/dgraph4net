@@ -50,7 +50,7 @@ namespace Dgraph4Net.Identity
         public virtual string ProviderDisplayName { get; set; }
 
         public static bool operator ==(DUserLogin<TUserLogin> usr, object other) =>
-            !(usr is null) && usr.Equals(other);
+            usr is not null && usr.Equals(other);
 
         public static bool operator !=(DUserLogin<TUserLogin> usr, object other) =>
             !usr?.Equals(other) == true;

@@ -54,7 +54,7 @@ namespace Dgraph4Net.Identity
         }
 
         public static bool operator ==(DUserClaim<TUserClaim, TUser> usr, object other) =>
-            !(usr is null) && usr.Equals(other);
+            usr is not null && usr.Equals(other);
 
         public static bool operator !=(DUserClaim<TUserClaim, TUser> usr, object other) =>
             !usr?.Equals(other) == true;
