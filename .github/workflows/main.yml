@@ -43,8 +43,8 @@ jobs:
       run: dotnet build -c Release --no-restore src/Dgraph4Net.Core/Dgraph4Net.Core.csproj
       working-directory: ${{env.working-directory}}
       
-    - run: dotnet build -c Release --no-restore src/DGraph4Net/DGraph4Net.csproj
-      working-directory: ${{env.working-directory}}
+    - run: dotnet build -c Release --no-restore DGraph4Net.csproj
+      working-directory: ${{env.working-directory}}/src/DGraph4Net/
       
     - run: dotnet build -c Release --no-restore src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj
       working-directory: ${{env.working-directory}}
