@@ -30,13 +30,13 @@ jobs:
       run: dotnet restore src/Dgraph4Net.Core/Dgraph4Net.Core.csproj
       working-directory: ${{env.working-directory}}
       
-      run: dotnet restore src/DGraph4Net/Dgraph4Net.csproj
+    - run: dotnet restore src/DGraph4Net/Dgraph4Net.csproj
       working-directory: ${{env.working-directory}}
       
-      run: dotnet restore src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj
+    - run: dotnet restore src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj
       working-directory: ${{env.working-directory}}
       
-      run: dotnet restore src/DGraph4Net.Identity/Dgraph4Net.Identity.csproj
+    - run: dotnet restore src/DGraph4Net.Identity/Dgraph4Net.Identity.csproj
       working-directory: ${{env.working-directory}}
     
     - name: Build projects
@@ -53,7 +53,7 @@ jobs:
       working-directory: ${{env.working-directory}}
     
     - name: Generate Packages
-    - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false src/Dgraph4Net.Core/Dgraph4Net.Core.csproj
+      run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false src/Dgraph4Net.Core/Dgraph4Net.Core.csproj
       working-directory: ${{env.working-directory}}
     
     - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false src/DGraph4Net/Dgraph4Net.csproj
