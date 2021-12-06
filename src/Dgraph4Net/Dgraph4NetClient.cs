@@ -164,7 +164,8 @@ namespace Dgraph4Net
 
                         if (types.Count + predicates.Count == 0)
                         {
-                            return new Payload {
+                            return new Payload
+                            {
                                 Data = Google.Protobuf.ByteString.CopyFromUtf8(string.Empty)
                             };
                         }
@@ -324,5 +325,11 @@ namespace Dgraph4Net
         /// <returns cref="Txn">Transaction</returns>
         public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) =>
             new(this, readOnly, bestEffort, cancellationToken);
+
+        public async Task<object> Alter(object operation) =>
+            await Alter(operation as Operation);
+
+        object IDgraph4NetClient.NewTransaction(bool readOnly, bool bestEffort, CancellationToken? cancellationToken) =>
+            NewTransaction(readOnly, bestEffort, cancellationToken);
     }
 }

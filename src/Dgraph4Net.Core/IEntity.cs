@@ -9,7 +9,9 @@ using Newtonsoft.Json.Serialization;
 
 namespace Dgraph4Net
 {
-    public interface IEntity
+    public interface IEntityBase { }
+
+    public interface IEntity : IEntityBase
     {
         public Uid Id { get; set; }
 

@@ -39,19 +39,19 @@ namespace Dgraph4Net
         /// Is returned when an operation is performed on already committed or discarded transaction.
         /// </summary>
         public static TransactionException ErrFinished =>
-            new TransactionException("Transaction has already been committed or discarded");
+            new("Transaction has already been committed or discarded");
 
         /// <summary>
         /// Is returned when a write/update is performed on a readonly transaction.
         /// </summary>
         public static ReadOnlyException ErrReadOnly =>
-            new ReadOnlyException("Readonly transaction cannot run mutations or be committed");
+            new("Readonly transaction cannot run mutations or be committed");
 
         /// <summary>
         /// Is returned when an operation is performed on an aborted transaction.
         /// </summary>
         public static TransactionAbortedException ErrAborted =>
-            new TransactionAbortedException("Transaction has been aborted. Please retry");
+            new("Transaction has been aborted. Please retry");
 
         private readonly bool _readOnly;
 
@@ -257,7 +257,7 @@ namespace Dgraph4Net
                 {
                     resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
 
-                    if(resp.Uids is not null)
+                    if (resp.Uids is not null)
                         Uid.Resolve(resp.Uids);
                 }
                 catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
@@ -546,10 +546,13 @@ namespace Dgraph4Net
         /// <inheritdoc/>
         public ValueTask DisposeAsync()
         {
-            return new ValueTask(Task.Run(delegate
+            var tsk = new ValueTask(Task.Run(delegate
             {
                 Dispose(true);
+                GC.SuppressFinalize(this);
             }));
+
+            return tsk;
         }
         #endregion
     }
@@ -558,12 +561,10 @@ namespace Dgraph4Net
     {
         private static List<T> From<T>(string json, string param) where T : class, IEntity, new()
         {
-            if (JsonConvert.DeserializeObject(json) is not JObject d || !d.ContainsKey(param))
+            if (JsonConvert.DeserializeObject(json) is not JObject d || !d.TryGetValue(param, out var childs) || childs is not JArray children)
                 return new List<T>();
 
-            var children = d[param] as JArray;
-
-            return children?.ToObject<List<T>>() ?? new List<T>();
+            return children.ToObject<List<T>>() ?? new List<T>();
         }
 
         public static async Task<List<T>> QueryWithVars<T>(this Txn txn, string param, string query, Dictionary<string, string> vars) where T : class, IEntity, new()

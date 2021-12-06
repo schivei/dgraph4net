@@ -2,8 +2,8 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Dgraph4Net.Core</id>
-    <version>2021.11.10</version>
-    <title>Dgraph for .NET 6</title>
+    <version>2021.12.06</version>
+    <title>Dgraph for .NET</title>
     <authors>Elton Schivei Costa</authors>
     <owners>Ciência em Cena</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -15,13 +15,11 @@
     <copyright>Copyright 2021, Ciência em Cena</copyright>
     <tags>Dgraph,client,dotnet,annotations</tags>
     <dependencies>
-      <group targetFramework="net6.0">
-        <dependency Include="GeoJSON.Net" Version="1.2.19" />
+      <group targetFramework="NET 6.0">
+        <dependency Include="GeoJSON.Net" Version="1.2.22-rc" />
         <dependency Include="Google.Protobuf" Version="3.19.1" />
         <dependency Include="IsExternalInit" Version="1.0.1"/>
-        <dependency Include="Newtonsoft.Json" Version="13.0.1" />
         <dependency Include="System.Reflection.Emit" Version="4.7.0" />
-        <dependency Include="System.Runtime" Version="4.3.1" />
       </group>
     </dependencies>
   </metadata>

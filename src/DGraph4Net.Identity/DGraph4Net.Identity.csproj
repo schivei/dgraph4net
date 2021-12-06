@@ -5,33 +5,31 @@
     <DebugType>Full</DebugType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>Dgraph4Net.Identity</PackageId>
-    <Version>2021.11.10</Version>
+    <Version>2021.12.06</Version>
     <Authors>Elton Schivei Costa</Authors>
-    <Company>Ciência em Cena</Company>
-    <Product>Dgraph4NetClient Identity for .NET 6</Product>
-    <Description>Dgraph4NetClient for Asp.Net Core Identity</Description>
+    <Company>Elton Schivei Costa</Company>
+    <Product>Dgraph4NetClient Identity for .NET</Product>
+    <Description>Dgraph4NetClient for Asp.Net Identity</Description>
     <PackageLicenseExpression></PackageLicenseExpression>
     <PackageIcon>logo.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>Dgraph4NetClient,client,dotnet,standard,identity</PackageTags>
+    <PackageTags>Dgraph4NetClient,client,dotnet,identity</PackageTags>
     <PackageReleaseNotes>Data Annotations for Dgraph4NetClient</PackageReleaseNotes>
-    <PackageVersion>2021.11.10</PackageVersion>
+    <PackageVersion>2021.12.06</PackageVersion>
     <PackOnBuild>true</PackOnBuild>
-    <ReleaseVersion>2021.11.10</ReleaseVersion>
+    <ReleaseVersion>2021.12.06</ReleaseVersion>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
     <ProjectReference Include="..\Dgraph4Net.Identity.Core\Dgraph4Net.Identity.Core.csproj" />
     <ProjectReference Include="..\Dgraph4Net\Dgraph4Net.csproj" />
   </ItemGroup>
@@ -56,5 +54,4 @@
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
-
 </Project>
