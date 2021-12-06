@@ -58,9 +58,9 @@ namespace Dgraph4Net
 {
     public class Dgraph4NetClient : IDgraph4NetClient
     {
-        private CancellationTokenSource _cancellationTokenSource;
-        private Mutex _mtx;
-        private DgraphClient[] _dgraphClients;
+        private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly Mutex _mtx;
+        private readonly DgraphClient[] _dgraphClients;
         private Jwt _jwt;
 
         private Dgraph4NetClient()
@@ -276,7 +276,7 @@ namespace Dgraph4Net
         /// </summary>
         /// <param name="error"></param>
         /// <returns>true if the error indicates that the jwt has expired.</returns>
-        internal bool IsJwtExpired(RpcException error)
+        internal static bool IsJwtExpired(RpcException error)
         {
             if (error is null)
                 return false;

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29728.190
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31710.8
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CE643E3C-6E64-4832-9285-F882377C578F}"
 EndProject
@@ -44,7 +44,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.OpenIddict.Model
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.OpenId.Example", "examples\Dgraph4Net.OpenId.Example\Dgraph4Net.OpenId.Example.csproj", "{18ED39D3-CCFE-49BC-825A-2CFAD628577F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dgraph4Net.Tools", "src\Dgraph4Net.Tools\Dgraph4Net.Tools.csproj", "{3CE578A3-DE08-4F14-B21B-628ED9560396}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Tools", "src\Dgraph4Net.Tools\Dgraph4Net.Tools.csproj", "{3CE578A3-DE08-4F14-B21B-628ED9560396}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
