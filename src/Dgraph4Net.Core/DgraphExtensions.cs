@@ -283,7 +283,7 @@ namespace Dgraph4Net
                     ).Select(prop => (type, prop)));
 
             var triples =
-            properties.Where(pp => !(pp.prop.DeclaringType is null) &&
+            properties.Where(pp => pp.prop.DeclaringType is not null &&
                                      !typeof(IDictionary).IsAssignableFrom(pp.prop.PropertyType) &&
                                      !typeof(KeyValuePair).IsAssignableFrom(pp.prop.PropertyType) &&
                                      GetPropertyAttributes(pp.prop)

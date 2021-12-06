@@ -80,7 +80,7 @@ namespace Dgraph4Net.Identity
         }
 
         public static bool operator ==(DUserToken<TUserToken, TUser> usr, object other) =>
-            usr?.Equals(other) == true;
+            usr is not null && usr.Equals(other) == true;
 
         public static bool operator !=(DUserToken<TUserToken, TUser> usr, object other) =>
             usr?.Equals(other) == false;

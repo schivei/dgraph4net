@@ -12,7 +12,7 @@
     <iconUrl>https://raw.githubusercontent.com/schivei/Dgraph4Net/master/logo.png</iconUrl>
     <description>Dgraph4Net Identity.</description>
     <releaseNotes>Added new dotnet features</releaseNotes>
-    <copyright>Copyright 2020, Ciência em Cena</copyright>
+    <copyright>Copyright 2021, Ciência em Cena</copyright>
     <tags>Dgraph4NetClient,client,dotnet</tags>
     <dependencies>
       <group targetFramework="NET 6.0">

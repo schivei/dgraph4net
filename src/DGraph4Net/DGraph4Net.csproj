@@ -26,6 +26,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Grpc.Net.ClientFactory" Version="2.40.0" />
+    <PackageReference Include="Grpc.Core" Version="2.42.0"/>
     <PackageReference Include="Grpc.Tools" Version="2.42.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -50,5 +51,6 @@
 		<Protobuf Include="github.com/dgraph-io/dgo/protos/api.proto" />
 		<Protobuf Include="github.com/dgraph-io/badger/pb/badger.proto" />
 		<Protobuf Include="github.com/dgraph-io/dgraph/protos/pb.proto" />
+        <Protobuf Include="github.com/gogo/protobuf/gogo.proto" />
 	</ItemGroup>
 </Project>

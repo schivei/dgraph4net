@@ -127,7 +127,7 @@ namespace Dgraph4Net.Identity
             Id.Equals(other?.Id);
 
         public static bool operator ==(DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
-            usr?.Equals(other) == true;
+            usr is not null && usr.Equals(other) == true;
 
         public static bool operator !=(DUser<TUser, TRole, TRoleClaim, TUserClaim, TUserLogin, TUserToken> usr, object other) =>
             usr?.Equals(other) != true;

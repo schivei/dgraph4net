@@ -17,8 +17,6 @@ using Newtonsoft.Json;
 
 namespace Dgraph4Net.Identity
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types",
-        Justification = "<Pending>")]
     public class RoleStore : RoleStore<DRole, DRoleClaim>
     {
         public RoleStore(ILogger<RoleStore> logger, Dgraph4NetClient context,
@@ -99,7 +97,6 @@ namespace Dgraph4Net.Identity
 
                 return response.Uids.Count == 0 ? IdentityResult.Failed(ErrorDescriber.DuplicateUserName(role.NormalizedName)) : IdentityResult.Success;
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
                 var e = ErrorDescriber.DefaultError();
@@ -107,7 +104,6 @@ namespace Dgraph4Net.Identity
 
                 return IdentityResult.Failed(e);
             }
-#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         public virtual async Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken = default)
@@ -137,7 +133,6 @@ namespace Dgraph4Net.Identity
             {
                 await txn.Do(req).ConfigureAwait(false);
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
                 var e = ErrorDescriber.ConcurrencyFailure();
@@ -145,7 +140,7 @@ namespace Dgraph4Net.Identity
 
                 return IdentityResult.Failed(e);
             }
-#pragma warning restore CA1031 // Do not catch general exception types
+
             return IdentityResult.Success;
         }
 
@@ -169,12 +164,10 @@ namespace Dgraph4Net.Identity
                 if (!resp.TryGetValue("code", out var s) || s?.ToString() != "Success")
                     return IdentityResult.Failed(ErrorDescriber.DefaultError());
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
             {
                 return CreateError(ex);
             }
-#pragma warning restore CA1031 // Do not catch general exception types
 
             return IdentityResult.Success;
         }
@@ -235,7 +228,7 @@ namespace Dgraph4Net.Identity
         {
             CheckRole(role, cancellationToken);
 
-            if (!(role.Claims is null))
+            if (role.Claims is not null)
                 return role.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
 
             var rl = await FindByIdAsync(role.Id, cancellationToken)
@@ -448,7 +441,7 @@ namespace Dgraph4Net.Identity
             var rl = await FindByNameAsync(roleName.ToUpperInvariant(), cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(rl is null) && rl.Id != role.Id)
+            if (rl is not null && rl.Id != role.Id)
                 throw new AmbiguousMatchException("Name already exists.");
 
             role.Name = roleName;
@@ -490,7 +483,7 @@ namespace Dgraph4Net.Identity
             var rl = await FindByNameAsync(normalizedName.ToUpperInvariant(), cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!(rl is null) && rl.Id != role.Id)
+            if (rl is not null && rl.Id != role.Id)
                 throw new AmbiguousMatchException("Name already exists.");
 
             role.NormalizedName = normalizedName;
@@ -519,10 +512,14 @@ namespace Dgraph4Net.Identity
 
         public ValueTask DisposeAsync()
         {
-            return new ValueTask(Task.Run(delegate
+            var vt = new ValueTask(Task.Run(delegate
             {
                 Dispose(true);
             }));
+
+            GC.SuppressFinalize(this);
+
+            return vt;
         }
     }
 }
