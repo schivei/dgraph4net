@@ -38,7 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="GeoJSON.Net" Version="1.2.22-rc" />
-    <PackageReference Include="Google.Protobuf" Version="3.19.1" />
+    <PackageReference Include="Google.Protobuf" Version="3.19.4" />
     <PackageReference Include="IsExternalInit" Version="1.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
