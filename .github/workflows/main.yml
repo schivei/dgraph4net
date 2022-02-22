@@ -26,11 +26,11 @@ jobs:
       with:
         dotnet-version: '6.0.x'
     
-    - name: Restore dependencies
-      run: dotnet restore Dgraph4Net.sln
+#    - name: Restore dependencies
+#      run: dotnet restore Dgraph4Net.sln
 
     - name: Build solution
-      run: dotnet build -c Release --no-restore Dgraph4Net.sln
+      run: dotnet build -c Release Dgraph4Net.sln
       
     - name: Generate Packages
       run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false Dgraph4Net.sln
