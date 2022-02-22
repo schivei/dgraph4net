@@ -28,42 +28,42 @@ jobs:
     
     - name: Restore dependencies
       run: dotnet restore Dgraph4Net.Core.csproj
-      working-directory: ${{env.working-directory}}/src/Dgraph4Net.Core/
+      working-directory: src/Dgraph4Net.Core/
       
     - run: dotnet restore DGraph4Net.csproj
-      working-directory: ${{env.working-directory}}/src/DGraph4Net/
+      working-directory: src/DGraph4Net/
       
     - run: dotnet restore Dgraph4Net.Identity.Core.csproj
-      working-directory: ${{env.working-directory}}/src/Dgraph4Net.Identity.Core/
+      working-directory: src/Dgraph4Net.Identity.Core/
       
     - run: dotnet restore DGraph4Net.Identity.csproj
-      working-directory: ${{env.working-directory}}/src/DGraph4Net.Identity/
+      working-directory: src/DGraph4Net.Identity/
     
     - name: Build projects
       run: dotnet build -c Release --no-restore Dgraph4Net.Core.csproj
-      working-directory: ${{env.working-directory}}/src/Dgraph4Net.Core/
+      working-directory: src/Dgraph4Net.Core/
       
     - run: dotnet build -c Release --no-restore DGraph4Net.csproj
-      working-directory: ${{env.working-directory}}/src/DGraph4Net/
+      working-directory: src/DGraph4Net/
       
     - run: dotnet build -c Release --no-restore Dgraph4Net.Identity.Core.csproj
-      working-directory: ${{env.working-directory}}/src/Dgraph4Net.Identity.Core/
+      working-directory: src/Dgraph4Net.Identity.Core/
       
     - run: dotnet build -c Release --no-restore DGraph4Net.Identity.csproj
-      working-directory: ${{env.working-directory}}/src/DGraph4Net.Identity/
+      working-directory: src/DGraph4Net.Identity/
     
     - name: Generate Packages
       run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false Dgraph4Net.Core.csproj
-      working-directory: ${{env.working-directory}}/src/Dgraph4Net.Core/
+      working-directory: src/Dgraph4Net.Core/
     
     - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false DGraph4Net.csproj
-      working-directory: ${{env.working-directory}}/src/DGraph4Net/
+      working-directory: src/DGraph4Net/
     
     - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false Dgraph4Net.Identity.Core.csproj
-      working-directory: ${{env.working-directory}}/src/Dgraph4Net.Identity.Core/
+      working-directory: src/Dgraph4Net.Identity.Core/
     
     - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false DGraph4Net.Identity.csproj
-      working-directory: ${{env.working-directory}}/src/DGraph4Net.Identity/
+      working-directory: src/DGraph4Net.Identity/
       
     - name: Publish Packages
       run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Core/Dgraph4Net.Core.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
