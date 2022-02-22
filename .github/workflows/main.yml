@@ -66,10 +66,10 @@ jobs:
       working-directory: ${{env.working-directory}}
       
     - name: Publish Packages
-      run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Core/Dgraph4Net.Core.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Core/Dgraph4Net.Core.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
 
-    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net/DGraph4Net.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net/DGraph4Net.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
     
-    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
     
-    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net.Identity/DGraph4Net.Identity.csproj`.nupkg" -k ${{ secrets.NugetKey }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net.Identity/DGraph4Net.Identity.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate

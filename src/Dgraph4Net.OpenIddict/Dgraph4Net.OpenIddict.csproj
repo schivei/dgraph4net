@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../versions.props"/>
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
+    <PackageTags>$(PackageTags),OpenIddict</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 

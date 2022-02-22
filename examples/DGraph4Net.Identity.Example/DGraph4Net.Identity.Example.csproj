@@ -10,8 +10,8 @@
 
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.0" />
-    <PackageReference Include="Grpc.Core" Version="2.42.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.2" />
+    <PackageReference Include="Grpc.Core" Version="2.44.0" />
   </ItemGroup>
 
 

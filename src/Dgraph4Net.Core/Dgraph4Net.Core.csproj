@@ -1,48 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <RootNamespace>Dgraph4Net</RootNamespace>
-    <PackageIcon>logo.png</PackageIcon>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <DebugType>Full</DebugType>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageId>Dgraph4Net.Core</PackageId>
-    <Version>2021.12.06</Version>
-    <Authors>Elton Schivei Costa</Authors>
-    <Company>Ciência em Cena</Company>
-    <Product>Dgraph for .NET</Product>
-    <Description>Dgraph for dotnet Core</Description>
-    <PackageProjectUrl>https://github.com/schivei/Dgraph4Net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/schivei/Dgraph4Net</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>Dgraph,client,dotnet,annotations</PackageTags>
-    <PackageReleaseNotes>Ignore Mapping</PackageReleaseNotes>
-    <PackageVersion>2021.12.06</PackageVersion>
-    <Title>Dgraph4Net.Core</Title>
-    <PackOnBuild>true</PackOnBuild>
-    <ReleaseVersion>2021.12.06</ReleaseVersion>
-    <LangVersion>preview</LangVersion>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-    <None Include="..\..\logo.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
+  <Import Project="../../versions.props"/>
 
   <ItemGroup>
     <PackageReference Include="GeoJSON.Net" Version="1.2.22-rc" />
-    <PackageReference Include="Google.Protobuf" Version="3.19.1" />
-    <PackageReference Include="IsExternalInit" Version="1.0.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Google.Protobuf" Version="3.19.4" />
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
   </ItemGroup>
 </Project>
