@@ -27,49 +27,22 @@ jobs:
         dotnet-version: '6.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore Dgraph4Net.Core.csproj
-      working-directory: src/Dgraph4Net.Core/
+      run: dotnet restore Dgraph4Net.sln
+
+    - name: Build solution
+      run: dotnet build -c Release --no-restore Dgraph4Net.sln
       
-    - run: dotnet restore DGraph4Net.csproj
-      working-directory: src/DGraph4Net/
-      
-    - run: dotnet restore Dgraph4Net.Identity.Core.csproj
-      working-directory: src/Dgraph4Net.Identity.Core/
-      
-    - run: dotnet restore DGraph4Net.Identity.csproj
-      working-directory: src/DGraph4Net.Identity/
-    
-    - name: Build projects
-      run: dotnet build -c Release --no-restore Dgraph4Net.Core.csproj
-      working-directory: src/Dgraph4Net.Core/
-      
-    - run: dotnet build -c Release --no-restore DGraph4Net.csproj
-      working-directory: src/DGraph4Net/
-      
-    - run: dotnet build -c Release --no-restore Dgraph4Net.Identity.Core.csproj
-      working-directory: src/Dgraph4Net.Identity.Core/
-      
-    - run: dotnet build -c Release --no-restore DGraph4Net.Identity.csproj
-      working-directory: src/DGraph4Net.Identity/
-    
     - name: Generate Packages
-      run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false Dgraph4Net.Core.csproj
-      working-directory: src/Dgraph4Net.Core/
+      run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false Dgraph4Net.sln
     
-    - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false DGraph4Net.csproj
-      working-directory: src/DGraph4Net/
-    
-    - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false Dgraph4Net.Identity.Core.csproj
-      working-directory: src/Dgraph4Net.Identity.Core/
-    
-    - run: dotnet pack -c Release --no-build -o /tmp/build-packages -p:IncludeSymbols=false DGraph4Net.Identity.csproj
-      working-directory: src/DGraph4Net.Identity/
-      
-    - name: Publish Packages
+    - name: Publish Package Dgraph4Net.Core
       run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Core/Dgraph4Net.Core.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
 
-    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net/DGraph4Net.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Publish Package Dgraph4Net
+      run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net/DGraph4Net.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
     
-    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Publish Package Dgraph4Net Identity Core
+      run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.Core.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/Dgraph4Net.Identity.Core/Dgraph4Net.Identity.Core.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
     
-    - run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net.Identity/DGraph4Net.Identity.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Publish Package Dgraph4Net Identity
+      run: dotnet nuget push "/tmp/build-packages/Dgraph4Net.Identity.`sed -n -e 's/\(.*\)<[Vv]ersion>\(.*\)<\/[Vv]ersion>\(.*\)/\2/p' src/DGraph4Net.Identity/DGraph4Net.Identity.csproj`.nupkg" -k ${{ secrets.NUGETKEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
