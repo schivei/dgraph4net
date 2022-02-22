@@ -361,3 +361,4 @@ MigrationBackup/
 schema.dgraph
 build-packages/*.nupkg
 nuget.config
+.env

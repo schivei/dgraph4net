@@ -16,6 +16,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AD8B1EAE-3079-47D5-9BB2-91BD2D2AD5EB}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		.env = .env
 		.filenesting.json = .filenesting.json
 		.gitignore = .gitignore
 		.gitmodules = .gitmodules

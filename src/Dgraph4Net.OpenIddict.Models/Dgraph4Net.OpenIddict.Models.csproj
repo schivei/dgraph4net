@@ -3,6 +3,7 @@
 
   <PropertyGroup>
     <PackageTags>$(PackageTags),OpenIddict</PackageTags>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup>
