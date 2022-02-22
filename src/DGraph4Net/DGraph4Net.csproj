@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../versions.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -15,11 +15,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
   </ItemGroup>
-
   <ItemGroup>
-    <Protobuf Include="github.com/dgraph-io/dgo/protos/api.proto" />
-    <Protobuf Include="github.com/dgraph-io/badger/pb/badgerpb3.proto" />
-    <Protobuf Include="github.com/dgraph-io/dgraph/protos/pb.proto" />
-    <Protobuf Include="github.com/gogo/protobuf/gogo.proto" />
+    <Protobuf Include="protos/badger.proto"/>
+    <Protobuf Include="protos/dgo.proto"/>
+    <Protobuf Include="protos/dgraph.proto"/>
+    <Protobuf Include="protos/gogo.proto"/>
   </ItemGroup>
 </Project>
