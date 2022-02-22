@@ -360,3 +360,4 @@ MigrationBackup/
 /.idea/.idea.DGraph4Net/.idea/workspace.xml
 schema.dgraph
 build-packages/*.nupkg
+nuget.config
