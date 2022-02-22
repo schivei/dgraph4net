@@ -17,7 +17,7 @@
     <DebugType>Full</DebugType>
     <PackOnBuild>true</PackOnBuild>
     <LangVersion>preview</LangVersion>
-    <Version>$([System.DateTime]::UtcNow.Year).$([System.Convert]::ToInt32($([MSBuild]::Divide($([MSBuild]::Add($([System.DateTime]::UtcNow.Month), 2)), 3)))).$([System.DateTime]::UtcNow.DayOfYear).$([System.DateTime]::UtcNow.Millisecond)</Version>
+    <Version>$([System.DateTime]::UtcNow.Year).$([System.Convert]::ToInt32($([MSBuild]::Divide($([MSBuild]::Add($([System.DateTime]::UtcNow.Month), 2)), 3)))).$([System.DateTime]::UtcNow.DayOfYear).$([System.DateTime]::UtcNow.Hour)</Version>
     <PackageVersion>$(Version)</PackageVersion>
     <ReleaseVersion>$(Version)</ReleaseVersion>
   </PropertyGroup>
