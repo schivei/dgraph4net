@@ -128,7 +128,7 @@ namespace Dgraph4Net.OpenIddict.Stores
                     throw new OpenIddictExceptions.ConcurrencyException("Already exists an application with the same 'ClientID'.");
                 }
 
-                throw new OpenIddictExceptions.GenericException("One or more errors ocurred when try to create application.");
+                throw new OpenIddictExceptions.ValidationException("One or more errors ocurred when try to create application.");
             }
         }
 

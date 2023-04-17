@@ -128,7 +128,7 @@ namespace Dgraph4Net.OpenIddict.Stores
                     throw new OpenIddictExceptions.ConcurrencyException("Already exists an token with the same 'ReferenceId'.");
                 }
 
-                throw new OpenIddictExceptions.GenericException("One or more errors ocurred when try to create token.");
+                throw new OpenIddictExceptions.ValidationException("One or more errors ocurred when try to create token.");
             }
         }
 

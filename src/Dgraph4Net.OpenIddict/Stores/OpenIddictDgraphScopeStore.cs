@@ -128,7 +128,7 @@ namespace Dgraph4Net.OpenIddict.Stores
                     throw new OpenIddictExceptions.ConcurrencyException("Already exists an scope with the same 'Name'.");
                 }
 
-                throw new OpenIddictExceptions.GenericException("One or more errors ocurred when try to create scope.");
+                throw new OpenIddictExceptions.ValidationException("One or more errors ocurred when try to create scope.");
             }
         }
 

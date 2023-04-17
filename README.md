@@ -1,15 +1,10 @@
 # Dgraph4Net
 
-This client are based on [Dgraph Go client](goclient).\
-This README is based on [Dgraph.net README](dgraph.net).
+This client are based on [Dgraph Go client](https://github.com/dgraph-io/dgo).\
+This README is based on [Dgraph.net README](https://github.com/dgraph-io/dgraph.net).
 
-[goclient]: https://github.com/dgraph-io/dgo
-[dgraph.net]: https://github.com/dgraph-io/dgraph.net
-
-Before using this client, we highly recommend that you go through [docs.dgraph.io],
+Before using this client, we highly recommend that you go through [docs.dgraph.io](https://docs.dgraph.io),
 and understand how to run and work with Dgraph.
-
-[docs.dgraph.io]:https://docs.dgraph.io
 
 ## Table of contents
 

@@ -103,7 +103,7 @@ namespace Dgraph4Net.OpenIddict.Stores
             var response = await txn.Mutate(mu);
 
             if (response.Uids.Count == 0)
-                throw new OpenIddictExceptions.GenericException("One or more errors ocurred when try to create authorization.");
+                throw new OpenIddictExceptions.ValidationException("One or more errors ocurred when try to create authorization.");
         }
 
         /// <inheritdoc/>

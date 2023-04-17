@@ -4,9 +4,9 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.42.0" />
-    <PackageReference Include="Grpc.Core" Version="2.44.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.44.0">
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.52.0" />
+    <PackageReference Include="Grpc.Core" Version="2.46.6" />
+    <PackageReference Include="Grpc.Tools" Version="2.54.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -16,9 +16,9 @@
     <ProjectReference Include="..\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Protobuf Include="protos/badger.proto"/>
-    <Protobuf Include="protos/dgo.proto"/>
-    <Protobuf Include="protos/dgraph.proto"/>
-    <Protobuf Include="protos/gogo.proto"/>
+    <Protobuf Include="protos/badger.proto" />
+    <Protobuf Include="protos/dgo.proto" />
+    <Protobuf Include="protos/dgraph.proto" />
+    <Protobuf Include="protos/gogo.proto" />
   </ItemGroup>
 </Project>
