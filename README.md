@@ -59,6 +59,8 @@ Dgraph version   | Dgraph4Net version | dotnet Version
 ---------------  | ------------------ | --------------
   1.1.Y          |  0.3.Y             | Standard 2.1
   20.03.Y        |  1.X.Y             | .NET5
+  21.2.Y         |  2022.X.Y          | .NET6
+  22.0.Y         |  2023.X.Y          | .NET7
 
 ## Using a Client
 
