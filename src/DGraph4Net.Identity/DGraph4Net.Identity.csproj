@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../versions.props"/>
+  <Import Project="../../versions.props" />
 
   <PropertyGroup>
     <PackageTags>$(PackageTags),identity</PackageTags>
@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="6.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="7.0.5" />
   </ItemGroup>
 
   <ItemGroup>

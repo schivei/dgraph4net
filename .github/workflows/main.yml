@@ -22,10 +22,10 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v2
 
-    - name: Install .NET 6
+    - name: Install .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 7.0.x
 
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1.0.2

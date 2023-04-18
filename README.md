@@ -1,15 +1,10 @@
 # Dgraph4Net
 
-This client are based on [Dgraph Go client](goclient).\
-This README is based on [Dgraph.net README](dgraph.net).
+This client are based on [Dgraph Go client](https://github.com/dgraph-io/dgo).\
+This README is based on [Dgraph.net README](https://github.com/dgraph-io/dgraph.net).
 
-[goclient]: https://github.com/dgraph-io/dgo
-[dgraph.net]: https://github.com/dgraph-io/dgraph.net
-
-Before using this client, we highly recommend that you go through [docs.dgraph.io],
+Before using this client, we highly recommend that you go through [docs.dgraph.io](https://docs.dgraph.io),
 and understand how to run and work with Dgraph.
-
-[docs.dgraph.io]:https://docs.dgraph.io
 
 ## Table of contents
 
@@ -59,6 +54,8 @@ Dgraph version   | Dgraph4Net version | dotnet Version
 ---------------  | ------------------ | --------------
   1.1.Y          |  0.3.Y             | Standard 2.1
   20.03.Y        |  1.X.Y             | .NET5
+  21.2.Y         |  2022.X.Y          | .NET6
+  22.0.Y         |  2023.X.Y          | .NET7
 
 ## Using a Client
 
@@ -146,7 +143,7 @@ We define a person object to represent a person and serialize it to a json mutat
 ```c#
 await using var txn = client.NewTransaction();
 var alice = new Person{ Name = "Alice" };
-var json = JsonConvert.SerializeObject(alice);
+var json = JsonSerializer.Serialize(alice);
 var mutation = new Mutation
 {
     CommitNow = true,

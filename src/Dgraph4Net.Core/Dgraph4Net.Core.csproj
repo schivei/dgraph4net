@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../versions.props"/>
+  <Import Project="../../versions.props" />
 
   <ItemGroup>
-    <PackageReference Include="GeoJSON.Net" Version="1.2.19" />
-    <PackageReference Include="Google.Protobuf" Version="3.20.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.22.3" />
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
+    <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
 </Project>

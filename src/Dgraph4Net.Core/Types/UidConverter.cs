@@ -1,84 +1,96 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 #nullable enable
 
 // ReSharper disable once CheckNamespace
-namespace System
+namespace System;
+
+public partial class UidConverter : JsonConverter<Uid>
 {
-    internal class UidConverter : JsonConverter
+    public override bool CanConvert(Type objectType)
     {
-        public override bool CanConvert(Type objectType)
+        return objectType == typeof(Uid) ||
+            objectType == typeof(string) ||
+            objectType == typeof(ulong) ||
+            objectType == typeof(object);
+    }
+
+    public override Uid Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        JsonElement? value = null;
+
+        if (reader.TokenType == JsonTokenType.Null || reader.TokenType == JsonTokenType.None)
         {
-            return objectType == typeof(Uid) ||
-                objectType == typeof(string) ||
-                objectType == typeof(ulong) ||
-                objectType == typeof(object);
+            return default;
         }
 
-        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        if (reader.TokenType != JsonTokenType.Null || typeToConvert != typeof(Uid))
         {
-            var value = reader.Value;
-            if (reader.Value is null || objectType != typeof(Uid))
+            var jo = JsonDocument.ParseValue(ref reader).RootElement;
+            if (jo.ValueKind == JsonValueKind.Object)
             {
-                var jo = JObject.Load(reader);
-                if (!jo.TryGetValue("uid", out var tk) || tk is null)
-                    return existingValue;
-                value = tk.ToString();
-            }
+                if (!jo.TryGetProperty("uid", out var tk) || tk.ValueKind == JsonValueKind.Null)
+                {
+                    return default;
+                }
 
-            if (string.IsNullOrEmpty(value?.ToString()?.Trim()))
-            {
-                return default(Uid);
+                value = tk;
             }
-            
-            switch (value)
+            else
             {
-                case Uid uid:
-                    return uid;
-                case string str:
-                    return new Uid(str);
+                value = jo;
             }
-
-            if (value is int ||
-                value is uint ||
-                value is long ||
-                value is ulong ||
-                value is byte ||
-                value is char ||
-                value is sbyte ||
-                value is short ||
-                value is ushort)
-            {
-                return new Uid(Convert.ToUInt64(reader.Value), true);
-            }
-
-            return existingValue;
         }
 
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        if (!value.HasValue || string.IsNullOrEmpty(value.Value.ToString()?.Trim()))
         {
-            var uid = (value as Uid?)?.ToString() ?? string.Empty;
-            var isRef = writer.Path != "uid" && !writer.Path.EndsWith(".uid");
+            return default;
+        }
 
-            if (string.IsNullOrEmpty(uid))
-            {
-                writer.WriteNull();
-                return;
-            }
+        return value.Value.ValueKind switch
+        {
+            JsonValueKind.Object => new Uid(value.Value.Deserialize<Dictionary<string, JsonElement>>()["uid"].GetString()),
+            JsonValueKind.String => new Uid(value.Value.GetString()),
+            JsonValueKind.Number => new Uid(value.Value.GetUInt64()),
+            _ => default,
+        };
+    }
 
-            if (isRef)
-            {
-                writer.WriteStartObject();
-                writer.WritePropertyName("uid");
-            }
+    public override void Write(Utf8JsonWriter writer, Uid value, JsonSerializerOptions options)
+    {
+        var uid = value.ToString();
 
-            writer.WriteValue(uid);
+        var ms = (Memory<byte>)writer.GetType().GetField("_memory", Reflection.BindingFlags.Instance | Reflection.BindingFlags.NonPublic)
+            .GetValue(writer);
 
-            if (isRef)
-            {
-                writer.WriteEndObject();
-            }
+        var uncompletedJson = Encoding.UTF8.GetString(ms!.ToArray()); // i.e: { "prop": "value", "uid":
+        var uncompletedPropertyName = UncompletedJson().Replace(uncompletedJson, "$4").ToLowerInvariant();
+
+        var isRef = uncompletedPropertyName != "uid" && !uncompletedPropertyName.EndsWith(".uid");
+        if (string.IsNullOrEmpty(uid?.Trim()))
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        if (isRef)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("uid");
+        }
+
+        writer.WriteStringValue(uid);
+
+        if (isRef)
+        {
+            writer.WriteEndObject();
         }
     }
+
+    [GeneratedRegex(@"^(\{)(.+)?(\"")([^\""]+)(\""\:)([^""]+)?$")]
+    private static partial Regex UncompletedJson();
 }

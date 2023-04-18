@@ -26,6 +26,11 @@ package pb;
 import "protos/dgo.proto";
 import "protos/badger.proto";
 import "protos/gogo.proto";
+/*
+import "api.proto";
+import "github.com/dgraph-io/badger/v4/pb/pb.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+*/
 
 /* import "gogoproto/gogo.proto"; */
 
@@ -35,9 +40,7 @@ import "protos/gogo.proto";
 /* option (gogoproto.goproto_getters_all) = true; */
 
 message List {
-  /* repeated fixed64 uids = 1; *1/ */
-  bytes bitmap = 2;
-  repeated fixed64 sortedUids = 3;
+  repeated fixed64 uids = 1;
 }
 
 message TaskValue {
@@ -63,25 +66,20 @@ message Query {
   // Function to generate or filter UIDs.
   SrcFunction src_func = 6;
 
-  // Whether this is a reverse edge.
-  bool reverse = 7;
+  bool reverse = 7;  // Whether this is a reverse edge.
 
-  // Which facets to fetch.
-  FacetParams facet_param = 8;
-  // Filtering on facets: has Op (and/or/not) tree.
-  FilterTree facets_filter = 9;
+  FacetParams facet_param = 8;  // which facets to fetch
+  FilterTree facets_filter =
+      9;  // filtering on facets : has Op (and/or/not) tree
 
-  // Expand all language variants.
-  bool expand_all = 10;
+  bool expand_all = 10;  // expand all language variants.
 
-  uint64 read_ts = 13;
-  int32 cache = 14;
-  // Used to limit the number of result. Typically, the count is value of first
-  // field. Now, It's been used only for has query.
-  int32 first = 15;
-  // Offset helps in fetching lesser results for the has query when there is no
-  // filter and order.
-  int32 offset = 16;
+	uint64 read_ts = 13;
+	int32 cache = 14;
+	int32 first = 15; // used to limit the number of result. Typically, the count is value of first
+	// field. Now, It's been used only for has query.
+	int32 offset = 16; // offset helps in fetching lesser results for the has query when there is
+	// no filter and order.
 }
 
 message ValueList {
@@ -183,7 +181,7 @@ message ZeroProposal {
 // the nodes in the caller server; and the membership updates recorded by the
 // callee server since the provided lastUpdate.
 message MembershipState {
-  uint64 counter = 1;  // Used to find latest membershipState in case of race.
+  uint64 counter = 1;  // used to find latest membershipState in case of race.
   map<uint32, Group> groups = 2;
   map<uint64, Member> zeros = 3;
   uint64 maxUID = 4;
@@ -199,8 +197,8 @@ message MembershipState {
 message ConnectionState {
   Member member = 1;
   MembershipState state = 2;
-  // Used to determine the timstamp for reading after bulk load.
-  uint64 max_pending = 3;
+  uint64 max_pending =
+      3;  // Used to determine the timstamp for reading after bulk load
 }
 
 message HealthInfo {
@@ -218,17 +216,18 @@ message HealthInfo {
 }
 
 message Tablet {
-  // Served by which group.
-  uint32 group_id = 1 [(gogoproto.jsontag) = "groupId,omitempty"];
+  uint32 group_id = 1
+      [(gogoproto.jsontag) = "groupId,omitempty"];  // Served by which group.
   string predicate = 2;
   bool force = 3;  // Used while moving predicate.
   int64 on_disk_bytes = 7;
   bool remove = 8;
-  // If true, do not ask zero to serve any tablets.
-  bool read_only = 9 [(gogoproto.jsontag) = "readOnly,omitempty"];
+  bool read_only = 9 [
+    (gogoproto.jsontag) = "readOnly,omitempty"
+  ];  // If true, do not ask zero to serve any tablets.
   uint64 move_ts = 10 [(gogoproto.jsontag) = "moveTs,omitempty"];
-  // Estimated uncompressed size of tablet in bytes
-  int64 uncompressed_bytes = 11;
+  int64 uncompressed_bytes =
+      11;  // Estimated uncompressed size of tablet in bytes
 }
 
 message DirectedEdge {
@@ -294,8 +293,6 @@ message Snapshot {
   bool done = 4;
   // since_ts stores the ts of the last snapshot to support diff snap updates.
   uint64 since_ts = 5;
-  // max_assigned stores the ts as seen as of snapshot read_ts.
-  uint64 max_assigned = 6;
 }
 
 message ZeroSnapshot {
@@ -334,19 +331,19 @@ message RestoreRequest {
 message Proposal {
   reserved 7;  // Was used for string key.
   Mutations mutations = 2;
-  repeated badgerpb3.KV kv = 4;
+  repeated badgerpb4.KV kv = 4;
   MembershipState state = 5;
-  // Delete the predicate which was moved to other group.
-  string clean_predicate = 6;
+  string clean_predicate =
+      6;  // Delete the predicate which was moved to other group.
   OracleDelta delta = 8;
   Snapshot snapshot = 9;  // Used to tell the group when to take snapshot.
   uint64 index = 10;      // Used to store Raft index, in raft.Ready.
-  // Block an operation until membership reaches this checksum.
-  uint64 expected_checksum = 11;
+  uint64 expected_checksum =
+      11;  // Block an operation until membership reaches this checksum.
   RestoreRequest restore = 12;
   CDCState cdc_state = 13;
   DeleteNsRequest delete_ns = 14;  // Used to delete namespace.
-  uint64 key = 15;
+  // Skipping 15 as it is used for uint64 key in master and might be needed later here.
   uint64 start_ts = 16;
 }
 
@@ -357,12 +354,12 @@ message CDCState {
 message KVS {
   bytes data = 5;
 
-  // Done used to indicate if the stream of KVS is over.
+  // done used to indicate if the stream of KVS is over.
   bool done = 2;
-  // Predicates is the list of predicates known by the leader at the time of the
+  // predicates is the list of predicates known by the leader at the time of the
   // snapshot.
   repeated string predicates = 3;
-  // Types is the list of types known by the leader at the time of the snapshot.
+  // types is the list of types known by the leader at the time of the snapshot.
   repeated string types = 4;
 }
 
@@ -400,14 +397,35 @@ message Posting {
   uint64 commit_ts = 14;  // Meant to use only inmemory
 }
 
+message UidBlock {
+  uint64 base = 1;
+  // deltas contains the deltas encoded with Varints. We don't store deltas as a
+  // list of integers, because when the PB is brought to memory, Go would always
+  // use 8-bytes per integer. Instead, storing it as a byte slice is a lot
+  // cheaper in memory.
+  bytes deltas = 2;
+  // num_uids is the number of UIDs in the block. We are including this because
+  // we want to switch encoding to groupvarint encoding. Current avaialble open
+  // source version implements encoding and decoding for uint32. To use that, we
+  // create different blocks for different 32-bit MSB base uids. That is, if the
+  // 32 MSBs are different, we will create a new block irrespective of whether
+  // the block is filled with the block_size or not. Default Blocksize is 256 so
+  // uint32 would be sufficient.
+  uint32 num_uids = 3;
+}
+
+message UidPack {
+  uint32 block_size = 1;
+  repeated UidBlock blocks = 2;
+  uint64 alloc_ref = 23;  // This field should be set to 0 during marshal.
+}
+
 message PostingList {
-  reserved 1;  // It was used for UidPack.
+  UidPack pack = 1;  // Encoded list of uids in this posting list.
   repeated Posting postings = 2;
   uint64 commit_ts = 3;  // More inclination towards smaller values.
 
   repeated uint64 splits = 4;
-
-  bytes bitmap = 5;  // Roaring Bitmap encoded uint64s.
 }
 
 message FacetParam {
@@ -416,7 +434,7 @@ message FacetParam {
 }
 
 message FacetParams {
-  bool all_keys = 1;  // Keys should be in sorted order.
+  bool all_keys = 1;  // keys should be in sorted order.
   repeated FacetParam param = 2;
 }
 
@@ -445,7 +463,7 @@ message FilterTree {
 message SchemaRequest {
   uint32 group_id = 1;
   repeated string predicates = 2;
-  // Fields can be on of type, index, reverse or tokenizer.
+  // fields can be on of type, index, reverse or tokenizer
   repeated string fields = 3;
 
   repeated string types = 4;
@@ -488,8 +506,8 @@ message SchemaUpdate {
   bool non_nullable = 10;
   bool non_nullable_list = 11;
 
-  // If value_type is OBJECT, then this represents an object type with a custom
-  // name. This field stores said name.
+  // If value_type is OBJECT, then this represents an object type with a
+  // custom name. This field stores said name.
   string object_type_name = 12;
 
   bool no_conflict = 13;
@@ -512,9 +530,8 @@ message MovePredicatePayload {
   string predicate = 1;
   uint32 source_gid = 2;
   uint32 dest_gid = 3;
-  uint64 read_ts = 4;
+  uint64 txn_ts = 4;
   uint64 expected_checksum = 5;
-  uint64 since_ts = 6;
 }
 
 message TxnStatus {
@@ -580,7 +597,7 @@ service Worker {
   rpc Export(ExportRequest) returns (ExportResponse) {}
   rpc ReceivePredicate(stream KVS) returns (api.Payload) {}
   rpc MovePredicate(MovePredicatePayload) returns (api.Payload) {}
-  rpc Subscribe(SubscriptionRequest) returns (stream badgerpb3.KVList) {}
+  rpc Subscribe(SubscriptionRequest) returns (stream badgerpb4.KVList) {}
   rpc UpdateGraphQLSchema(UpdateGraphQLSchemaRequest)
       returns (UpdateGraphQLSchemaResponse) {}
   rpc DeleteNamespace(DeleteNsRequest) returns (Status) {}
@@ -597,11 +614,11 @@ message TabletRequest {
 
 message SubscriptionRequest {
   repeated bytes prefixes = 1;
-  repeated badgerpb3.Match matches = 2;
+  repeated badgerpb4.Match matches = 2;
 }
 
 message SubscriptionResponse {
-  badgerpb3.KVList kvs = 1;
+  badgerpb4.KVList kvs = 1;
 }
 
 message Num {
@@ -654,8 +671,9 @@ message Status {
   string msg = 2;
 }
 
-// Backups record all data from since_ts to read_ts. With incremental backups,
-// the read_ts of the first backup becomes the since_ts of the second backup.
+// Backups record all data from since_ts to read_ts.
+// With incremental backups, the read_ts of the first backup becomes
+// the since_ts of the second backup.
 // Incremental backups can be disabled using the force_full field.
 message BackupRequest {
   uint64 read_ts = 1;
@@ -751,16 +769,10 @@ message BackupPostingList {
 }
 
 message UpdateGraphQLSchemaRequest {
-  enum Op {
-    SCHEMA = 0;
-    SCRIPT = 1;
-  }
   uint64 start_ts = 1;
   string graphql_schema = 2;
   repeated SchemaUpdate dgraph_preds = 3;
   repeated TypeUpdate dgraph_types = 4;
-  string lambda_script = 5;
-  Op op = 6;
 }
 
 message UpdateGraphQLSchemaResponse {

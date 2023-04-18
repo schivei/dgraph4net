@@ -1,12 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Dgraph4Net
+namespace Dgraph4Net;
+
+public enum StringToken
 {
-    public enum StringToken
-    {
-        None,
-        Exact,
-        Hash,
-        Term
-    }
+    None,
+    Exact,
+    Hash,
+    Term
 }

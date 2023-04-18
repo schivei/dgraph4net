@@ -1,51 +1,45 @@
-
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 #nullable enable
 
-namespace System
+namespace System;
+
+public class LocalizedStringsConverter : JsonConverter<LocalizedStrings>
 {
-    public class LocalizedStringsConverter : JsonConverter
+    public override bool CanConvert(Type objectType)
     {
-        public override bool CanConvert(Type objectType)
+        return objectType == typeof(LocalizedStrings);
+    }
+
+    public override LocalizedStrings? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var lss = new LocalizedStrings();
+
+        while (reader.Read())
         {
-            return objectType == typeof(LocalizedStrings);
+            if (reader.TokenType == JsonTokenType.EndObject)
+                continue;
+            var key = reader.GetString();
+            var value = reader.GetString();
+            if (key is null || !key.Contains('@') || value is null)
+                continue;
+
+            lss.Add(new LocalizedString
+            {
+                LocalizedKey = key!,
+                Value = value!
+            });
         }
 
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        return lss;
+    }
+
+    public override void Write(Utf8JsonWriter writer, LocalizedStrings value, JsonSerializerOptions options)
+    {
+        foreach (var ls in value)
         {
-            var lss = value as LocalizedStrings ?? new LocalizedStrings();
-
-            foreach (var ls in lss)
-            {
-                writer.WritePropertyName(ls.LocalizedKey);
-                writer.WriteValue(ls.Value);
-            }
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-        {
-            var lss = existingValue as LocalizedStrings ?? new LocalizedStrings();
-
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonToken.EndObject)
-                    continue;
-
-                var key = reader.Value?.ToString();
-                var value = reader.ReadAsString();
-
-                if (key is null || !key.Contains('@') || value is null)
-                    continue;
-
-                lss.Add(new LocalizedString
-                {
-                    LocalizedKey = key!,
-                    Value = value!
-                });
-            }
-
-            return lss;
+            writer.WriteString(ls.LocalizedKey, ls.Value);
         }
     }
 }

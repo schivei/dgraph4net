@@ -17,9 +17,9 @@
 // Use protos/gen.sh to generate .pb.go files.
 syntax = "proto3";
 
-package badgerpb3;
+package badgerpb4;
 
-option go_package = "badgerpb3";
+option go_package = "github.com/dgraph-io/badger/v4/pb";
 
 message KV {
   bytes key = 1;
@@ -33,13 +33,6 @@ message KV {
   uint32 stream_id = 10;
   // Stream done is used to indicate end of stream.
   bool stream_done = 11;
-
-  enum Kind {
-    KEY = 0;
-    DATA_KEY = 1;
-    FILE = 2;
-  }
-  Kind kind = 12;
 }
 
 message KVList {

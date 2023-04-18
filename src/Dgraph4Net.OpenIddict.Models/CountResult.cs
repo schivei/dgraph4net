@@ -1,10 +1,9 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
-namespace Dgraph4Net.OpenIddict.Models
+namespace Dgraph4Net.OpenIddict.Models;
+
+public class CountResult : AEntity
 {
-    public class CountResult : AEntity
-    {
-        [JsonProperty("count")]
-        public long Count { get; set; }
-    }
+    [JsonPropertyName("count")]
+    public long Count { get; set; }
 }
