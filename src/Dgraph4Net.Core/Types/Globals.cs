@@ -1,10 +1,9 @@
 using Dgraph4Net;
 
-namespace System
+namespace System;
+
+public static class Globals
 {
-    public static class Globals
-    {
-        public static string GetDType<T>() where T : IEntity, new() =>
-            new T().GetDType();
-    }
+    public static string GetDType<T>() where T : IEntity, new() =>
+        new T().GetDType();
 }

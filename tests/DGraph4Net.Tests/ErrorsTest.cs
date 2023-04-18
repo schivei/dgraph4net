@@ -10,115 +10,114 @@ using Xunit;
 
 using Assert = Dgraph4Net.Tests.Assert;
 
-namespace Dgraph4Net.Tests
+namespace Dgraph4Net.Tests;
+
+[Collection("Dgraph4Net")]
+public class ErrorsTest : ExamplesTest
 {
-    [Collection("Dgraph4Net")]
-    public class ErrorsTest : ExamplesTest
+    [Fact(DisplayName = "should have returned ErrFinished")]
+    public async Task TestTxnErrFinished()
     {
-        [Fact(DisplayName = "should have returned ErrFinished")]
-        public async Task TestTxnErrFinished()
+        var dg = GetDgraphClient();
+
+        try
         {
-            var dg = GetDgraphClient();
-
-            try
+            var op = new Operation
             {
-                var op = new Operation
-                {
-                    Schema = "email: string @index(exact) .\n"
-                };
+                Schema = "email: string @index(exact) .\n"
+            };
 
-                await dg.Alter(op);
+            await dg.Alter(op);
 
-                var txn = new Txn(dg);
+            var txn = new Txn(dg);
 
-                var mu = new Mutation
-                {
-                    SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                    CommitNow = true
-                };
-
-                await txn.Mutate(mu);
-
-                await ThrowsAsync<TransactionException>(() => txn.Mutate(mu));
-            }
-            finally
+            var mu = new Mutation
             {
-                await ClearDB();
-            }
+                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                CommitNow = true
+            };
+
+            await txn.Mutate(mu);
+
+            await ThrowsAsync<TransactionException>(() => txn.Mutate(mu));
         }
-
-        [Fact(DisplayName = "should have returned ErrReadOnly")]
-        public async Task TestTxnErrReadOnly()
+        finally
         {
-            var dg = GetDgraphClient();
-
-            try
-            {
-                var op = new Operation { Schema = "email: string @index(exact) ." };
-                await dg.Alter(op);
-
-                var mu = new Mutation
-                {
-                    SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                    CommitNow = true
-                };
-
-                await ThrowsAsync<ReadOnlyException>(() => dg.NewTransaction(true).Mutate(mu));
-            }
-            finally
-            {
-                await ClearDB();
-            }
+            await ClearDB();
         }
+    }
 
-        [Fact(DisplayName = "2nd transaction should have aborted")]
-        public async Task TestTxnErrAborted()
+    [Fact(DisplayName = "should have returned ErrReadOnly")]
+    public async Task TestTxnErrReadOnly()
+    {
+        var dg = GetDgraphClient();
+
+        try
         {
-            var dg = GetDgraphClient();
+            var op = new Operation { Schema = "email: string @index(exact) ." };
+            await dg.Alter(op);
 
-            try
+            var mu = new Mutation
             {
-                var op = new Operation { Schema = "email: string @index(exact) ." };
+                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                CommitNow = true
+            };
 
-                await dg.Alter(op);
+            await ThrowsAsync<ReadOnlyException>(() => dg.NewTransaction(true).Mutate(mu));
+        }
+        finally
+        {
+            await ClearDB();
+        }
+    }
 
-                var mu = new Mutation
-                {
-                    SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
-                    CommitNow = true
-                };
+    [Fact(DisplayName = "2nd transaction should have aborted")]
+    public async Task TestTxnErrAborted()
+    {
+        var dg = GetDgraphClient();
 
-                // Insert first record.
-                await using (var txnInsert = dg.NewTransaction())
-                    await txnInsert.Mutate(mu);
+        try
+        {
+            var op = new Operation { Schema = "email: string @index(exact) ." };
 
-                const string q = @"{
+            await dg.Alter(op);
+
+            var mu = new Mutation
+            {
+                SetNquads = ByteString.CopyFromUtf8("_:user1 <email> \"user1@company1.io\"."),
+                CommitNow = true
+            };
+
+            // Insert first record.
+            await using (var txnInsert = dg.NewTransaction())
+                await txnInsert.Mutate(mu);
+
+            const string q = @"{
                     v as var(func: eq(email, ""user1@company1.io""))
                 }";
 
-                mu = new Mutation
-                {
-                    SetNquads = ByteString.CopyFromUtf8(@"uid(v) <email> ""updated1@company1.io""."),
-                    CommitNow = false
-                };
-
-                await using (var txn = dg.NewTransaction())
-                {
-                    var req = new Request { Query = q };
-
-                    req.Mutations.Add(mu);
-
-                    await txn.Do(req);
-
-                    await txn.Abort(req);
-
-                    await ThrowsAsync<TransactionAbortedException>(() => txn.Commit());
-                }
-            }
-            finally
+            mu = new Mutation
             {
-                await ClearDB();
+                SetNquads = ByteString.CopyFromUtf8(@"uid(v) <email> ""updated1@company1.io""."),
+                CommitNow = false
+            };
+
+            await using (var txn = dg.NewTransaction())
+            {
+                var req = new Request { Query = q };
+
+                req.Mutations.Add(mu);
+
+                await txn.Do(req);
+
+                await txn.Abort(req);
+
+                await ThrowsAsync<TransactionAbortedException>(() => txn.Commit());
             }
+        }
+        finally
+        {
+            await ClearDB();
         }
     }
 }

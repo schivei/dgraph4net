@@ -1,46 +1,46 @@
 using System;
 using System.Threading.Tasks;
 
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Xunit;
+using System.Text.Json;
 
-namespace Dgraph4Net.Tests
+namespace Dgraph4Net.Tests;
+
+public class AclTest : ExamplesTest
 {
-    public class AclTest : ExamplesTest
+    public class Testing
     {
-        public class Testing
+        public Uid uid { get; set; }
+        public string name { get; set; }
+
+        public Uid TestingId { get; set; }
+
+        public Testing Test { get; set; }
+    }
+
+    [Fact]
+    public async Task ExpTest()
+    {
+        try
         {
-            public Uid uid { get; set; }
-            public string name { get; set; }
+            Uid id = "<0x1>";
+            Uid refs = "_:0";
 
-            public Uid TestingId { get; set; }
+            var tes = JsonSerializer.Serialize(new Testing
+            {
+                uid = id,
+                name = "test",
+                TestingId = refs
+            });
 
-            public Testing Test { get; set; }
+            var t = JsonSerializer.Deserialize<Testing>(tes);
+
+            Equal(tes, JsonSerializer.Serialize(t));
         }
-
-        [Fact]
-        public async Task ExpTest()
+        finally
         {
-            try
-            {
-                Uid id = "<0x1>";
-                Uid refs = "_:0";
-
-                var tes = JsonConvert.SerializeObject(new Testing
-                {
-                    uid = id,
-                    name = "test",
-                    TestingId = refs
-                });
-
-                var t = JsonConvert.DeserializeObject<Testing>(tes);
-
-                Equal(tes, JsonConvert.SerializeObject(t));
-            }
-            finally
-            {
-                await ClearDB();
-            }
+            //await ClearDB();
         }
     }
 }

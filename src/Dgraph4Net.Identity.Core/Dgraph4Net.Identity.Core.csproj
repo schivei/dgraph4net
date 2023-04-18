@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../versions.props"/>
+  <Import Project="../../versions.props" />
 
   <PropertyGroup>
     <PackageTags>$(PackageTags),identity</PackageTags>

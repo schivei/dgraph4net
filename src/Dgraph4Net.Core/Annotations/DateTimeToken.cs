@@ -1,13 +1,12 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace Dgraph4Net.Annotations
+namespace Dgraph4Net.Annotations;
+
+public enum DateTimeToken
 {
-    public enum DateTimeToken
-    {
-        None,
-        Year,
-        Month,
-        Day,
-        Hour
-    }
+    None,
+    Year,
+    Month,
+    Day,
+    Hour
 }

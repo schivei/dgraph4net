@@ -1,8 +1,7 @@
-namespace Dgraph4Net.Identity
+namespace Dgraph4Net.Identity;
+
+public interface IRoleClaim : IEntity
 {
-    public interface IRoleClaim : IEntity
-    {
-        string ClaimValue { get; set; }
-        string ClaimType { get; set; }
-    }
+    string ClaimValue { get; set; }
+    string ClaimType { get; set; }
 }

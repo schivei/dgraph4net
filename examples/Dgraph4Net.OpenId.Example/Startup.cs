@@ -21,133 +21,132 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Dgraph4Net.OpenId.Example
+namespace Dgraph4Net.OpenId.Example;
+
+public class Startup
 {
-    public class Startup
+    public Startup(IConfiguration configuration)
     {
-        public Startup(IConfiguration configuration)
+        Configuration = configuration;
+    }
+
+    public IConfiguration Configuration { get; }
+
+    // This method gets called by the runtime. Use this method to add services to the container.
+    // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddControllersWithViews();
+
+        services.Configure<ForwardedHeadersOptions>(options =>
         {
-            Configuration = configuration;
+            options.ForwardedHeaders = ForwardedHeaders.All;
+        });
+
+        services.AddSingleton(Configuration);
+
+        services.AddTransient<ChannelBase>(delegate
+        {
+            return new Channel("localhost:9080", ChannelCredentials.Insecure);
+        });
+
+        services.AddTransient(sp =>
+            new Dgraph4NetClient(sp.GetRequiredService<ChannelBase>()));
+
+        ClassFactory.MapAssembly(typeof(OpenIddictDgraphExtensions).Assembly);
+
+        var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
+        var dgraph = new Dgraph4NetClient(channel);
+
+        if (!File.Exists("schema.dgraph"))
+            dgraph.Alter(new Api.Operation { DropAll = true }).GetAwaiter().GetResult();
+
+        // sends mapping to Dgraph
+        dgraph.Map(typeof(OpenIddictDgraphExtensions).Assembly);
+
+        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie()
+            .AddOAuth("oidc", options => {
+                options.AuthorizationEndpoint = "/connect/authorize";
+            });
+
+        services.AddOpenIddict().AddCore(options => {
+            options.UseDgraph();
+        })
+        // Register the OpenIddict server components.
+        .AddServer(options =>
+        {
+            // Enable the token endpoint.
+            options.SetTokenEndpointUris("/connect/token");
+
+            // Enable the client credentials flow.
+            options.AllowClientCredentialsFlow();
+
+            // Register the signing and encryption credentials.
+            options.AddDevelopmentEncryptionCertificate()
+                    .AddDevelopmentSigningCertificate();
+
+            // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
+            options.UseAspNetCore()
+                    .EnableTokenEndpointPassthrough();
+        })
+
+        // Register the OpenIddict validation components.
+        .AddValidation(options =>
+        {
+            // Import the configuration from the local OpenIddict server instance.
+            options.UseLocalServer();
+
+            // Register the ASP.NET Core host.
+            options.UseAspNetCore();
+        });
+    ;
+
+        services.AddMvcCore();
+    }
+
+    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
         }
 
-        public IConfiguration Configuration { get; }
+        app.UseRouting();
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
-        public void ConfigureServices(IServiceCollection services)
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.UseEndpoints(endpoints =>
         {
-            services.AddControllersWithViews();
+            endpoints.MapControllers();
+            endpoints.MapDefaultControllerRoute();
+        });
 
-            services.Configure<ForwardedHeadersOptions>(options =>
-            {
-                options.ForwardedHeaders = ForwardedHeaders.All;
-            });
+        app.UseWelcomePage();
 
-            services.AddSingleton(Configuration);
+        InitializeAsync(app.ApplicationServices, CancellationToken.None).GetAwaiter().GetResult();
+    }
 
-            services.AddTransient<ChannelBase>(delegate
-            {
-                return new Channel("localhost:9080", ChannelCredentials.Insecure);
-            });
+    private static async Task InitializeAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        // Create a new service scope to ensure the database context is correctly disposed when this methods returns.
+        using var scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope();
 
-            services.AddTransient(sp =>
-                new Dgraph4NetClient(sp.GetRequiredService<ChannelBase>()));
+        var manager = scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictDgraphApplication>>();
 
-            ClassFactory.MapAssembly(typeof(OpenIddictDgraphExtensions).Assembly);
-
-            var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
-            var dgraph = new Dgraph4NetClient(channel);
-
-            if (!File.Exists("schema.dgraph"))
-                dgraph.Alter(new Api.Operation { DropAll = true }).GetAwaiter().GetResult();
-
-            // sends mapping to Dgraph
-            dgraph.Map(typeof(OpenIddictDgraphExtensions).Assembly);
-
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie()
-                .AddOAuth("oidc", options => {
-                    options.AuthorizationEndpoint = "/connect/authorize";
-                });
-
-            services.AddOpenIddict().AddCore(options => {
-                options.UseDgraph();
-            })
-            // Register the OpenIddict server components.
-            .AddServer(options =>
-            {
-                // Enable the token endpoint.
-                options.SetTokenEndpointUris("/connect/token");
-
-                // Enable the client credentials flow.
-                options.AllowClientCredentialsFlow();
-
-                // Register the signing and encryption credentials.
-                options.AddDevelopmentEncryptionCertificate()
-                        .AddDevelopmentSigningCertificate();
-
-                // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
-                options.UseAspNetCore()
-                        .EnableTokenEndpointPassthrough();
-            })
-
-            // Register the OpenIddict validation components.
-            .AddValidation(options =>
-            {
-                // Import the configuration from the local OpenIddict server instance.
-                options.UseLocalServer();
-
-                // Register the ASP.NET Core host.
-                options.UseAspNetCore();
-            });
-        ;
-
-            services.AddMvcCore();
-        }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        if (await manager.FindByClientIdAsync("angular-app", cancellationToken) == null)
         {
-            if (env.IsDevelopment())
+            var descriptor = new OpenIddictApplicationDescriptor
             {
-                app.UseDeveloperExceptionPage();
-            }
+                ClientId = "angular-app",
+                DisplayName = "Angular Application",
+                PostLogoutRedirectUris = { new Uri("https://oidcdebugger.com/debug") },
+                RedirectUris = { new Uri("https://oidcdebugger.com/debug") }
+            };
 
-            app.UseRouting();
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-                endpoints.MapDefaultControllerRoute();
-            });
-
-            app.UseWelcomePage();
-
-            InitializeAsync(app.ApplicationServices, CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        private static async Task InitializeAsync(IServiceProvider services, CancellationToken cancellationToken)
-        {
-            // Create a new service scope to ensure the database context is correctly disposed when this methods returns.
-            using var scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope();
-
-            var manager = scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictDgraphApplication>>();
-
-            if (await manager.FindByClientIdAsync("angular-app", cancellationToken) == null)
-            {
-                var descriptor = new OpenIddictApplicationDescriptor
-                {
-                    ClientId = "angular-app",
-                    DisplayName = "Angular Application",
-                    PostLogoutRedirectUris = { new Uri("https://oidcdebugger.com/debug") },
-                    RedirectUris = { new Uri("https://oidcdebugger.com/debug") }
-                };
-
-                await manager.CreateAsync(descriptor, cancellationToken);
-            }
+            await manager.CreateAsync(descriptor, cancellationToken);
         }
     }
 }

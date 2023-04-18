@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Elton Schivei Costa</Authors>
     <Company>Elton Schivei Costa</Company>
@@ -20,6 +20,7 @@
     <Version>$([System.DateTime]::UtcNow.Year).$([System.Convert]::ToInt32($([MSBuild]::Divide($([MSBuild]::Add($([System.DateTime]::UtcNow.Month), 2)), 3)))).$([System.DateTime]::UtcNow.DayOfYear).$([System.DateTime]::UtcNow.Hour)</Version>
     <PackageVersion>$(Version)</PackageVersion>
     <ReleaseVersion>$(Version)</ReleaseVersion>
+    <NoWarn>nullable;$(NoWarn)</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
