@@ -1,11 +1,10 @@
 
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace Dgraph4Net.OpenIddict.ViewModels.Authorization
+namespace Dgraph4Net.OpenIddict.ViewModels.Authorization;
+
+public class LogoutViewModel
 {
-    public class LogoutViewModel
-    {
-        [BindNever]
-        public string RequestId { get; set; } = default!;
-    }
+    [BindNever]
+    public string RequestId { get; set; } = default!;
 }

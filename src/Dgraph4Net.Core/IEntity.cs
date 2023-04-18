@@ -1,42 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 
-using Dgraph4Net.Annotations;
+namespace Dgraph4Net;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+public interface IEntityBase { }
 
-namespace Dgraph4Net
+public interface IEntity : IEntityBase
 {
-    public interface IEntityBase { }
+    public Uid Id { get; set; }
 
-    public interface IEntity : IEntityBase
-    {
-        public Uid Id { get; set; }
-
-        public ICollection<string> DgraphType { get; set; }
-    }
-
-    public class EntityContractResolver : DefaultContractResolver
-    {
-        public static EntityContractResolver Instance => new EntityContractResolver();
-
-        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
-        {
-            var property = base.CreateProperty(member, memberSerialization);
-
-            var ignore = member.GetCustomAttribute(typeof(IgnoreMappingAttribute));
-
-            if (ignore is null)
-            {
-                return property;
-            }
-
-            property.ShouldSerialize = delegate
-            { return false; };
-
-            return property;
-        }
-    }
+    public ICollection<string> DgraphType { get; set; }
 }

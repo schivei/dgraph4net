@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Api;
 
 using Grpc.Core;
-
-using Newtonsoft.Json;
 
 using static Api.Dgraph;
 
@@ -25,31 +25,31 @@ namespace Dgraph4Net.SchemaReader
 {
     internal class Schema
     {
-        [JsonProperty("predicate")]
+        [JsonPropertyName("predicate")]
         internal string Predicate { get; set; }
     }
 
     internal class Field
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         internal string Name { get; set; }
     }
 
     internal class Type
     {
-        [JsonProperty("fields")]
+        [JsonPropertyName("fields")]
         internal List<Field> Fields { get; set; }
 
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         internal string Name { get; set; }
     }
 
     internal class Root
     {
-        [JsonProperty("schema")]
+        [JsonPropertyName("schema")]
         internal List<Schema> Schema { get; set; }
 
-        [JsonProperty("types")]
+        [JsonPropertyName("types")]
         internal List<Type> Types { get; set; }
     }
 }
@@ -157,7 +157,7 @@ namespace Dgraph4Net
                         await using var txn = NewTransaction();
                         var resp = await txn.Query("schema{name}");
 
-                        var sr = JsonConvert.DeserializeObject<SchemaReader.Root>(resp.Json.ToStringUtf8());
+                        var sr = JsonSerializer.Deserialize<SchemaReader.Root>(resp.Json.ToStringUtf8());
 
                         var types = sr.Types.Select(x => x.Name).Where(x => !x.StartsWith("dgraph.")).ToList();
                         var predicates = sr.Schema.Select(x => x.Predicate).Where(x => !x.StartsWith("dgraph.")).ToList();

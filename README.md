@@ -143,7 +143,7 @@ We define a person object to represent a person and serialize it to a json mutat
 ```c#
 await using var txn = client.NewTransaction();
 var alice = new Person{ Name = "Alice" };
-var json = JsonConvert.SerializeObject(alice);
+var json = JsonSerializer.Serialize(alice);
 var mutation = new Mutation
 {
     CommitNow = true,
