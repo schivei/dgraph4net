@@ -20,7 +20,7 @@ public class AclTest : ExamplesTest
     }
 
     [Fact]
-    public async Task ExpTest()
+    public void ExpTest()
     {
         try
         {

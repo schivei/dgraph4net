@@ -16,9 +16,9 @@
     <ProjectReference Include="..\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Protobuf Include="protos/badger.proto" />
-    <Protobuf Include="protos/dgo.proto" />
-    <Protobuf Include="protos/dgraph.proto" />
-    <Protobuf Include="protos/gogo.proto" />
+    <Protobuf Include="protos\badger.proto" />
+    <Protobuf Include="protos\dgo.proto" />
+    <Protobuf Include="protos\dgraph.proto" />
+    <Protobuf Include="protos\gogo.proto" />
   </ItemGroup>
 </Project>
