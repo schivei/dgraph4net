@@ -7,6 +7,11 @@ name: Package Publisher
 on:
   push:
     branches: [ master ]
+  workflow_run:
+    workflows: ["CodeQL"]
+    branches: [ master ]
+    types: 
+      - completed
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
