@@ -2,7 +2,7 @@
   <Import Project="../../versions.props" />
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.22.3" />
+    <PackageReference Include="Google.Protobuf" Version="3.23.0" />
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
