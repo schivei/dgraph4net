@@ -1,0 +1,25 @@
+applied_at: dateTime   .
+generated_at: dateTime   .
+industry: string @index(exact) .
+my_boss: uid @reverse  .
+name: string @index(term) .
+works_for: uid @reverse  .
+
+type Company {
+  industry
+  name
+  <~works_for>
+}
+
+type dgn.migration {
+  applied_at
+  generated_at
+  name
+}
+
+type Person {
+  <~my_boss>
+  name
+  works_for
+}
+

@@ -1,26 +1,24 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 using Dgraph4Net;
-using Dgraph4Net.Annotations;
 
 using Google.Protobuf.Collections;
 
 #nullable enable
 
-// ReSharper disable once CheckNamespace
 namespace System;
 
-
 [JsonConverter(typeof(UidConverter))]
-public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IEntityBase
+public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
 {
     private readonly IDisposable? _unsubscriber;
 
-    private class UidResolver : IObservable<Uid>
+    private sealed class UidResolver : IObservable<Uid>
     {
         private readonly IList<IObserver<Uid>> _observers;
 
@@ -58,7 +56,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         }
     }
 
-    private class UidObserver : IObserver<Uid>
+    private sealed class UidObserver : IObserver<Uid>
     {
         public Uid Source { get; }
 
@@ -80,7 +78,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         }
     }
 
-    private class Unsubscriber : IDisposable
+    private sealed class Unsubscriber : IDisposable
     {
         private readonly UidResolver _resolver;
         private readonly IObserver<Uid> _observer;
@@ -97,7 +95,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         }
     }
 
-    private class UidValue
+    private sealed class UidValue
     {
         public UidValue(string value) => Value = value;
         public string Value { get; set; }
@@ -128,16 +126,6 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
             _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
     }
 
-    public Uid(Guid uid)
-    {
-        _unsubscriber = null;
-        var val = $"_:{uid.ToString("N")[16..]}";
-        _uid = new UidValue(Clear(val));
-
-        if (IsReferenceOnly)
-            _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
-    }
-
     public Uid(ulong uid, bool real)
     {
         _unsubscriber = null;
@@ -148,7 +136,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
             _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
     }
 
-    public Uid(ulong uid) : this(uid, false) { }
+    public Uid(ulong uid) : this(uid, true) { }
 
     public static bool operator ==(Uid? uid, object? other) =>
         string.Equals(uid?.ToString(), other?.ToString());
@@ -162,26 +150,23 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
     public static implicit operator Uid(string uid) =>
         new(uid);
 
-    public static implicit operator Uid(Guid uid) =>
-        new(uid);
-
     public static implicit operator Uid(ulong uid) =>
-        new(uid);
+        uid > 0 ? new Uid(uid) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator ulong(Uid uid) =>
         uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ulong.") : ulong.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static implicit operator Uid(uint uid) =>
-        new(uid);
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(ushort uid) =>
-        new(Convert.ToUInt64(uid));
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(byte uid) =>
-        new(uid);
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(char uid) =>
-        new(uid);
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(long uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
@@ -244,12 +229,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
 
         matches = reg.Matches(uid);
 
-        if (reg.IsMatch(uid))
-        {
-            return true;
-        }
-
-        return false;
+        return reg.IsMatch(uid);
     }
 
     private static string Clear(string uid, bool @throw = true)
@@ -265,7 +245,17 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
     }
 
     public static Uid NewUid() =>
-        Guid.NewGuid();
+        new(Convert.ToUInt64(RandomNumberGenerator.GetInt32(1, int.MaxValue)), false);
+
     [GeneratedRegex("^(<)?(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})(>)?$")]
     private static partial Regex IsValidUid();
+
+    public bool Equals(ulong other) =>
+        Equals(_uid.Value, $"0x{other:X}") ||
+        Equals(_uid.Value, $"_:{other:X}");
+
+    public int CompareTo(ulong other) =>
+        _uid.Value.StartsWith("0x") ?
+            string.CompareOrdinal(_uid.Value, $"0x{other:X}") :
+            string.CompareOrdinal(_uid.Value, $"_:{other:X}");
 }

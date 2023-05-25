@@ -103,7 +103,7 @@ namespace Dgraph4Net
         /// <exception cref="NotSupportedException">If no Refresh Jwt are defined.</exception>
         /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
         // ReSharper disable once UnusedMember.Global
-        public async Task Login(string userid, string password)
+        public async Task LoginAsync(string userid, string password)
         {
             _mtx.WaitOne();
 
@@ -118,6 +118,39 @@ namespace Dgraph4Net
                 };
 
                 var response = await dc.LoginAsync(loginRequest);
+
+                _jwt = Jwt.Parser.ParseFrom(response.Json);
+            }
+            finally
+            {
+                _mtx.ReleaseMutex();
+            }
+        }
+
+        /// <summary>
+        /// Auth userid & password to retrieve Jwt
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="password"></param>
+        /// <exception cref="RpcException">If login has failed.</exception>
+        /// <exception cref="NotSupportedException">If no Refresh Jwt are defined.</exception>
+        /// <exception cref="ObjectDisposedException">If client are disposed.</exception>
+        // ReSharper disable once UnusedMember.Global
+        public void Login(string userid, string password)
+        {
+            _mtx.WaitOne();
+
+            try
+            {
+                var dc = AnyClient();
+
+                var loginRequest = new LoginRequest
+                {
+                    Userid = userid,
+                    Password = password
+                };
+
+                var response = dc.Login(loginRequest);
 
                 _jwt = Jwt.Parser.ParseFrom(response.Json);
             }
@@ -182,16 +215,12 @@ namespace Dgraph4Net
 
                     return await dc.AlterAsync(operation, co);
                 }
-                catch (RpcException err) when (err.Message.ToLowerInvariant().Contains("retry operation") && tries > 0)
+                catch (RpcException err) when (err.Message.Contains("retry operation", StringComparison.InvariantCultureIgnoreCase) && tries > 0)
                 {
                     await Task.Delay(5000);
-                    continue;
                 }
-                catch (RpcException err)
+                catch (RpcException err) when (IsJwtExpired(err))
                 {
-                    if (!IsJwtExpired(err))
-                        throw;
-
                     await RetryLogin().ConfigureAwait(false);
                     co = GetOptions();
 

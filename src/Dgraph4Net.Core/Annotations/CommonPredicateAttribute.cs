@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Dgraph4Net.Annotations;
 
@@ -38,5 +37,16 @@ public sealed class CommonPredicateAttribute : Attribute
     {
         spa1.Merge(spa2);
         return spa1;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Enum, Inherited = false, AllowMultiple = true)]
+public sealed class EnumPredicateAttribute : Attribute
+{
+    public string Predicate { get; }
+    public bool StoreAsString { get; set; }
+    public EnumPredicateAttribute(string predicate)
+    {
+        Predicate = predicate;
     }
 }
