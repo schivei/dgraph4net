@@ -9,9 +9,6 @@ internal sealed class DgnMigrationMapping : ClassMap<DgnMigration>
     protected override void Map()
     {
         SetType("dgn.migration");
-        Uid(x => x.Id);
-        Types(x => x.DgraphType);
-
         String(x => x.Name, "dgn.name", token: StringToken.Exact);
         DateTime(x => x.GeneratedAt, "dgn.generated_at", DateTimeToken.Hour);
         DateTime(x => x.AppliedAt, "dgn.applied_at", DateTimeToken.Day);
