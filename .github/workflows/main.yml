@@ -36,4 +36,4 @@ jobs:
       run: ./pack.sh
 
     - name: Publish
-      run: dotnet nuget push .\build-packages\*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

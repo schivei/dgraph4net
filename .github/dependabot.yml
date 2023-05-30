@@ -3,20 +3,6 @@
 version: 2
 updates:
   - package-ecosystem: "nuget"
-    directory: "/examples/Dgraph4Net.Identity.Example" #DGraph4Net.Identity.Example.csproj
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-    open-pull-requests-limit: 5
-    target-branch: "dependabot/master"
-  - package-ecosystem: "nuget"
-    directory: "/examples/Dgraph4Net.OpenId.Example" #Dgraph4Net.OpenId.Example.csproj
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-    open-pull-requests-limit: 5
-    target-branch: "dependabot/master"
-  - package-ecosystem: "nuget"
     directory: "/src/Dgraph4Net" #Dgraph4Net.csproj
     schedule:
       interval: "weekly"
@@ -31,35 +17,7 @@ updates:
     open-pull-requests-limit: 5
     target-branch: "dependabot/master"
   - package-ecosystem: "nuget"
-    directory: "/src/Dgraph4Net.GraphQL" #Dgraph4Net.GraphQL.csproj
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-    open-pull-requests-limit: 5
-    target-branch: "dependabot/master"
-  - package-ecosystem: "nuget"
-    directory: "/src/Dgraph4Net.Identity" #Dgraph4Net.Identity.csproj
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-    open-pull-requests-limit: 5
-    target-branch: "dependabot/master"
-  - package-ecosystem: "nuget"
-    directory: "/src/Dgraph4Net.Identity.Core" #Dgraph4Net.Identity.Core.csproj
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-    open-pull-requests-limit: 5
-    target-branch: "dependabot/master"
-  - package-ecosystem: "nuget"
-    directory: "/src/Dgraph4Net.OpenIddict" #Dgraph4Net.OpenIddict.csproj
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-    open-pull-requests-limit: 5
-    target-branch: "dependabot/master"
-  - package-ecosystem: "nuget"
-    directory: "/tests/Dgraph4Net.Tests" #DGraph4Net.Tests.csproj
+    directory: "/tools/Dgraph4Net.Tools" #DGraph4Net.Tools.csproj
     schedule:
       interval: "weekly"
       day: "wednesday"
