@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "Dgraph4Net.Tools": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "GRPC_DNS_RESOLVER": "native"
+      },
+      "hotReloadEnabled": false,
+      "workingDirectory": "../../"
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "environmentVariables": {
+        "GRPC_DNS_RESOLVER": "native"
+      },
+      "distributionName": "",
+      "workingDirectory": "."
+    }
+  }
+}

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -230,7 +229,6 @@ public sealed class Txn : IAsyncDisposable, IDisposable
             return new[] { new Response { Txn = _context, Latency = new Latency() } };
         }
 
-
         if (reqs.Any(x => x.CommitNow))
         {
             if (_readOnly)
@@ -260,7 +258,6 @@ public sealed class Txn : IAsyncDisposable, IDisposable
             }
             catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
             {
-
                 await _dgraph.RetryLogin().ConfigureAwait(false);
 
                 resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
@@ -489,7 +486,6 @@ public sealed class Txn : IAsyncDisposable, IDisposable
         }
         catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
         {
-
             await _dgraph.RetryLogin().ConfigureAwait(false);
 
             var co = _dgraph.GetOptions();
@@ -553,44 +549,4 @@ public sealed class Txn : IAsyncDisposable, IDisposable
         return tsk;
     }
     #endregion
-}
-
-public static class TxnExtensions
-{
-    private static List<T> From<T>(string json, string param) where T : class, IEntity, new()
-    {
-        var d = JsonSerializer.Deserialize<JsonElement?>(json);
-
-        if (!d.HasValue || d.Value.TryGetProperty(param, out var children) || children.ValueKind != JsonValueKind.Array)
-            return new List<T>();
-
-        return children.Deserialize<List<T>>() ?? new List<T>();
-    }
-
-    public static async Task<List<T>> QueryWithVars<T>(this Txn txn, string param, string query, Dictionary<string, string> vars) where T : class, IEntity, new()
-    {
-        var resp = await txn.QueryWithVars(query, vars).ConfigureAwait(false);
-
-        return From<T>(resp.Json.ToStringUtf8(), param);
-    }
-
-    public static async Task<List<T>> Query<T>(this Txn txn, string param, string query) where T : class, IEntity, new()
-    {
-        var resp = await txn.Query(query).ConfigureAwait(false);
-
-        return From<T>(resp.Json.ToStringUtf8(), param);
-    }
-
-    public static Task<Response> MutateWithQuery(this Txn txn, Mutation mutation, string query, Dictionary<string, string> vars = null)
-    {
-        var req = new Request { Query = query };
-        vars ??= new Dictionary<string, string>();
-
-        foreach (var (key, value) in vars)
-            req.Vars.Add(key, value);
-
-        req.Mutations.Add(mutation);
-
-        return txn.Do(req);
-    }
 }

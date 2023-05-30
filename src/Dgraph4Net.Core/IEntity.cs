@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace Dgraph4Net;
 
@@ -7,7 +6,7 @@ public interface IEntityBase { }
 
 public interface IEntity : IEntityBase
 {
-    public Uid Id { get; set; }
+    public Uid Id { get; }
 
-    public ICollection<string> DgraphType { get; set; }
+    public string[] DgraphType { get; }
 }

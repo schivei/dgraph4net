@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../versions.props" />
+  
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+    <AssemblyName>poco</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <RestoreSources>$(RestoreSources);../../src/DGraph4Net/bin/Debug;../../src/Dgraph4Net.Core/bin/Debug;https://api.nuget.org/v3/index.json</RestoreSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dgraph4Net" Version="$(Version)" />
+  </ItemGroup>
+
+</Project>
