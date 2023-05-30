@@ -18,8 +18,6 @@
       Enables these commonly used commands:
       dgn migration add
       dgn migration remove
-      dgn database update
-      dgn database drop
     </Description>
   </PropertyGroup>
   

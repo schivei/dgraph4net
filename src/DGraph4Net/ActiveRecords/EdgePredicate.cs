@@ -2,15 +2,17 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
-public readonly record struct EdgePredicate<T>(IClassMap ClassMap, string PredicateName, bool Reverse, bool Count, bool Upsert) : IEdgePredicate
+public readonly record struct EdgePredicate<T>(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Reverse, bool Count) : IEdgePredicate
 {
     public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
 
     readonly string IPredicate.ToSchemaPredicate() =>
-        $"{PredicateName}: uid {(Count ? "@count" : "")} {(Reverse ? "@reverse" : "")} {(Upsert ? "@upsert" : "")} .";
+        $"{PredicateName}: uid {(Count ? "@count" : "")} {(Reverse ? "@reverse" : "")} .";
 
     readonly string IPredicate.ToTypePredicate() =>
         PredicateName;
@@ -19,7 +21,7 @@ public readonly record struct EdgePredicate<T>(IClassMap ClassMap, string Predic
         lpa1.Merge(lpa2);
 
     public EdgePredicate<T> Merge(EdgePredicate<T> lpa) =>
-        new(ClassMap, PredicateName, Reverse || lpa.Reverse, Count || lpa.Count, Upsert || lpa.Upsert);
+        new(ClassMap, Property, PredicateName, Reverse || lpa.Reverse, Count || lpa.Count);
 
     public IPredicate Merge(IPredicate p2) =>
         p2 switch
@@ -27,4 +29,25 @@ public readonly record struct EdgePredicate<T>(IClassMap ClassMap, string Predic
             EdgePredicate<T> p => Merge(p),
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
+
+    public void SetValue(object? value, object? target)
+    {
+        if (value is null)
+            return;
+
+        if (value is JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.String)
+            {
+                value = element.GetString();
+            }
+            else if (element.ValueKind == JsonValueKind.Object)
+            {
+                Property.SetValue(target, element.Deserialize(Property.PropertyType));
+                return;
+            }
+        }
+
+        Property.SetValue(target, Convert.ChangeType(value, Property.PropertyType));
+    }
 }

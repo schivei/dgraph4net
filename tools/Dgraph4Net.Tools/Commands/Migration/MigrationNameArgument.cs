@@ -3,7 +3,7 @@ using System.CommandLine.Parsing;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal class MigrationNameArgument : Argument<string>
+internal sealed class MigrationNameArgument : Argument<string>
 {
     public MigrationNameArgument() : base("name", "The name of the migration")
     {

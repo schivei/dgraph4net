@@ -1,4 +1,4 @@
-namespace Dgraph4Net.Annotations;
+namespace Dgraph4Net.Core;
 
 public enum DateTimeToken
 {

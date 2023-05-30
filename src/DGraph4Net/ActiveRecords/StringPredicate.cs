@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
-public readonly record struct StringPredicate(IClassMap ClassMap, string PredicateName, bool Fulltext, bool Trigram, bool Upsert, StringToken Token, string? Cultures = null) : IPredicate
+public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Fulltext, bool Trigram, bool Upsert, StringToken Token, string? Cultures = null) : IPredicate
 {
     public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
 
     public readonly StringPredicate Merge(StringPredicate spa) =>
-        new(ClassMap, PredicateName, Fulltext || spa.Fulltext, Trigram || spa.Trigram, Upsert || spa.Upsert, (StringToken)Math.Max((int)spa.Token, (int)Token), Concat(GetCultures(), spa.GetCultures()));
+        new(ClassMap, Property, PredicateName, Fulltext || spa.Fulltext, Trigram || spa.Trigram, Upsert || spa.Upsert, (StringToken)Math.Max((int)spa.Token, (int)Token), Concat(GetCultures(), spa.GetCultures()));
 
     private static string? Concat(string[] strings1, string[] strings2)
     {
@@ -69,4 +71,28 @@ public readonly record struct StringPredicate(IClassMap ClassMap, string Predica
             StringPredicate spa => this | spa,
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
+
+    public void SetValue(object? value, object? target)
+    {
+        if (value is null)
+            return;
+
+        if (value is JsonElement element)
+            value = element.GetString();
+
+        if (Property.PropertyType == typeof(string))
+        {
+            Property.SetValue(target, value);
+        }
+        else if (Property.PropertyType.IsEnum)
+        {
+            Property.SetValue(target, Enum.Parse(Property.PropertyType, value.ToString() ?? "", true));
+        }
+        else if (Property.PropertyType.IsValueType && Property.PropertyType.GetMethod("TryParse", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(string), Property.PropertyType.MakeByRefType() }, null) is MethodInfo tryParse && tryParse.ReturnType == typeof(bool))
+        {
+            var parameters = new object[] { value, Activator.CreateInstance(Property.PropertyType) };
+            if ((bool)tryParse.Invoke(null, parameters))
+                Property.SetValue(target, parameters[1]);
+        }
+    }
 }

@@ -1,4 +1,6 @@
-﻿#nullable enable
+#nullable enable
+
+using Dgraph4Net.Core;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -10,8 +12,8 @@ internal sealed class DgnMigrationMapping : ClassMap<DgnMigration>
         Uid(x => x.Id);
         Types(x => x.DgraphType);
 
-        String(x => x.Name, "name", token: StringToken.Term);
-        DateTime(x => x.GeneratedAt, "generated_at");
-        DateTime(x => x.AppliedAt, "applied_at");
+        String(x => x.Name, "dgn.name", token: StringToken.Exact);
+        DateTime(x => x.GeneratedAt, "dgn.generated_at", DateTimeToken.Hour);
+        DateTime(x => x.AppliedAt, "dgn.applied_at", DateTimeToken.Day);
     }
 }

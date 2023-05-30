@@ -1,29 +1,43 @@
 using System.Collections.Immutable;
 using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Dgraph4Net.ActiveRecords;
 using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal class MigrationAddCommand : Command
+internal sealed class MigrationAddCommand : Command
 {
     private readonly ILogger _logger;
+    private readonly MigrationUpdateCommand _updateCommand;
 
     public MigrationAddCommand(ILogger<MigrationAddCommand> logger, ProjectOption projectLocation,
-        OutputOption outputDirectory, MigrationNameArgument migrationName) : base("add", "Create a new migration")
+        OutputOption outputDirectory, MigrationNameArgument migrationName, ServerOption serverOption,
+        UserIdOption userIdOption, PasswordOption passwordOption, UpdateOption updateOption,
+        MigrationUpdateCommand updateCommand) : base("add", "Create a new migration")
     {
         _logger = logger;
 
+        projectLocation.IsRequired = true;
         AddOption(projectLocation);
+        outputDirectory.IsRequired = true;
         AddOption(outputDirectory);
         AddArgument(migrationName);
+        AddOption(serverOption);
+        AddOption(userIdOption);
+        AddOption(passwordOption);
+        AddOption(updateOption);
+        AddValidator(Validate);
 
-        this.SetHandler(Exec, migrationName, projectLocation, outputDirectory);
+        updateCommand.Options.OfType<ServerOption>().First().IsRequired = false;
+
+        _updateCommand = updateCommand;
+
+        this.SetHandler(Exec, migrationName, projectLocation, outputDirectory, updateOption, serverOption, userIdOption, passwordOption);
     }
 
-    private async Task Exec(string name, string projectLocation, string outputDirectory)
+    private async Task Exec(string name, string projectLocation, string outputDirectory, bool update, Dgraph4NetClient serverOption, string userIdOption, string passwordOption)
     {
         try
         {
@@ -163,6 +177,11 @@ internal class MigrationAddCommand : Command
                 }
             }
 
+            if (update)
+            {
+                await _updateCommand.Exec(projectLocation, serverOption);
+            }
+
             _logger.LogInformation("Migration {name} added", name);
             Console.WriteLine("To remove migration use:");
             Console.WriteLine($"  dgn migration remove {name}");
@@ -251,5 +270,21 @@ internal class MigrationAddCommand : Command
         await mwt.WriteLineAsync("    }");
         await mwt.WriteLineAsync("}");
         await mwt.WriteLineAsync();
+    }
+
+    // check if password is not null if userId is provided
+    private void Validate(CommandResult symbolResult)
+    {
+        var update = symbolResult.GetValueForOption(Options.OfType<UpdateOption>().Single());
+        if (!update)
+            return;
+
+        Options.OfType<ServerOption>().Single().IsRequired = true;
+
+        var server = symbolResult.GetValueForOption(Options.OfType<ServerOption>().Single());
+        if (server is null)
+        {
+            symbolResult.ErrorMessage = "Server is required";
+        }
     }
 }

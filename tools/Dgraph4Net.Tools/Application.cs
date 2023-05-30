@@ -67,15 +67,15 @@ internal sealed class Application
     /// <exception cref="InvalidOperationException"></exception>
     internal static Assembly BuildProject(string projectLocation, ILogger logger)
     {
-        logger.LogInformation("Build project {projectLocation}", projectLocation);
-
         var fullPath = Path.GetFullPath(projectLocation);
+
+        logger.LogInformation("Build project {projectLocation}", fullPath);
 
         // compile using dotnet cli and gets std outputs and throw errors
         var process = Process.Start(new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"msbuild \"{fullPath}\"",
+            Arguments = $"build \"{fullPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false

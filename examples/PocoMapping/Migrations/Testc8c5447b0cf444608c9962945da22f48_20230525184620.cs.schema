@@ -1,5 +1,6 @@
-applied_at: dateTime   .
-generated_at: dateTime   .
+dgn.applied_at: dateTime @index(day) .
+dgn.generated_at: dateTime @index(hour) .
+dgn.name: string @index(exact) .
 industry: string @index(exact) .
 my_boss: uid @reverse  .
 name: string @index(term) .
@@ -12,9 +13,9 @@ type Company {
 }
 
 type dgn.migration {
-  applied_at
-  generated_at
-  name
+  dgn.applied_at
+  dgn.generated_at
+  dgn.name
 }
 
 type Person {

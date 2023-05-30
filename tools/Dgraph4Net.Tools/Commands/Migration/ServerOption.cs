@@ -1,63 +1,55 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using Grpc.Core;
 using System.CommandLine.Parsing;
+using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal sealed class ServerOption : Option<string>
+internal sealed class ServerOption : Option<Dgraph4NetClient>
 {
-    public ServerOption() : base("server", "The server address")
+    private static Dgraph4NetClient s_client;
+    private static readonly object s_lock = new();
+
+    public ServerOption(ILogger<ServerOption> logger) : base(new[] { "--server", "-s" }, Parse(logger), false, "The server address")
     {
-        AddValidator(Validate);
     }
 
-    private void Validate(OptionResult symbolResult)
+    private static ParseArgument<Dgraph4NetClient> Parse(ILogger logger)
     {
-        // validate server address and if port is reachable for grpc protocol
-        if (symbolResult == null)
+        return (result) =>
         {
-            throw new ArgumentNullException(nameof(symbolResult));
-        }
+            if (s_client is not null)
+                return s_client;
 
-        var value = symbolResult.GetValueOrDefault<string>();
+            lock (s_lock)
+            {
+                var address = result.Tokens[0].Value.Trim();
 
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            symbolResult.ErrorMessage = "Server address is required";
-        }
-        else
-        {
-            var parts = value.Split(':');
-            int port = 0;
-            if (parts.Length != 2)
-            {
-                symbolResult.ErrorMessage = "Server address must be in the format <host>:<port>";
-            }
-            else if (!int.TryParse(parts[1], out port))
-            {
-                symbolResult.ErrorMessage = "Server port must be a number";
-            }
-            else if (port < 1 || port > 65535)
-            {
-                symbolResult.ErrorMessage = "Server port must be between 1 and 65535";
+                logger.LogInformation("Testing connection to server {server}", address);
+
+                var userId = result.Parent.Parent.GetValueForOption((result.Parent.Parent.Symbol as Command).Options.OfType<UserIdOption>().First());
+                var password = result.Parent.Parent.GetValueForOption((result.Parent.Parent.Symbol as Command).Options.OfType<PasswordOption>().First());
+
+                var channel = new Channel(address, ChannelCredentials.Insecure);
+                var client = new Dgraph4NetClient(channel);
+
+                if (userId is not null && password is not null)
+                {
+                    logger.LogInformation("Authenticating in server {server}", address);
+
+                    client.Login(userId, password);
+                }
+
+                using var txn = client.NewTransaction();
+
+                txn.Query("schema{}").GetAwaiter().GetResult();
+
+                logger.LogInformation("Connection to server {server} established", address);
+
+                s_client = client;
             }
 
-            if (symbolResult.ErrorMessage != null)
-            {
-                return;
-            }
-
-            var host = parts[0];
-            var channel = new Channel(host, port, ChannelCredentials.Insecure);
-
-            try
-            {
-                channel.ConnectAsync().Wait();
-            }
-            catch (Exception ex)
-            {
-                symbolResult.ErrorMessage = $"Server address is not reachable: {ex.Message}";
-            }
-        }
+            return s_client;
+        };
     }
 }

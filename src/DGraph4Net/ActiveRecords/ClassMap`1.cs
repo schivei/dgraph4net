@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Dgraph4Net.Annotations;
+using Dgraph4Net.Core;
 using Dgraph4Net.Core.GeoLocation;
 
 #nullable enable
@@ -19,13 +18,16 @@ namespace Dgraph4Net.ActiveRecords;
 /// It's class is used to map a type to a dgraph type and its predicates, edges and facets
 /// </remarks>
 /// <typeparam name="T"></typeparam>
-public abstract class ClassMap<T> : ClassMap
+public abstract class ClassMap<T> : ClassMap where T : IEntity
 {
     protected ClassMap()
     {
         Type = typeof(T);
         if (ClassMapping.ClassMappings.ContainsKey(Type))
             throw new InvalidOperationException($"The type {Type.Name} is already mapped.");
+
+        Uid(x => x.Id);
+        Types(x => x.DgraphType);
     }
 
     public override void Start() => Map();
@@ -52,7 +54,7 @@ public abstract class ClassMap<T> : ClassMap
                     }
                     else
                     {
-                        var predicate = new ListPredicate(pending.Value.map, reversedPredicate.PredicateName, "uid", false, true);
+                        var predicate = new ListPredicate(pending.Value.map, pending.Key, reversedPredicate.PredicateName, "uid", false, true);
                         if (!Predicates.ContainsKey(pending.Value.prop))
                             Predicates.TryAdd(pending.Value.prop, predicate);
                     }
@@ -89,12 +91,13 @@ public abstract class ClassMap<T> : ClassMap
 
     protected void ListInt<TE>(Expression<Func<T, TE[]>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
-        if (!typeof(TE).IsEnum)
-            throw new ArgumentException($"The type {typeof(TE).Name} is not a enum.");
+        var te = typeof(TE);
+        if (!te.IsEnum || te.GetCustomAttribute<FlagsAttribute>(true) is not null)
+            throw new ArgumentException($"The type {te.Name} is not a non flagged enum.");
 
         var property = GetProperty(expression);
 
-        var predicate = new ListPredicate(this, predicateName ?? property.Name, "int", false);
+        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "int", false);
 
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
@@ -102,12 +105,13 @@ public abstract class ClassMap<T> : ClassMap
 
     protected void ListString<TE>(Expression<Func<T, TE[]>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
-        if (!typeof(TE).IsEnum)
-            throw new ArgumentException($"The type {typeof(TE).Name} is not a enum.");
+        var te = typeof(TE);
+        if (!te.IsEnum || te.GetCustomAttribute<FlagsAttribute>(true) is not null)
+            throw new ArgumentException($"The type {te.Name} is not a non flagged enum.");
 
         var property = GetProperty(expression);
 
-        var predicate = new ListPredicate(this, predicateName ?? property.Name, "string", false);
+        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "string", false);
 
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
@@ -116,12 +120,12 @@ public abstract class ClassMap<T> : ClassMap
     protected void ListInt<TE>(Expression<Func<T, TE>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
         var te = typeof(TE);
-        if (!te.IsEnum || te.GetCustomAttribute<FlagsAttribute>(true) is not null)
-            throw new ArgumentException($"The type {te.Name} is not a enum.");
+        if (!te.IsEnum || te.GetCustomAttribute<FlagsAttribute>(true) is null)
+            throw new ArgumentException($"The type {te.Name} is not a flagged enum.");
 
         var property = GetProperty(expression);
 
-        var predicate = new ListPredicate(this, predicateName ?? property.Name, "int", false);
+        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "int", false);
 
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
@@ -130,12 +134,12 @@ public abstract class ClassMap<T> : ClassMap
     protected void ListString<TE>(Expression<Func<T, TE>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
         var te = typeof(TE);
-        if (!te.IsEnum || te.GetCustomAttribute<FlagsAttribute>(true) is not null)
-            throw new ArgumentException($"The type {te.Name} is not a enum.");
+        if (!te.IsEnum || te.GetCustomAttribute<FlagsAttribute>(true) is null)
+            throw new ArgumentException($"The type {te.Name} is not a flagged enum.");
 
         var property = GetProperty(expression);
 
-        var predicate = new ListPredicate(this, predicateName ?? property.Name, "string", false);
+        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "string", false);
 
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
@@ -143,17 +147,21 @@ public abstract class ClassMap<T> : ClassMap
 
     protected void List<TE>(Expression<Func<T, TE[]>> expression, string? predicateName = null)
     {
+        var te = typeof(TE);
+
+        if (te.IsEnum)
+        {
+            throw new ArgumentException($"The type {typeof(TE).Name} is not a valid dgraph primitive type. Use ListInt or ListString instead for enums.");
+        }
+
         if (!TryGetType<TE>(out string dataType))
         {
-            if (typeof(TE).IsEnum)
-                throw new ArgumentException($"The type {typeof(TE).Name} is not a valid dgraph primitive type. Use ListInt or ListString instead.");
-
             throw new ArgumentException($"The type {typeof(TE).Name} is not a valid dgraph primitive type.");
         }
 
         var property = GetProperty(expression);
 
-        var predicate = new ListPredicate(this, predicateName ?? property.Name, dataType, true);
+        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, dataType, true);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -174,7 +182,7 @@ public abstract class ClassMap<T> : ClassMap
 
     private void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, string? cultures)
     {
-        var predicate = new StringPredicate(this, predicateName ?? property.Name, fulltext, trigram, upsert, token, cultures);
+        var predicate = new StringPredicate(this, property, predicateName ?? property.Name, fulltext, trigram, upsert, token, cultures);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -199,9 +207,15 @@ public abstract class ClassMap<T> : ClassMap
     protected void Integer(Expression<Func<T, byte?>> expression, string? predicateName = null, bool index = false) =>
         Integer(GetProperty(expression), predicateName, index);
 
+    protected void Integer(Expression<Func<T, TimeOnly?>> expression, string? predicateName = null, bool upsert = false) =>
+        Integer(GetProperty(expression), predicateName, upsert);
+
+    protected void Integer(Expression<Func<T, TimeSpan?>> expression, string? predicateName = null, bool index = false) =>
+        Integer(GetProperty(expression), predicateName, index);
+
     private void Integer(PropertyInfo property, string predicateName, bool index)
     {
-        var predicate = new IntegerPredicate(this, predicateName ?? property.Name, index);
+        var predicate = new IntegerPredicate(this, property, predicateName ?? property.Name, index);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -212,12 +226,18 @@ public abstract class ClassMap<T> : ClassMap
     protected void Float(Expression<Func<T, double?>> expression, string? predicateName = null, bool index = false) =>
         Float(GetProperty(expression), predicateName, index);
 
+    protected void Float(Expression<Func<T, decimal?>> expression, string? predicateName = null, bool index = false) =>
+        Float(GetProperty(expression), predicateName, index);
+
     private void Float(PropertyInfo property, string predicateName, bool index)
     {
-        var predicate = new FloatPredicate(this, predicateName ?? property.Name, index);
+        var predicate = new FloatPredicate(this, property, predicateName ?? property.Name, index);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
+
+    protected void DateTime(Expression<Func<T, DateOnly?>> expression, string? predicateName = null, DateTimeToken token = DateTimeToken.None, bool upsert = false) =>
+        DateTime(GetProperty(expression), predicateName, token == DateTimeToken.Hour ? DateTimeToken.Day : token, upsert);
 
     protected void DateTime(Expression<Func<T, DateTime?>> expression, string? predicateName = null, DateTimeToken token = DateTimeToken.None, bool upsert = false) =>
         DateTime(GetProperty(expression), predicateName, token, upsert);
@@ -227,7 +247,7 @@ public abstract class ClassMap<T> : ClassMap
 
     private void DateTime(PropertyInfo property, string predicateName, DateTimeToken token, bool upsert)
     {
-        var predicate = new DateTimePredicate(this, predicateName ?? property.Name, token, upsert);
+        var predicate = new DateTimePredicate(this, property, predicateName ?? property.Name, token, upsert);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -237,7 +257,7 @@ public abstract class ClassMap<T> : ClassMap
 
     private void Boolean(PropertyInfo property, string predicateName, bool index, bool upsert)
     {
-        var predicate = new BooleanPredicate(this, predicateName ?? property.Name, index, upsert);
+        var predicate = new BooleanPredicate(this, property, predicateName ?? property.Name, index, upsert);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -247,7 +267,7 @@ public abstract class ClassMap<T> : ClassMap
 
     private void Password(PropertyInfo property, string predicateName)
     {
-        var predicate = new PasswordPredicate(this, predicateName ?? property.Name);
+        var predicate = new PasswordPredicate(this, property, predicateName ?? property.Name);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -257,27 +277,27 @@ public abstract class ClassMap<T> : ClassMap
 
     private void Geo(PropertyInfo property, string predicateName, bool index, bool upsert)
     {
-        var predicate = new GeoPredicate(this, predicateName ?? property.Name, index, upsert);
+        var predicate = new GeoPredicate(this, property, predicateName ?? property.Name, index, upsert);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    protected void Uid(Expression<Func<T, Uid>> expression) =>
+    private void Uid(Expression<Func<T, Uid>> expression) =>
         Uid(GetProperty(expression));
 
     private void Uid(PropertyInfo property)
     {
-        var predicate = new UidPredicate(this);
+        var predicate = new UidPredicate(this, property);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    protected void Types(Expression<Func<T, IEnumerable<string>>> expression) =>
+    private void Types(Expression<Func<T, IEnumerable<string>>> expression) =>
         Types(GetProperty(expression));
 
     private void Types(PropertyInfo property)
     {
-        var predicate = new TypePredicate(this);
+        var predicate = new TypePredicate(this, property);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -299,7 +319,7 @@ public abstract class ClassMap<T> : ClassMap
                     if (!edge.Reverse)
                         throw new InvalidOperationException($"{reversedPredicate.PredicateName} is not a reversed edge.");
 
-                    var predicate = new ListPredicate(this, reversedPredicate.PredicateName, "uid", false, true);
+                    var predicate = new ListPredicate(this, property, reversedPredicate.PredicateName, "uid", false, true);
                     if (!Predicates.ContainsKey(property))
                         Predicates.TryAdd(property, predicate);
                 }
@@ -315,16 +335,16 @@ public abstract class ClassMap<T> : ClassMap
         }
         else
         {
-            var predicate = new ListPredicate(this, predicateName ?? property.Name, "uid", false);
+            var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "uid", false);
             if (!Predicates.ContainsKey(property))
                 Predicates.TryAdd(property, predicate);
         }
     }
 
-    protected void HasOne<TE>(Expression<Func<T, TE?>> expression, string? predicateName = null, bool reverse = false, bool count = false, bool upsert = false) where TE : IEntity
+    protected void HasOne<TE>(Expression<Func<T, TE?>> expression, string? predicateName = null, bool reverse = false, bool count = false) where TE : IEntity
     {
         var property = GetProperty(expression);
-        var predicate = new EdgePredicate<TE>(this, predicateName ?? property.Name, reverse, count, upsert);
+        var predicate = new EdgePredicate<TE>(this, property, predicateName ?? property.Name, reverse, count);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -378,25 +398,23 @@ public abstract class ClassMap<T> : ClassMap
                 break;
             case Type _ when te == typeof(short) ||
                              te == typeof(int) ||
-                             te == typeof(long):
+                             te == typeof(long) ||
+                             te == typeof(TimeOnly) ||
+                             te == typeof(TimeSpan):
                 dataType = "int";
                 break;
-            case Type _ when te == typeof(double) ||
+            case Type _ when te == typeof(decimal) ||
+                             te == typeof(double) ||
                              te == typeof(float):
                 dataType = "float";
                 break;
             case Type _ when te == typeof(DateTime) ||
                              te == typeof(DateTimeOffset) ||
-                             te == typeof(DateOnly) ||
-                             te == typeof(TimeOnly) ||
-                             te == typeof(TimeSpan):
+                             te == typeof(DateOnly):
                 dataType = "datetime";
                 break;
             case Type _ when te.IsAssignableTo(typeof(IGeometryObject)):
                 dataType = "geo";
-                break;
-            case Type _ when te.IsEnum && te.GetCustomAttribute<EnumPredicateAttribute>() is { } e and not null:
-                dataType = e.StoreAsString ? "string" : "int";
                 break;
             default:
                 dataType = "";

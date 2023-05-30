@@ -16,7 +16,7 @@ internal sealed class PersonMapping : ClassMap<Person>
 
         HasOne(x => x.WorksFor, "works_for", true, true);
 
-        HasOne(x => x.MyBoss, "my_boss", true, true, true);
+        HasOne(x => x.MyBoss, "my_boss", true, true);
 
         HasMany(x => x.BossOf, "my_boss", x => x.MyBoss);
     }

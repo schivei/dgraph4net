@@ -89,27 +89,30 @@ public abstract class Migration : IDgnMigration
 
     private async Task Migrate(bool down = false, CancellationToken cancellationToken = default)
     {
-        DgnMigration? dgnm = null;
+        await ClassMapping.EnsureAsync(_client);
 
-        var dgnType = ClassMapping.ClassMappings[typeof(DgnMigration)].DgraphType;
+        DgnMigration dgnm = new(this);
 
-        if (down)
+        var dgnType = ClassMapping.ClassMappings[typeof(DgnMigration)].DgraphType ?? "dgn.migration";
+
         {
-            var currentMigrationName = GetType().Name.Split("_").First();
-
             await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
 
             var migs = await txn.QueryWithVars<DgnMigration>("dgn", @$"query Q($name: string) {{
-  dgn(func: type({dgnType})) @filter(eq(name, $name)) {{
+  dgn(func: type({dgnType}), first: 1) @filter(eq(dgn.name, $name)) {{
     uid
     dgraph.type
-    name
-    generated_at
-    applied_at
+    dgn.name
+    dgn.generated_at
+    dgn.applied_at
   }}
-}}", new Dictionary<string, string> { { "$name", currentMigrationName } });
+}}", new Dictionary<string, string> { { "$name", dgnm.Name } });
 
-            if (migs.Count == 1)
+            if (migs.Count == 0)
+            {
+                Up();
+            }
+            else if (down)
             {
                 dgnm = migs[0];
                 Down();
@@ -118,12 +121,6 @@ public abstract class Migration : IDgnMigration
             {
                 return;
             }
-        }
-        else
-        {
-            dgnm = new(this);
-
-            Up();
         }
 
         if (DropTypes.Any())
@@ -145,11 +142,18 @@ public abstract class Migration : IDgnMigration
             {
                 await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
 
-                await txn.MutateWithQuery(new Mutation
+                try
                 {
-                    DelNquads = new NQuad { Subject = "uid(d)", Predicate = pre, ObjectValue = new Value { DefaultVal = "_STAR_ALL" } }.ToByteString(),
-                    CommitNow = true
-                }, $"d as var(func: has({pre}))");
+                    await txn.MutateWithQuery(new Mutation
+                    {
+                        DelNquads = new NQuad { Subject = "uid(d)", Predicate = pre, ObjectValue = new Value { DefaultVal = "_STAR_ALL" } }.ToByteString(),
+                        CommitNow = true
+                    }, $"d as var(func: has({pre}))");
+                }
+                catch
+                {
+                    // ignored
+                }
 
                 await _client.Alter(new Operation
                 {
@@ -190,18 +194,27 @@ public abstract class Migration : IDgnMigration
                           .Where(x => !string.IsNullOrEmpty(x.p))
                           .ToArray()
                           .OrderBy(x => x.Key)
-                          .Select(x => $"  {x.p}"))
+                          .Select(x => $"  <{x.p}>"))
                       .AppendLine()
                       .AppendLine("}")
                       .ToString();
 
-                await _client.Alter(new Operation
+                try
                 {
-                    Schema = $"{predicates}\n{type}\n",
-                    RunInBackground = true
-                });
+                    await _client.Alter(new Operation
+                    {
+                        Schema = $"{predicates}\n{type}\n",
+                        RunInBackground = true
+                    });
+                }
+                catch
+                {
+                    // ignored
+                }
             }
         }
+
+        dgnm.Id.Resolve();
 
         if (down)
         {
@@ -214,23 +227,28 @@ public abstract class Migration : IDgnMigration
                 DelNquads = new NQuad { Subject = $"<{dgnm.Id}>" }.ToByteString()
             });
         }
-        else
+        else if (!dgnm.Id.IsConcrete)
         {
             dgnm.AppliedAt = DateTimeOffset.UtcNow;
 
             // add migration data
             await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
 
-            await txn.Mutate(new Mutation
+            var mutation = new Mutation
             {
                 CommitNow = true,
-                Set = {
-                    new NQuad { Subject = dgnm.Id, Predicate = "dgraph.type", ObjectValue = new Value { DefaultVal = dgnType } },
-                    new NQuad { Subject = dgnm.Id, Predicate = "name", ObjectValue = new Value { DefaultVal = dgnm.Name } },
-                    new NQuad { Subject = dgnm.Id, Predicate = "generated_at", ObjectValue = new Value { DatetimeVal = ByteString.CopyFromUtf8(dgnm.GeneratedAt.ToString("O")) } },
-                    new NQuad { Subject = dgnm.Id, Predicate = "applyed_at", ObjectValue = new Value { DatetimeVal = ByteString.CopyFromUtf8(dgnm.AppliedAt.ToString("O")) } }
-                }
-            });
+                SetJson = dgnm.ToJson()
+            };
+
+            try
+            {
+                await txn.Mutate(mutation);
+            }
+            catch (Exception ex)
+            {
+                var mut = mutation.SetJson.ToStringUtf8();
+                throw new Exception($"Error on mutate with: {mut}", ex);
+            }
         }
     }
 }

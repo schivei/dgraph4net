@@ -2,14 +2,11 @@ using System.CommandLine;
 using Dgraph4Net.ActiveRecords;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
-using Grpc.Core;
-using System.CommandLine.Parsing;
 using System.Data;
-using System.Threading;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal class MigrationRemoveCommand : Command
+internal sealed class MigrationRemoveCommand : Command
 {
     private readonly ILogger _logger;
 
@@ -19,17 +16,20 @@ internal class MigrationRemoveCommand : Command
     {
         _logger = logger;
 
+        projectLocation.IsRequired = true;
         AddOption(projectLocation);
+        outputDirectory.IsRequired = true;
         AddOption(outputDirectory);
         AddArgument(migrationName);
+        serverOption.IsRequired = true;
         AddOption(serverOption);
         AddOption(userIdOption);
         AddOption(passwordOption);
 
-        this.SetHandler(Exec, migrationName, projectLocation, outputDirectory, serverOption, userIdOption, passwordOption);
+        this.SetHandler(Exec, migrationName, projectLocation, outputDirectory, serverOption);
     }
 
-    private async Task Exec(string name, string projectLocation, string outputDirectory, string serverOption, string userIdOption, string passwordOption)
+    private async Task Exec(string name, string projectLocation, string outputDirectory, Dgraph4NetClient client)
     {
         _logger.LogInformation("Remove migration {name}", name);
 
@@ -82,13 +82,7 @@ internal class MigrationRemoveCommand : Command
 
         migrations.Add(migration);
 
-        var host = serverOption.Split(":")[0];
-        var port = int.Parse(serverOption.Split(":")[1]);
-
-        var client = new Dgraph4NetClient(new Channel(host, port, ChannelCredentials.Insecure));
-
-        if (!string.IsNullOrEmpty(userIdOption) && !string.IsNullOrEmpty(passwordOption))
-            await client.LoginAsync(userIdOption, passwordOption);
+        await ClassMapping.EnsureAsync(client);
 
         // get previous migration
 
@@ -97,12 +91,12 @@ internal class MigrationRemoveCommand : Command
         var dgnType = ClassMapping.GetDgraphType(typeof(DgnMigration));
 
         var migs = await txn.QueryWithVars<DgnMigration>("dgn", @$"query Q($date: string) {{
-  dgn(func: type({dgnType}), orderdesc: generated_at, first: 1) @filter(lt(generated_at, $date)) {{
+  dgn(func: type({dgnType}), orderdesc: dgn.generated_at, first: 1) @filter(lt(dgn.generated_at, $date)) {{
     uid
     dgraph.type
-    name
-    generated_at
-    applied_at
+    dgn.name
+    dgn.generated_at
+    dgn.applied_at
   }}
 }}", new(){ ["date"] = migration.GeneratedAt.ToString("O") });
 
@@ -139,15 +133,5 @@ internal class MigrationRemoveCommand : Command
         }
 
         _logger.LogInformation("Migration '{Migration}' removed", migration.Name);
-    }
-
-    // check if password is not null if userId is provided
-    private void Validate(CommandResult symbolResult)
-    {
-        var userId = symbolResult.GetValueForOption(Options.OfType<UserIdOption>().Single());
-        var password = symbolResult.GetValueForOption(Options.OfType<PasswordOption>().Single());
-
-        if (!string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(password))
-            symbolResult.ErrorMessage = "Password is required if user id is provided";
     }
 }

@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
 
 namespace Dgraph4Net.Core.GeoLocation;
 
@@ -8,7 +11,7 @@ public static class GeoExtensions
     public static IPosition ToPosition(this IEnumerable<double> coordinates)
     {
         var coordinatesArray = coordinates.ToArray();
-        return new Position(coordinatesArray[0], coordinatesArray[1], coordinatesArray.Length > 2? coordinatesArray[2] : null);
+        return new Position(coordinatesArray[0], coordinatesArray[1], coordinatesArray.Length > 2 ? coordinatesArray[2] : null);
     }
 
     public static IEnumerable<double> ToCoordinates(this IPosition position)
@@ -70,4 +73,10 @@ public static class GeoExtensions
         }
         return coordinates;
     }
+
+    public static string ToGeoJson(this IGeoObject geoObject) =>
+        JsonSerializer.Serialize(geoObject);
+
+    public static object? ToGeoObject(this string geoJson, Type geoType) =>
+        JsonSerializer.Deserialize(geoJson, geoType);
 }

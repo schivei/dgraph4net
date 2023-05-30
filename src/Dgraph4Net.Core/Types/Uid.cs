@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -14,7 +13,7 @@ using Google.Protobuf.Collections;
 namespace System;
 
 [JsonConverter(typeof(UidConverter))]
-public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
+public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
 {
     private readonly IDisposable? _unsubscriber;
 
@@ -101,7 +100,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         public string Value { get; set; }
     }
 
-    private readonly UidValue _uid;
+    private UidValue _uid = new(string.Empty);
 
     private static readonly UidResolver s_resolver;
 
@@ -113,9 +112,22 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         s_resolver = new UidResolver();
     }
 
-    public bool IsReferenceOnly => !IsEmpty && _uid.Value.StartsWith("_:");
+    public readonly bool IsConcrete => !IsEmpty && _uid.Value.StartsWith("0x");
 
-    public bool IsEmpty => string.IsNullOrEmpty(_uid?.Value);
+    public readonly bool IsReferenceOnly => !IsEmpty && _uid.Value.StartsWith("_:");
+
+    public readonly bool IsEmpty => string.IsNullOrEmpty(_uid?.Value);
+
+    public static Uid Empty { get; }
+
+    public Uid()
+    {
+        _unsubscriber = null;
+        _uid = new UidValue(string.Empty);
+
+        if (IsReferenceOnly)
+            _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
+    }
 
     [JsonConstructor]
     public Uid(string uid)
@@ -134,6 +146,18 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
 
         if (IsReferenceOnly)
             _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
+    }
+
+    internal readonly void Resolve()
+    {
+        if (IsEmpty && _uid is not null)
+            _uid.Value = NewUid()._uid.Value;
+    }
+
+    internal readonly void Replace(Uid uid)
+    {
+        if (_uid is not null)
+            _uid.Value = uid._uid.Value;
     }
 
     public Uid(ulong uid) : this(uid, true) { }
@@ -201,23 +225,23 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
     }
 
     /// <inheritdoc/>
-    public int CompareTo(Uid other) =>
-        string.CompareOrdinal(_uid.Value, other.ToString());
+    public readonly int CompareTo(Uid other) =>
+        string.CompareOrdinal(_uid?.Value, other._uid?.Value);
 
-    public int CompareTo(object? obj) =>
-        string.CompareOrdinal(_uid.Value, obj?.ToString());
+    public readonly int CompareTo(object? obj) =>
+        string.CompareOrdinal(_uid?.Value, obj?.ToString());
 
-    public bool Equals(Uid other) =>
-        Equals(_uid, other.ToString());
+    public readonly bool Equals(Uid other) =>
+        Equals(_uid?.Value, other._uid?.Value);
 
-    public override bool Equals(object? obj) =>
-        Equals(_uid, obj?.ToString());
+    public readonly override bool Equals(object? obj) =>
+        Equals(_uid?.Value, obj?.ToString());
 
-    public override int GetHashCode() =>
+    public readonly override int GetHashCode() =>
         _uid?.GetHashCode() ?? int.MinValue;
 
     /// <inheritdoc/>
-    public override string ToString() =>
+    public readonly override string ToString() =>
         _uid?.Value ?? string.Empty;
 
     public static bool IsValid(string uid) =>
@@ -244,17 +268,16 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         return matches[0].Groups[2].Value.ToLowerInvariant();
     }
 
-    public static Uid NewUid() =>
-        new(Convert.ToUInt64(RandomNumberGenerator.GetInt32(1, int.MaxValue)), false);
+    public static Uid NewUid() => new($"_:{Guid.NewGuid():N}");
 
     [GeneratedRegex("^(<)?(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})(>)?$")]
     private static partial Regex IsValidUid();
 
-    public bool Equals(ulong other) =>
+    public readonly bool Equals(ulong other) =>
         Equals(_uid.Value, $"0x{other:X}") ||
         Equals(_uid.Value, $"_:{other:X}");
 
-    public int CompareTo(ulong other) =>
+    public readonly int CompareTo(ulong other) =>
         _uid.Value.StartsWith("0x") ?
             string.CompareOrdinal(_uid.Value, $"0x{other:X}") :
             string.CompareOrdinal(_uid.Value, $"_:{other:X}");
