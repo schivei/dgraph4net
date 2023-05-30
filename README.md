@@ -34,7 +34,7 @@ and understand how to run and work with Dgraph.
 - **Dgraph4Net.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Core/)
 
 ### Tools
-- **Dgraph4Net.Tools**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Identity?style=flat)](https://www.nuget.org/packages/DGraph4Net.Tools/)
+- **Dgraph4Net.Tools**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Identity?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Tools/)
   - For migrations and schema management
 
 ![Package Publisher](https://github.com/schivei/dgraph4net/workflows/Package%20Publisher/badge.svg)
@@ -59,7 +59,8 @@ Dgraph version   | Dgraph4Net version | dotnet Version
   1.1.Y          |  0.3.Y             | Standard 2.1
   20.03.Y        |  1.X.Y             | .NET5
   21.2.Y         |  2022.X.Y          | .NET6
-  22.0.Y         |  2023.X.Y          | .NET7
+  22.0.Y         |  2023.2.<145X.Z    | .NET7
+  23.0.Y         |  2023.2.>145X.Z    | .NET7
 
 ## Using a Client
 
@@ -352,7 +353,7 @@ dotnet tool install --global Dgraph4Net.Tools
 To immediately run database update you can user the `-u` or `--update` option.
 
 ```bash
-dotnet dgn migration add MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>] [-u]
+dgn migration add MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>] [-u]
 ```
 
 The command above will create a migration (.cs) and schema (.cs.schema) files in the `Migrations` folder of your project.
@@ -364,7 +365,7 @@ The schema file will store the current expected schema for your migration and th
 To apply a migration, you need to run the command below.
 
 ```bash
-dotnet dgn migration up --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>]
+dgn migration up --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>]
 ```
 
 ### Removing a Migration
@@ -372,7 +373,7 @@ dotnet dgn migration up --server server:port --project MyProject.csproj [--uid <
 To remove a migration, you need to run the command below.
 
 ```bash
-dotnet dgn migration remove MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>]
+dgn migration remove MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>]
 ```
 
 The remove will update the database schema to the previous migration and remove the migration and schema files.
@@ -386,3 +387,5 @@ The remove will update the database schema to the previous migration and remove 
   * [ ] MultiSingleQuery
   * [ ] AggregateQuery
   * [ ] PaginationQuery
+* .NET 8
+  * Comming in Dec 2023

@@ -19,7 +19,7 @@ jobs:
   publish:
     name: Create Packages
     # The type of runner that the job will run on
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -31,12 +31,9 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 7.0.x
-
-    - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@v1.0.2
-    
+        
     - name: Build Packages
-      run: .\nuget.bat
+      run: ./pack.sh
 
     - name: Publish
-      run: dotnet nuget push .\build-packages\*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push .\build-packages\*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
