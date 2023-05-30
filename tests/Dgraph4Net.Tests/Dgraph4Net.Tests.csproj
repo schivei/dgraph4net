@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../pack.props" />
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -16,22 +17,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="ErrorsTest.cs~RF7d86431.TMP" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.53.0" />
+    <PackageReference Include="Grpc.Core" Version="2.46.6" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.0.3" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.0.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Dgraph4Net.Identity\Dgraph4Net.Identity.csproj" />
     <ProjectReference Include="..\..\src\Dgraph4Net\Dgraph4Net.csproj" />
   </ItemGroup>
 

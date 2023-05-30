@@ -13,9 +13,9 @@ and understand how to run and work with Dgraph.
   - [Supported Versions](#supported-versions)
   - [Using a Client](#using-a-client)
     - [Creating a Client](#creating-a-client)
+      - [Using DI](#using-di)
     - [Mapping Classes](#mapping-classes)
-    - [Altering the Database](#altering-the-database)
-      - [Secure DropAll](#secure-dropall)
+      - [Creating mappings](#creating-mappings)
     - [Creating a Transaction](#creating-a-transaction)
     - [Running a Mutation](#running-a-mutation)
     - [Running a Query](#running-a-query)
@@ -23,13 +23,19 @@ and understand how to run and work with Dgraph.
     - [Committing a Transaction](#committing-a-transaction)
     - [ASP.NET Identity](#asp.net-identity)
     - [Uid propagation after Mutation](#uid-propagation-after-mutation)
-    - [In Development](#in-development)
+  - [Migrations](#migrations)
+    - [Creating a Migration](#creating-a-migration)
+    - [Applying a Migration](#applying-a-migration)
+    - [Removing a Migration](#removing-a-migration)
+  - [In Development](#in-development)
 
 ## Packages
 - **Dgraph4Net**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net?style=flat)](https://www.nuget.org/packages/Dgraph4Net/)
 - **Dgraph4Net.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Core/)
-- **DGraph4Net.Identity**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Identity?style=flat)](https://www.nuget.org/packages/DGraph4Net.Identity/)
-- **Dgraph4Net.Identity.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Identity.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Identity.Core/)
+
+### Tools
+- **Dgraph4Net.Tools**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Identity?style=flat)](https://www.nuget.org/packages/DGraph4Net.Tools/)
+  - For migrations and schema management
 
 ![Package Publisher](https://github.com/schivei/dgraph4net/workflows/Package%20Publisher/badge.svg)
 
@@ -40,13 +46,11 @@ Install using nuget:
 ```sh
 dotnet add package Dgraph4Net
 dotnet add package Dgraph4Net.Core
-dotnet add package Dgraph4Net.Identity
-dotnet add package Dgraph4Net.Identity.Core
+dotnet tool install Dgraph4Net.Tools
 ```
 
 > The package Dgraph4Net already references Dgraph4Net.Core.\
-> The package Dgraph4Net.Identity.Core already references Dgraph4Net.\
-> The package Dgraph4Net.Identity already references Dgraph4Net.Identity.Core.
+> The package tool Dgraph4Net.Tools references Dgraph4Net for code generation.
 
 ## Supported Versions
 
@@ -68,54 +72,99 @@ var channel = new Channel("localhost:9080", ChannelCredentials.Insecure);
 var client = new Dgraph4NetClient(channel);
 ```
 
+#### Using DI
+
+You can use DI to create a client, as seen below:
+
+Add the following line to your appsettings.json file:
+```json
+{
+  "ConnectionStrings": {
+    "DgraphConnection": "server=<host_port:9080>;user id=[optional username];password=[optional password];use tls=[false to insecure conecctions (no SSL validation)]"
+  }
+}
+```
+
+Add the following line to your Startup.cs file:
+```c#
+services.AddDgraph(); // for DefaultConnection string
+// or
+services.AddDgraph("DgraphConnection"); // for named connection string
+// or
+services.AddDgraph(sp => "_inline_cs"); // for inline connection string
+```
 
 ### Mapping Classes
 
 Mapping classes can perform a schema migration and marshaling.
 
 ```c#
-// just map classes
-ClassFactory.MapAssembly(typeof(DUser).Assembly);
+services.AddDgraph(); // already call mapping
+// or, for manual mapping
+ClassMapping.Map(); // to map all assemblies with classes that implements IEntity
+// or
+ClassMapping.Map(assemlies); // to map specifics assemblies
 ```
 
 **\*\*NOTE**: your classes need to implement `Dgraph4Net.IEntity` interface.
 
-### Altering the Database
+### Creating mappings
 
-To set the schema, pass the assembly that contains your mapped classes to client map, as seen below:
-
-```c#
-// migrate schema
-dgraph.Map(typeof(DUser).Assembly);
-```
-
-The returned result is a `StringBuilder` with schema, this schema also been writed on project/binary folder with the name `schema.dgraph`, do not put it into version control.\
-The `schema.dgraph` file is used to reduce `Alter` on database, likes a migration.
-
-**\*\*NOTE**: your classes need to implement `Dgraph4Net.IEntity` interface.
-
-You also can use the declarative form, as seen below:
+Follow the example below to create a mapping:
 
 ```c#
-var schema = "`name: string @index(exact) .";
-await client.Alter(new Operation{ Schema = schema });
-```
+// poco types
+public class Person : IEntity
+{
+    public Uid Id { get; set; }
+    public string[] DgraphType { get; set; } = Array.Empty<string>();
+    public string Name { get; set; }
+    public List<Person> BossOf { get; set; } = new List<Person>();
+    public Company WorksFor { get; set; }
+    public Person? MyBoss { get; set; }
+}
 
-#### Secure DropAll
+public class Company : IEntity
+{
+    public Uid Id { get; set; }
+    public string[] DgraphType { get; set; } = Array.Empty<string>();
+    public string Name { get; set; }
+    public CompanyIndustry Industry { get; set; }
+    public ICollection<Person> WorksHere { get; set; } = new List<Person>();
+}
 
-The Dgraph4Net prevents dgraph objects (types and attributes) to be deleted when DropAll.
+public enum CompanyIndustry
+{
+    IT,
+    Finance,
+    Health,
+    Food,
+    Other
+}
 
-To perform DropAll:
+// mappings
+internal sealed class PersonMapping : ClassMap<Person>
+{
+    protected override void Map()
+    {
+        SetType("Person"); // to set the type name
+        String(x => x.Name, "name"); // to map a property to name predicate
+        HasOne(x => x.WorksFor, "works_for", true, true); // to map a property to an uid predicate
+        HasOne(x => x.MyBoss, "my_boss", true, true); // to map a property to an uid predicate
+        HasMany(x => x.BossOf, "my_boss", x => x.MyBoss); // to map a property to reversed my_boss
+    }
+}
 
-```c#
-var op = new Operation { DropAll = true };
-await client.Alter(op);
-```
-
-To perform original dgraph method and drop all including dgraph objects:
-```c#
-var op = new Operation { DropAll = true, AlsoDropDgraphSchema = true };
-await client.Alter(op);
+internal sealed class CompanyMapping : ClassMap<Company>
+{
+    protected override void Map()
+    {
+        SetType("Company"); // to set the type name
+        String(x => x.Name, "name"); // to map a property to name predicate
+        String<CompanyIndustry>(x => x.Industry, "industry"); // to map a property to string predicate that transforms enum to string
+        HasMany(x => x.WorksHere, "works_for", x => x.WorksFor); // to map a property to reversed works_for
+    }
+}
 ```
 
 ### Creating a Transaction
@@ -274,7 +323,7 @@ To ensure this functionality make sure you are initializing Uid instance.
 
 ```c#
 class MyClass {
-  Uid Id { get; set; } = Uid.NewUid();
+  Uid Id { get; set; } = Uid.NewUid(); // is important to every set Id to Uid.NewUid() on construct a type
 }
 
 ....
@@ -286,9 +335,54 @@ it is useful for deep id propagation when you send many objects to dgraph and
 reduces the async calling to check an object propagation to database or making new queries 
 to retieve the last inserted data or navigating to Uids property returned from mutation.
 
+## Migrations
 
-### In Development
+Dgraph4Net has a migration system that allows you to create and update your database schema.
 
-* Documentation - More, more and more
-* Linq to DQL - Linq support for queries
-* Tenant implementation examples - Physical and Logical tenants examples
+You need to install the package tool `Dgraph4Net.Tools` to use the migration system.
+
+### Creating a Migration
+
+To create a migration, you need to create a class that inherits from `Migration` and implement the `Up` and `Down` method.
+
+```bash
+dotnet tool install --global Dgraph4Net.Tools
+```
+
+To immediately run database update you can user the `-u` or `--update` option.
+
+```bash
+dotnet dgn migration add MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>] [-u]
+```
+
+The command above will create a migration (.cs) and schema (.cs.schema) files in the `Migrations` folder of your project.
+
+The schema file will store the current expected schema for your migration and the others created before.
+
+### Applying a Migration
+
+To apply a migration, you need to run the command below.
+
+```bash
+dotnet dgn migration up --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>]
+```
+
+### Removing a Migration
+
+To remove a migration, you need to run the command below.
+
+```bash
+dotnet dgn migration remove MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>]
+```
+
+The remove will update the database schema to the previous migration and remove the migration and schema files.
+
+## In Development
+
+* High Level Query Builder
+  * [ ] SimpleQuery
+  * [ ] SingleQuery
+  * [ ] MultiQuery
+  * [ ] MultiSingleQuery
+  * [ ] AggregateQuery
+  * [ ] PaginationQuery

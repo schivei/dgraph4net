@@ -65,7 +65,9 @@ jobs:
     # If this step fails, then you should remove it and run the build manually (see below)
     - name: Build
       run: |
-        dotnet build -c Release -f net7.0 -v m
+        dotnet build -c Release -f net7.0 -v m ./src/Dgraph4Net.Core/Dgraph4Net.Core.csproj &&
+        dotnet build -c Release -f net7.0 -v m ./src/DGraph4Net/Dgraph4Net.csproj &&
+        dotnet build -c Release -f net7.0 -v m ./tools/Dgraph4Net.Tools/Dgraph4Net.Tools.csproj
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun

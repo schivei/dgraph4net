@@ -5,22 +5,19 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 using Dgraph4Net;
-using Dgraph4Net.Annotations;
 
 using Google.Protobuf.Collections;
 
 #nullable enable
 
-// ReSharper disable once CheckNamespace
 namespace System;
 
-
 [JsonConverter(typeof(UidConverter))]
-public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IEntityBase
+public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
 {
     private readonly IDisposable? _unsubscriber;
 
-    private class UidResolver : IObservable<Uid>
+    private sealed class UidResolver : IObservable<Uid>
     {
         private readonly IList<IObserver<Uid>> _observers;
 
@@ -58,7 +55,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         }
     }
 
-    private class UidObserver : IObserver<Uid>
+    private sealed class UidObserver : IObserver<Uid>
     {
         public Uid Source { get; }
 
@@ -80,7 +77,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         }
     }
 
-    private class Unsubscriber : IDisposable
+    private sealed class Unsubscriber : IDisposable
     {
         private readonly UidResolver _resolver;
         private readonly IObserver<Uid> _observer;
@@ -97,13 +94,13 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         }
     }
 
-    private class UidValue
+    private sealed class UidValue
     {
         public UidValue(string value) => Value = value;
         public string Value { get; set; }
     }
 
-    private readonly UidValue _uid;
+    private UidValue _uid = new(string.Empty);
 
     private static readonly UidResolver s_resolver;
 
@@ -115,25 +112,28 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         s_resolver = new UidResolver();
     }
 
-    public bool IsReferenceOnly => !IsEmpty && _uid.Value.StartsWith("_:");
+    public readonly bool IsConcrete => !IsEmpty && _uid.Value.StartsWith("0x");
 
-    public bool IsEmpty => string.IsNullOrEmpty(_uid?.Value);
+    public readonly bool IsReferenceOnly => !IsEmpty && _uid.Value.StartsWith("_:");
+
+    public readonly bool IsEmpty => string.IsNullOrEmpty(_uid?.Value);
+
+    public static Uid Empty { get; }
+
+    public Uid()
+    {
+        _unsubscriber = null;
+        _uid = new UidValue(string.Empty);
+
+        if (IsReferenceOnly)
+            _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
+    }
 
     [JsonConstructor]
     public Uid(string uid)
     {
         _unsubscriber = null;
         _uid = new UidValue(Clear(uid));
-        if (IsReferenceOnly)
-            _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
-    }
-
-    public Uid(Guid uid)
-    {
-        _unsubscriber = null;
-        var val = $"_:{uid.ToString("N")[16..]}";
-        _uid = new UidValue(Clear(val));
-
         if (IsReferenceOnly)
             _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
     }
@@ -148,7 +148,19 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
             _unsubscriber = s_resolver.Subscribe(new UidObserver(this));
     }
 
-    public Uid(ulong uid) : this(uid, false) { }
+    internal readonly void Resolve()
+    {
+        if (IsEmpty && _uid is not null)
+            _uid.Value = NewUid()._uid.Value;
+    }
+
+    internal readonly void Replace(Uid uid)
+    {
+        if (_uid is not null)
+            _uid.Value = uid._uid.Value;
+    }
+
+    public Uid(ulong uid) : this(uid, true) { }
 
     public static bool operator ==(Uid? uid, object? other) =>
         string.Equals(uid?.ToString(), other?.ToString());
@@ -162,26 +174,23 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
     public static implicit operator Uid(string uid) =>
         new(uid);
 
-    public static implicit operator Uid(Guid uid) =>
-        new(uid);
-
     public static implicit operator Uid(ulong uid) =>
-        new(uid);
+        uid > 0 ? new Uid(uid) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator ulong(Uid uid) =>
         uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ulong.") : ulong.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static implicit operator Uid(uint uid) =>
-        new(uid);
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(ushort uid) =>
-        new(Convert.ToUInt64(uid));
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(byte uid) =>
-        new(uid);
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(char uid) =>
-        new(uid);
+        uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static implicit operator Uid(long uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
@@ -216,23 +225,23 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
     }
 
     /// <inheritdoc/>
-    public int CompareTo(Uid other) =>
-        string.CompareOrdinal(_uid.Value, other.ToString());
+    public readonly int CompareTo(Uid other) =>
+        string.CompareOrdinal(_uid?.Value, other._uid?.Value);
 
-    public int CompareTo(object? obj) =>
-        string.CompareOrdinal(_uid.Value, obj?.ToString());
+    public readonly int CompareTo(object? obj) =>
+        string.CompareOrdinal(_uid?.Value, obj?.ToString());
 
-    public bool Equals(Uid other) =>
-        Equals(_uid, other.ToString());
+    public readonly bool Equals(Uid other) =>
+        Equals(_uid?.Value, other._uid?.Value);
 
-    public override bool Equals(object? obj) =>
-        Equals(_uid, obj?.ToString());
+    public readonly override bool Equals(object? obj) =>
+        Equals(_uid?.Value, obj?.ToString());
 
-    public override int GetHashCode() =>
+    public readonly override int GetHashCode() =>
         _uid?.GetHashCode() ?? int.MinValue;
 
     /// <inheritdoc/>
-    public override string ToString() =>
+    public readonly override string ToString() =>
         _uid?.Value ?? string.Empty;
 
     public static bool IsValid(string uid) =>
@@ -244,12 +253,7 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
 
         matches = reg.Matches(uid);
 
-        if (reg.IsMatch(uid))
-        {
-            return true;
-        }
-
-        return false;
+        return reg.IsMatch(uid);
     }
 
     private static string Clear(string uid, bool @throw = true)
@@ -264,8 +268,17 @@ public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<U
         return matches[0].Groups[2].Value.ToLowerInvariant();
     }
 
-    public static Uid NewUid() =>
-        Guid.NewGuid();
+    public static Uid NewUid() => new($"_:{Guid.NewGuid():N}");
+
     [GeneratedRegex("^(<)?(0x[a-fA-F0-9]{1,16}|_:[a-zA-Z0-9_]{1,32})(>)?$")]
     private static partial Regex IsValidUid();
+
+    public readonly bool Equals(ulong other) =>
+        Equals(_uid.Value, $"0x{other:X}") ||
+        Equals(_uid.Value, $"_:{other:X}");
+
+    public readonly int CompareTo(ulong other) =>
+        _uid.Value.StartsWith("0x") ?
+            string.CompareOrdinal(_uid.Value, $"0x{other:X}") :
+            string.CompareOrdinal(_uid.Value, $"_:{other:X}");
 }

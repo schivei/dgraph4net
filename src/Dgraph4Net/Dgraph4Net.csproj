@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../versions.props" />
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../pack.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.52.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.53.0" />
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
     <PackageReference Include="Grpc.Tools" Version="2.54.0">
       <PrivateAssets>all</PrivateAssets>
@@ -20,5 +20,10 @@
     <Protobuf Include="protos\dgo.proto" />
     <Protobuf Include="protos\dgraph.proto" />
     <Protobuf Include="protos\gogo.proto" />
+
+    <Content Include="build\Dgraph4Net.props" PackagePath="build\">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
   </ItemGroup>
 </Project>

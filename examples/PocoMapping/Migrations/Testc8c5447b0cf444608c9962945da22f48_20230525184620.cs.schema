@@ -1,0 +1,26 @@
+dgn.applied_at: dateTime @index(day) .
+dgn.generated_at: dateTime @index(hour) .
+dgn.name: string @index(exact) .
+industry: string @index(exact) .
+my_boss: uid @reverse  .
+name: string @index(term) .
+works_for: uid @reverse  .
+
+type Company {
+  industry
+  name
+  <~works_for>
+}
+
+type dgn.migration {
+  dgn.applied_at
+  dgn.generated_at
+  dgn.name
+}
+
+type Person {
+  <~my_boss>
+  name
+  works_for
+}
+

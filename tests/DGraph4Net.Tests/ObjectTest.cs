@@ -5,8 +5,6 @@ using System.Threading.Tasks;
 
 using Api;
 
-using Dgraph4Net.Annotations;
-
 using Google.Protobuf;
 
 using System.Text.Json.Serialization;
@@ -736,7 +734,7 @@ public class ObjectTest : ExamplesTest
 
         [JsonPropertyName("dgraph.type")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ICollection<string> DgraphType { get; set; } = new[] { "Institution" };
+        public string[] DgraphType { get; set; } = new[] { "Institution" };
     }
 
     class SPerson : IEntity
@@ -775,7 +773,7 @@ public class ObjectTest : ExamplesTest
         public Uid Id { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ICollection<string> DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
+        public string[] DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
 
     }
 
