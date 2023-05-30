@@ -381,11 +381,17 @@ The remove will update the database schema to the previous migration and remove 
 ## In Development
 
 * High Level Query Builder
-  * [ ] SimpleQuery
-  * [ ] SingleQuery
-  * [ ] MultiQuery
-  * [ ] MultiSingleQuery
-  * [ ] AggregateQuery
-  * [ ] PaginationQuery
+  * [ ] Query
+  * [ ] QuerySingle
+  * [ ] Aggregation
+  * [ ] Pagination
+  * [ ] Variables
+  * [ ] Find
+  * [ ] Multiple Queries
+* High Level Mutation Builder
+  * [ ] Insert / Update / Delete / Upsert
+  * [ ] Conditional Mutation
+  * [ ] Multiple Mutations
+  * [ ] Variables
 * .NET 8
   * Comming in Dec 2023
