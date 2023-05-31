@@ -938,7 +938,12 @@ public class ObjectTest : ExamplesTest
     }
     //#endif
 
-    [Fact]
+    [Theory]
+    [InlineData]
+    [InlineData]
+    [InlineData]
+    [InlineData]
+    [InlineData]
     public async Task TxnMutateVarsTest()
     {
         var dg = GetDgraphClient();
@@ -1050,6 +1055,9 @@ public class ObjectTest : ExamplesTest
 
             var tx = dg.NewTransaction();
             await tx.Do(req);
+
+            // because of data propagation delay, we need to wait a bit before querying
+            await Task.Delay(100);
 
             q = @"
                     query Me($name: string){

@@ -30,7 +30,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
     <ProjectReference Include="..\..\src\Dgraph4Net\Dgraph4Net.csproj" />
+    <ProjectReference Include="..\..\tools\Dgraph4Net.Tools\Dgraph4Net.Tools.csproj" />
   </ItemGroup>
 
 </Project>
