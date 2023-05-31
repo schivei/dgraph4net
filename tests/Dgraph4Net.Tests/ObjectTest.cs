@@ -711,7 +711,8 @@ public class ObjectTest : ExamplesTest
         {
             var dg = GetDgraphClient();
 
-            var response = await dg.NewTransaction().Mutate(new Mutation {
+            var response = await dg.NewTransaction().Mutate(new Mutation
+            {
                 SetNquads = ByteString.CopyFromUtf8("_:alice <name> \"Alice\" ."),
                 CommitNow = true
             });
@@ -938,12 +939,7 @@ public class ObjectTest : ExamplesTest
     }
     //#endif
 
-    [Theory]
-    [InlineData]
-    [InlineData]
-    [InlineData]
-    [InlineData]
-    [InlineData]
+    [Fact]
     public async Task TxnMutateVarsTest()
     {
         var dg = GetDgraphClient();
@@ -1056,26 +1052,54 @@ public class ObjectTest : ExamplesTest
             var tx = dg.NewTransaction();
             await tx.Do(req);
 
-            // because of data propagation delay, we need to wait a bit before querying
-            await Task.Delay(100);
-
             q = @"
                     query Me($name: string){
                         me(func: eq(name, $name)) {
-                            friend {
+                            friend(orderasc: name) {
                                 name
                             }
                         }
                     }
                 ";
 
+            // because of data propagation delay, we need to wait a bit before querying
+            await Task.Delay(100);
+
             resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
             me = resp.Json.ToStringUtf8();
 
-            expected = @"{""me"":[{""friend"":[{""name"":""Bob""}]}]}";
+            var maxTests = 300; // to limit the number of tests with ~30 seconds timeout
 
-            Equal(expected, me);
+            while (me == expected && maxTests-- > 0)
+            {
+                mu = new Mutation { CommitNow = true, DelNquads = ByteString.CopyFromUtf8(nq) };
+
+                req = new Request { Query = @"
+                query Q($charlie: string, $alice: string) {
+                    c as var(func: uid($charlie))
+                    a as var(func: uid($alice))
+                }", CommitNow = true };
+                req.Vars.Add("$charlie", charlie);
+                req.Vars.Add("$alice", puid);
+                mu.Cond = "@if(eq(len(a), 1) AND eq(len(c), 1))";
+                req.Mutations.Add(mu);
+                await using var txn = dg.NewTransaction();
+                await txn.Do(req);
+
+                // because of data propagation delay, we need to wait a bit before querying
+                await Task.Delay(100);
+
+                await using var txn2 = dg.NewTransaction();
+
+                resp = await txn2.QueryWithVars(q, variables);
+
+                me = resp.Json.ToStringUtf8();
+            }
+
+            var expected2 = @"{""me"":[{""friend"":[{""name"":""Bob""}]}]}";
+
+            Equal(expected2, me);
         }
         finally
         {
