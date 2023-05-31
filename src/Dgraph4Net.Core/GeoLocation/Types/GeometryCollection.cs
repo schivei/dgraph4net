@@ -32,6 +32,8 @@ public class GeometryCollection : GeoObject, IGeometryObject, IEqualityComparer<
             geometries?.ToArray() ?? throw new ArgumentNullException(nameof(geometries)));
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.GeometryCollection;
 
     /// <summary>

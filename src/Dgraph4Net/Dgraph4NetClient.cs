@@ -185,34 +185,6 @@ namespace Dgraph4Net
             {
                 try
                 {
-                    if (operation.DropAll && !operation.AlsoDropDgraphSchema)
-                    {
-                        await using var txn = NewTransaction();
-                        var resp = await txn.Query("schema{name}");
-
-                        var sr = JsonSerializer.Deserialize<SchemaReader.Root>(resp.Json.ToStringUtf8());
-
-                        var types = sr.Types.Select(x => x.Name).Where(x => !x.StartsWith("dgraph.")).ToList();
-                        var predicates = sr.Schema.Select(x => x.Predicate).Where(x => !x.StartsWith("dgraph.")).ToList();
-
-                        if (types.Count + predicates.Count == 0)
-                        {
-                            return new Payload
-                            {
-                                Data = Google.Protobuf.ByteString.CopyFromUtf8(string.Empty)
-                            };
-                        }
-
-                        var payloads = await
-                            Task.WhenAll(types.Distinct().Select(t => new Operation { DropOp = Operation.Types.DropOp.Type, DropValue = t, RunInBackground = true })
-                                .Concat(predicates.Distinct().Select(p => new Operation { DropOp = Operation.Types.DropOp.Attr, DropValue = p, RunInBackground = true }))
-                                .AsParallel().Select(Alter));
-
-                        var result = payloads.Select(p => p.Data.ToStringUtf8()).Aggregate(new StringBuilder(), (sb, js) => sb.Append(',').Append(js), sb => $"[{sb}]");
-
-                        return new Payload { Data = Google.Protobuf.ByteString.CopyFromUtf8(result) };
-                    }
-
                     return await dc.AlterAsync(operation, co);
                 }
                 catch (RpcException err) when (err.Message.Contains("retry operation", StringComparison.InvariantCultureIgnoreCase) && tries > 0)

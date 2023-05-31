@@ -42,6 +42,8 @@ public class LineString : GeoObject, IGeometryObject, IEqualityComparer<LineStri
         }
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.LineString;
 
     /// <summary>

@@ -24,6 +24,8 @@ public class Point : GeoObject, IGeometryObject, IEqualityComparer<Point>, IEqua
         Coordinates = coordinates ?? throw new ArgumentNullException(nameof(coordinates));
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.Point;
 
     /// <summary>
@@ -32,7 +34,7 @@ public class Point : GeoObject, IGeometryObject, IEqualityComparer<Point>, IEqua
     [JsonPropertyName("coordinates")]
     [JsonRequired]
     [JsonConverter(typeof(PositionConverter))]
-    public IPosition Coordinates { get; }
+    public IPosition Coordinates { get; set; }
 
     #region IEqualityComparer, IEquatable
 

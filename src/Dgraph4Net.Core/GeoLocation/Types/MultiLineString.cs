@@ -35,6 +35,8 @@ public class MultiLineString : GeoObject, IGeometryObject, IEqualityComparer<Mul
     {
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.MultiLineString;
 
     /// <summary>

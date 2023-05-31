@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,7 +15,6 @@ using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using static Pb.Metadata.Types;
 
 #nullable enable
 
@@ -206,11 +206,11 @@ type dgn.migration {
     }
 
     public static ByteString ToJson<T>(this T entity, bool deep = false, bool doNotPropagateNulls = false) where T : IEntity =>
-        ByteString.CopyFromUtf8(ToJson(entity, new(), deep, doNotPropagateNulls));
+        ByteString.CopyFromUtf8(ToJson(entity, new(), deep, doNotPropagateNulls).Trim());
 
     private static string ToJson<T>(this T entity, HashSet<IEntity> mapped, bool deep, bool doNotPropagateNulls = false) where T : IEntity
     {
-        var type = typeof(T);
+        var type = entity.GetType();
 
         if (!ClassMappings.TryGetValue(type, out var classMap))
             throw new InvalidOperationException($"ClassMap for {type.Name} not found");
@@ -479,8 +479,11 @@ type dgn.migration {
         return jsonStr;
     }
 
+    public static object? FromJson(this ByteString bytes, Type type, string param) =>
+        bytes.FromJson(type, param, new());
+
     public static T? FromJson<T>(this ByteString bytes, string param) =>
-        bytes.FromJson<T>(param, new());
+        (T?)bytes.FromJson(typeof(T), param, new());
 
     /// <summary>
     /// Inverse of <see cref="ToJson{T}(T, Dictionary{Uid, object}, bool, bool)"/>
@@ -489,15 +492,13 @@ type dgn.migration {
     /// <param name="bytes"></param>
     /// <param name="loaded"></param>
     /// <returns>DB Result</returns>
-    private static T? FromJson<T>(this ByteString bytes, string param, Dictionary<Uid, object> loaded)
+    private static object? FromJson(this ByteString bytes, Type type, string param, Dictionary<Uid, object> loaded)
     {
         if (bytes.IsEmpty)
             return default;
 
-        var type = typeof(T);
-
         if (type.IsAssignableTo(typeof(Dictionary<string, object>)))
-            return (T)(object)JsonSerializer.Deserialize<Dictionary<string, object>>(bytes.Span);
+            return JsonSerializer.Deserialize<Dictionary<string, object>>(bytes.Span);
 
         Type dataType;
 
@@ -517,9 +518,51 @@ type dgn.migration {
             var element = JsonSerializer.Deserialize<JsonElement?>(bytes.Span);
 
             if (!element.HasValue || !element.Value.TryGetProperty(param, out var children) || children.ValueKind != JsonValueKind.Array)
-                return (T)list;
+                return list;
 
-            foreach (var child in children.EnumerateArray())
+            return ByteString.CopyFromUtf8(JsonSerializer.Serialize(children)).FromJson(type, loaded);
+        }
+        else
+        {
+            return JsonSerializer.Deserialize(bytes.Span, type);
+        }
+    }
+
+    public static object? FromJson(this ByteString bytes, Type type) =>
+        bytes.FromJson(type, new Dictionary<Uid, object>());
+
+    public static T? FromJson<T>(this ByteString bytes) =>
+        (T?)bytes.FromJson(typeof(T), new Dictionary<Uid, object>());
+
+    private static object? FromJson(this ByteString bytes, Type type, Dictionary<Uid, object> loaded)
+    {
+        if (bytes.IsEmpty)
+            return default;
+
+        if (type.IsAssignableTo(typeof(Dictionary<string, object>)))
+            return JsonSerializer.Deserialize<Dictionary<string, object>>(bytes.Span);
+
+        Type dataType;
+
+        if (type.IsAssignableTo(typeof(IEnumerable)))
+        {
+            dataType = type.GetGenericArguments()[0];
+        }
+        else
+        {
+            dataType = type;
+        }
+
+        if (dataType.IsAssignableTo(typeof(IEntity)) && type != dataType)
+        {
+            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(dataType));
+
+            var element = JsonSerializer.Deserialize<JsonElement?>(bytes.Span);
+
+            if (!element.HasValue)
+                return list;
+
+            foreach (var child in element.Value.EnumerateArray())
             {
                 Uid uid = child.GetProperty("uid").GetString();
 
@@ -539,21 +582,44 @@ type dgn.migration {
 
                 list.Add(entity);
 
-                var predicates = ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType);
-
-                foreach (var predicate in predicates)
+                foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))
                 {
                     if (child.TryGetProperty(predicate.Value.PredicateName, out var value))
                         predicate.Value.SetValue(value, entity);
                 }
             }
 
-            return (T)list;
+            return list;
         }
-        else
+        else if (dataType.IsAssignableTo(typeof(IEntity)))
         {
-            return JsonSerializer.Deserialize<T>(bytes.Span);
+            var element = JsonSerializer.Deserialize<JsonElement>(bytes.Span);
+
+            Uid uid = element.GetProperty("uid").GetString();
+
+            if (uid.IsEmpty)
+                return null;
+
+            if (loaded.ContainsKey(uid))
+            {
+                return loaded[uid];
+            }
+
+            var entity = (IEntity)Activator.CreateInstance(dataType);
+
+            dataType.GetProperty(nameof(IEntity.Id))
+                .SetValue(entity, uid);
+
+            foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))
+            {
+                if (element.TryGetProperty(predicate.Value.PredicateName, out var value))
+                    predicate.Value.SetValue(value, entity);
+            }
+
+            return entity;
         }
+
+        return null;
     }
 
     public static List<Enum> GetFlaggedValues(this Enum value)

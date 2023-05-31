@@ -37,6 +37,8 @@ public class MultiPolygon : GeoObject, IGeometryObject, IEqualityComparer<MultiP
     {
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.MultiPolygon;
 
     /// <summary>

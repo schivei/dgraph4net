@@ -15,6 +15,39 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  build:
+    name: Build Projects
+    runs-on: ubuntu-latest
+
+    services:
+      dgraph:
+        image: dgraph/standalone
+        ports:
+          - 8080:8080
+          - 9080:9080
+        options: --name dgraph --health-cmd "curl -f http://localhost:8080/health || exit 1" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v3
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+
+    - name: Build and Test
+      env:
+        GRPC_DNS_RESOLVER: native
+      run: |
+        dotnet restore src/Dgraph4Net.Core/Dgraph4Net.Core.csproj &&
+        dotnet restore src/Dgraph4Net/Dgraph4Net.csproj &&
+        dotnet restore tests/Dgraph4Net.Tests/Dgraph4Net.Tests.csproj &&
+        dotnet build src/Dgraph4Net.Core/Dgraph4Net.Core.csproj --no-restore &&
+        dotnet build src/Dgraph4Net/Dgraph4Net.csproj --no-restore &&
+        dotnet build tests/Dgraph4Net.Tests/Dgraph4Net.Tests.csproj --no-restore &&
+        dotnet test tests/Dgraph4Net.Tests/Dgraph4Net.Tests.csproj --no-build --no-restore
+      
   # This workflow contains a single job called "build"
   publish:
     name: Create Packages

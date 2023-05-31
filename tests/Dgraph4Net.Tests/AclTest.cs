@@ -4,39 +4,57 @@ using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 using Xunit;
 using System.Text.Json;
+using Dgraph4Net.ActiveRecords;
+using Google.Protobuf;
 
 namespace Dgraph4Net.Tests;
 
+public sealed class Testing : IEntity
+{
+    public Uid Id { get; set; }
+    public string Name { get; set; }
+    public Testing? Test { get; set; }
+    public string[] DgraphType { get; set; } = new[] { "Testing" };
+}
+
+public sealed class TestingMap : ClassMap<Testing>
+{
+    protected override void Map()
+    {
+        SetType("Testing");
+        String(x => x.Name, "name");
+        HasOne(x => x.Test, "parent");
+    }
+}
+
 public class AclTest : ExamplesTest
 {
-    public class Testing
-    {
-        public Uid uid { get; set; }
-        public string name { get; set; }
-
-        public Uid TestingId { get; set; }
-
-        public Testing Test { get; set; }
-    }
-
     [Fact]
     public void ExpTest()
     {
+        const string expected = @"{ ""uid"": ""0x1"",""dgraph.type"": ""Testing"",""name"": ""test"",""parent"": { ""uid"": ""_:0"",""dgraph.type"": ""Testing"",""name"": null,""parent"": null } }" + "\n";
+
         try
         {
             Uid id = "<0x1>";
             Uid refs = "_:0";
 
-            var tes = JsonSerializer.Serialize(new Testing
+            var test = new Testing
             {
-                uid = id,
-                name = "test",
-                TestingId = refs
-            });
+                Id = id,
+                Name = "test",
+                Test = new(){ Id = refs }
+            };
 
-            var t = JsonSerializer.Deserialize<Testing>(tes);
+            var t = ByteString.CopyFromUtf8(expected).FromJson<Testing>();
 
-            Equal(tes, JsonSerializer.Serialize(t));
+            Equivalent(test, t);
+
+            var actual = test.ToJson(true).ToStringUtf8().Trim();
+
+            var expec = expected.Trim();
+
+            Equal(expec, actual);
         }
         finally
         {

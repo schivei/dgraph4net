@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json;
+using Google.Protobuf;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -37,15 +38,8 @@ public readonly record struct EdgePredicate<T>(IClassMap ClassMap, PropertyInfo 
 
         if (value is JsonElement element)
         {
-            if (element.ValueKind == JsonValueKind.String)
-            {
-                value = element.GetString();
-            }
-            else if (element.ValueKind == JsonValueKind.Object)
-            {
-                Property.SetValue(target, element.Deserialize(Property.PropertyType));
-                return;
-            }
+            Property.SetValue(target, ByteString.CopyFromUtf8(element.ToString()).FromJson(Property.PropertyType));
+            return;
         }
 
         Property.SetValue(target, Convert.ChangeType(value, Property.PropertyType));

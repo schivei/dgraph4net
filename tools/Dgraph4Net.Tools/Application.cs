@@ -89,7 +89,7 @@ internal sealed class Application
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException(error);
+            throw new InvalidOperationException(output + "\n" + error);
         }
 
         var csprojName = Path.GetFileNameWithoutExtension(projectLocation);

@@ -31,6 +31,8 @@ public class MultiPoint : GeoObject, IGeometryObject, IEqualityComparer<MultiPoi
     {
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.MultiPoint;
 
     /// <summary>

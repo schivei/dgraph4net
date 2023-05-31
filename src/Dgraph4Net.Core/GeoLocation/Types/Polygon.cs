@@ -48,6 +48,8 @@ public class Polygon : GeoObject, IGeometryObject, IEqualityComparer<Polygon>, I
     {
     }
 
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public override GeoObjectType Type => GeoObjectType.Polygon;
 
     /// <summary>

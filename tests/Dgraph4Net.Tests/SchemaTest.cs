@@ -19,21 +19,23 @@ public class SchemaTest : ExamplesTest
             var op = new Operation
             {
                 Schema = @"
-		                name: string @index(exact) .
-		                age: int .
-		                married: bool .
-		                loc: geo .
-		                dob: datetime .
+		                sct.name: string @index(exact) .
+		                sct.age: int .
+		                sct.married: bool .
+		                sct.loc: geo .
+		                sct.dob: datetime .
                     "
             };
             await dg.Alter(op);
 
             // Ask for the type of name and age.
-            var resp = await dg.NewTransaction().Query("schema(pred: [name, age]) {type}");
+            var resp = await dg.NewTransaction().Query("schema(pred: [sct.name, sct.age]) {type}");
 
-            const string expected = @"{""schema"":[{""predicate"":""age"",""type"":""int""},{""predicate"":""name"",""type"":""string""}]}";
+            const string expected = @"{""schema"":[{""predicate"":""sct.age"",""type"":""int""},{""predicate"":""sct.name"",""type"":""string""}]}";
 
-            Json(expected, resp.Json.ToStringUtf8());
+            var actual = resp.Json.ToStringUtf8();
+
+            Equal(expected, actual);
         }
         finally
         {
