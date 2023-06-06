@@ -12,7 +12,6 @@ using Google.Protobuf.Collections;
 
 namespace System;
 
-[JsonConverter(typeof(UidConverter))]
 public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
 {
     private readonly IDisposable? _unsubscriber;

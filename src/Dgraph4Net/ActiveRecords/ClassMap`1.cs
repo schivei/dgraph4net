@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.Collections.Immutable;
-using System.Linq;
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
 using Dgraph4Net.Core;
-using Dgraph4Net.Core.GeoLocation;
+using NetGeo.Json;
 
 #nullable enable
 
@@ -23,7 +23,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected ClassMap()
     {
         Type = typeof(T);
-        if (ClassMapping.ClassMappings.ContainsKey(Type))
+        if (InternalClassMapping.ClassMappings.ContainsKey(Type))
             throw new InvalidOperationException($"The type {Type.Name} is already mapped.");
 
         Uid(x => x.Id);
@@ -97,6 +97,11 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
 
         var property = GetProperty(expression);
 
+        ListInt(property, predicateName);
+    }
+
+    internal void ListInt(PropertyInfo property, string? predicateName = null)
+    {
         var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "int", false);
 
         if (!Predicates.ContainsKey(property))
@@ -111,6 +116,11 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
 
         var property = GetProperty(expression);
 
+        ListString(property, predicateName);
+    }
+
+    internal void ListString(PropertyInfo property, string? predicateName = null)
+    {
         var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "string", false);
 
         if (!Predicates.ContainsKey(property))
@@ -160,7 +170,11 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         }
 
         var property = GetProperty(expression);
+        List(property, dataType, predicateName);
+    }
 
+    internal void List(PropertyInfo property, string dataType, string? predicateName)
+    {
         var predicate = new ListPredicate(this, property, predicateName ?? property.Name, dataType, true);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
@@ -180,7 +194,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void String(Expression<Func<T, Guid?>> expression, string? predicateName = null) =>
         String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, null);
 
-    private void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, string? cultures)
+    internal void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, string? cultures)
     {
         var predicate = new StringPredicate(this, property, predicateName ?? property.Name, fulltext, trigram, upsert, token, cultures);
         if (!Predicates.ContainsKey(property))
@@ -213,7 +227,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Integer(Expression<Func<T, TimeSpan?>> expression, string? predicateName = null, bool index = false) =>
         Integer(GetProperty(expression), predicateName, index);
 
-    private void Integer(PropertyInfo property, string predicateName, bool index)
+    internal void Integer(PropertyInfo property, string predicateName, bool index)
     {
         var predicate = new IntegerPredicate(this, property, predicateName ?? property.Name, index);
         if (!Predicates.ContainsKey(property))
@@ -229,7 +243,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Float(Expression<Func<T, decimal?>> expression, string? predicateName = null, bool index = false) =>
         Float(GetProperty(expression), predicateName, index);
 
-    private void Float(PropertyInfo property, string predicateName, bool index)
+    internal void Float(PropertyInfo property, string predicateName, bool index)
     {
         var predicate = new FloatPredicate(this, property, predicateName ?? property.Name, index);
         if (!Predicates.ContainsKey(property))
@@ -245,7 +259,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void DateTime(Expression<Func<T, DateTimeOffset?>> expression, string? predicateName = null, DateTimeToken token = DateTimeToken.None, bool upsert = false) =>
         DateTime(GetProperty(expression), predicateName, token, upsert);
 
-    private void DateTime(PropertyInfo property, string predicateName, DateTimeToken token, bool upsert)
+    internal void DateTime(PropertyInfo property, string predicateName, DateTimeToken token, bool upsert)
     {
         var predicate = new DateTimePredicate(this, property, predicateName ?? property.Name, token, upsert);
         if (!Predicates.ContainsKey(property))
@@ -255,7 +269,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Boolean(Expression<Func<T, bool?>> expression, string? predicateName = null, bool index = false, bool upsert = false) =>
         Boolean(GetProperty(expression), predicateName, index, upsert);
 
-    private void Boolean(PropertyInfo property, string predicateName, bool index, bool upsert)
+    internal void Boolean(PropertyInfo property, string predicateName, bool index, bool upsert)
     {
         var predicate = new BooleanPredicate(this, property, predicateName ?? property.Name, index, upsert);
         if (!Predicates.ContainsKey(property))
@@ -265,37 +279,37 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Password(Expression<Func<T, string?>> expression, string? predicateName = null) =>
         Password(GetProperty(expression), predicateName);
 
-    private void Password(PropertyInfo property, string predicateName)
+    internal void Password(PropertyInfo property, string predicateName)
     {
         var predicate = new PasswordPredicate(this, property, predicateName ?? property.Name);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    protected void Geo(Expression<Func<T, IGeometryObject?>> expression, string? predicateName = null, bool index = false, bool upsert = false) =>
+    protected void Geo<TE>(Expression<Func<T, TE?>> expression, string? predicateName = null, bool index = false, bool upsert = false) where TE : GeoObject =>
         Geo(GetProperty(expression), predicateName, index, upsert);
 
-    private void Geo(PropertyInfo property, string predicateName, bool index, bool upsert)
+    internal void Geo(PropertyInfo property, string predicateName, bool index, bool upsert)
     {
         var predicate = new GeoPredicate(this, property, predicateName ?? property.Name, index, upsert);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    private void Uid(Expression<Func<T, Uid>> expression) =>
+    internal void Uid(Expression<Func<T, Uid>> expression) =>
         Uid(GetProperty(expression));
 
-    private void Uid(PropertyInfo property)
+    internal void Uid(PropertyInfo property)
     {
         var predicate = new UidPredicate(this, property);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    private void Types(Expression<Func<T, IEnumerable<string>>> expression) =>
+    internal void Types(Expression<Func<T, IEnumerable<string>>> expression) =>
         Types(GetProperty(expression));
 
-    private void Types(PropertyInfo property)
+    internal void Types(PropertyInfo property)
     {
         var predicate = new TypePredicate(this, property);
         if (!Predicates.ContainsKey(property))
@@ -312,6 +326,20 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         if (reversed)
         {
             PropertyInfo? reversedProperty = GetProperty(reversedFrom);
+
+            HasMany(property, predicateName, reversedProperty);
+        }
+        else
+        {
+            HasMany(property, predicateName);
+        }
+    }
+
+    internal void HasMany(PropertyInfo property, string? predicateName = null, PropertyInfo? reversedProperty = null)
+    {
+        var reversed = reversedProperty is not null;
+        if (reversed)
+        {
             if (reversedProperty is not null && Predicates.TryGetValue(reversedProperty, out var reversedPredicate))
             {
                 if (reversedPredicate is EdgePredicate<T> edge)
@@ -344,12 +372,22 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void HasOne<TE>(Expression<Func<T, TE?>> expression, string? predicateName = null, bool reverse = false, bool count = false) where TE : IEntity
     {
         var property = GetProperty(expression);
-        var predicate = new EdgePredicate<TE>(this, property, predicateName ?? property.Name, reverse, count);
+
+        HasOne(property, predicateName, reverse, count);
+    }
+
+    internal void HasOne(PropertyInfo property, string? predicateName = null, bool reverse = false, bool count = false)
+    {
+        var predicate = typeof(EdgePredicate<>).MakeGenericType(property.PropertyType)
+            .GetConstructors()
+            .First(x => x.GetParameters().Length == 5)
+            .Invoke(new object[] { this, property, predicateName ?? property.Name, reverse, count }) as IEdgePredicate;
+
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    private static PropertyInfo GetProperty(Expression expression)
+    internal static PropertyInfo GetProperty(Expression expression)
     {
         var lambda = expression as LambdaExpression ??
             throw new ArgumentException("Invalid expression.", nameof(expression));
@@ -382,13 +420,15 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
             throw new ArgumentException("Invalid expression.", nameof(expression));
     }
 
-    private static bool TryGetType<TE>(out string dataType)
-    {
-        var te = typeof(TE);
+    internal static bool TryGetType<TE>(out string dataType) =>
+        TryGetType(typeof(TE), out dataType);
 
+    internal static bool TryGetType(Type te, out string dataType)
+    {
         switch (te)
         {
-            case Type _ when te == typeof(Uid):
+            case Type _ when te == typeof(Uid) ||
+                             te.IsAssignableTo(typeof(IEntity)):
                 dataType = "uid";
                 break;
             case Type _ when te == typeof(string) ||
@@ -413,11 +453,26 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
                              te == typeof(DateOnly):
                 dataType = "datetime";
                 break;
-            case Type _ when te.IsAssignableTo(typeof(IGeometryObject)):
+            case Type _ when te.IsAssignableTo(typeof(GeoObject)):
                 dataType = "geo";
                 break;
             default:
-                dataType = "";
+                if (te.IsAssignableTo(typeof(IEnumerable)))
+                {
+                    var tp = te.BaseType == typeof(Array) ?
+                        te.Assembly.GetType(te.FullName.Replace("[]", "")) :
+                        te.GetInterfaces().FirstOrDefault(x => x.IsAssignableTo(typeof(IEnumerable<>)))?
+                        .GetGenericArguments().FirstOrDefault();
+                    if (tp is not null && TryGetType(tp, out var dt))
+                        dataType = $"[{dt}]";
+                    else
+                        dataType = string.Empty;
+                }
+                else
+                {
+                    dataType = string.Empty;
+                }
+
                 return false;
         }
 

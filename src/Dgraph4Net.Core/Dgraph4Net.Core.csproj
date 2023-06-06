@@ -3,7 +3,7 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.23.2" />
+    <PackageReference Include="NetGeo.Json" Version="2023.3.157.13" />
     <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
 </Project>

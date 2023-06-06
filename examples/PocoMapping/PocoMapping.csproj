@@ -11,25 +11,27 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <RestoreSources>$(RestoreSources);../../src/DGraph4Net/bin/Debug;../../src/Dgraph4Net.Core/bin/Debug;https://api.nuget.org/v3/index.json</RestoreSources>
+    <RestoreSources>$(RestoreSources);../../src/Dgraph4Net.Newtonsoft.Json/bin/Debug;../../src/Dgraph4Net/bin/Debug;../../src/Dgraph4Net.Core/bin/Debug;https://api.nuget.org/v3/index.json</RestoreSources>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <ProjectReference Include="..\..\src\DGraph4Net\Dgraph4Net.csproj" />
+    <ProjectReference Include="..\..\src\Dgraph4Net.Newtonsoft.Json\Dgraph4Net.Newtonsoft.Json.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-    <PackageReference Include="Dgraph4Net" Version="$(Version)" />
+    <PackageReference Include="Dgraph4Net.Newtonsoft.Json" Version="$(Version)" />
   </ItemGroup>
 
   <Target Name="Build" Condition="'$(Configuration)' == 'Release'">
     <MSBuild Projects="..\..\src\Dgraph4Net.Core\Dgraph4Net.Core.csproj" Targets="Build" Properties="Configuration=Release" ContinueOnError="true" />
-    <MSBuild Projects="..\..\src\DGraph4Net\Dgraph4Net.csproj" Targets="Build" Properties="Configuration=Release" ContinueOnError="true" />
+    <MSBuild Projects="..\..\src\Dgraph4Net\Dgraph4Net.csproj" Targets="Build" Properties="Configuration=Release" ContinueOnError="true" />
+    <MSBuild Projects="..\..\src\Dgraph4Net.Newtonsoft.Json\Dgraph4Net.Newtonsoft.Json.csproj" Targets="Build" Properties="Configuration=Release" ContinueOnError="true" />
   </Target>
 
   <Target Name="Publish" Condition="'$(Configuration)' == 'Release'">
     <MSBuild Projects="..\..\src\Dgraph4Net.Core\Dgraph4Net.Core.csproj" Targets="Publish" Properties="Configuration=Release" ContinueOnError="true" />
-    <MSBuild Projects="..\..\src\DGraph4Net\Dgraph4Net.csproj" Targets="Publish" Properties="Configuration=Release" ContinueOnError="true" />
+    <MSBuild Projects="..\..\src\Dgraph4Net\Dgraph4Net.csproj" Targets="Publish" Properties="Configuration=Release" ContinueOnError="true" />
+    <MSBuild Projects="..\..\src\Dgraph4Net.Newtonsoft.Json\Dgraph4Net.Newtonsoft.Json.csproj" Targets="Publish" Properties="Configuration=Release" ContinueOnError="true" />
   </Target>
 
   <Target Name="Pack" Condition="'$(Configuration)' == 'Release'"></Target>

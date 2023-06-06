@@ -1,9 +1,5 @@
-#nullable enable
-
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text.Json;
-using Dgraph4Net.Core.GeoLocation;
+using NetGeo.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -35,20 +31,33 @@ public readonly record struct GeoPredicate(IClassMap ClassMap, PropertyInfo Prop
         if (value is null)
             return;
 
-        if (value is JsonElement element)
-        {
-            if (element.ValueKind == JsonValueKind.String)
+        var geoExtensions = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a =>
             {
-                value = element.GetString();
-            }
-            else if (element.ValueKind == JsonValueKind.Object)
+                try
+                {
+                    return a.GetTypes();
+                }
+                catch
+                {
+                    return Enumerable.Empty<Type>();
+                }
+            })
+            .FirstOrDefault(t =>
             {
-                Property.SetValue(target, element.Deserialize(Property.PropertyType));
-                return;
-            }
-        }
+                try
+                {
+                    return t.Name == "GeoExtensions";
+                }
+                catch
+                {
+                    return false;
+                }
+            }) ?? throw new Exception("GeoExtensions not found. Please reference Dgraph4Net.Newtonsoft.Json or Dgraph4Net.System.Text.Json.");
 
-        var geoObject = value.ToString().ToGeoObject(Property.PropertyType);
+        var geoObject = geoExtensions.GetMethod("ToGeoObject", BindingFlags.Public | BindingFlags.Static)
+            ?.MakeGenericMethod(Property.PropertyType)
+            ?.Invoke(null, new object[] { value }) as GeoObject;
 
         Property.SetValue(target, geoObject);
     }

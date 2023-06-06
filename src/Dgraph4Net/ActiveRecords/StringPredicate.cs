@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -77,10 +73,11 @@ public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo P
         if (value is null)
             return;
 
-        if (value is JsonElement element)
-            value = element.GetString();
-
-        if (Property.PropertyType == typeof(string))
+        if (Property.PropertyType == typeof(byte[]))
+        {
+            Property.SetValue(target, Convert.FromBase64String(value.ToString() ?? ""));
+        }
+        else if (Property.PropertyType == typeof(string))
         {
             Property.SetValue(target, value);
         }

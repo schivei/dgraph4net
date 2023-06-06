@@ -1,10 +1,4 @@
-#nullable enable
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -36,47 +30,6 @@ public readonly record struct ListPredicate(IClassMap ClassMap, PropertyInfo Pro
     {
         if (value is null)
             return;
-
-        if (value is JsonElement element)
-        {
-            if (element.ValueKind == JsonValueKind.Array)
-            {
-                var values = element.EnumerateArray().Select(x => x.GetString()).ToArray();
-                if (Property.PropertyType.IsArray)
-                {
-                    var array = Array.CreateInstance(Property.PropertyType.GetElementType()!, values.Length);
-                    for (var i = 0; i < values.Length; i++)
-                        array.SetValue(Convert.ChangeType(values[i], Property.PropertyType.GetElementType()!), i);
-
-                    Property.SetValue(target, array);
-                }
-                else if (Property.PropertyType.IsGenericType && Property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    var list = (IList<object>)Activator.CreateInstance(Property.PropertyType);
-                    for (var i = 0; i < values.Length; i++)
-                        list.Add(Convert.ChangeType(values[i], Property.PropertyType.GetGenericArguments()[0]!));
-
-                    Property.SetValue(target, list);
-                }
-            }
-            else if (element.ValueKind == JsonValueKind.String)
-            {
-                if (Property.PropertyType.IsArray)
-                {
-                    var array = Array.CreateInstance(Property.PropertyType.GetElementType()!, 1);
-                    array.SetValue(Convert.ChangeType(element.GetString(), Property.PropertyType.GetElementType()!), 0);
-
-                    Property.SetValue(target, array);
-                }
-                else if (Property.PropertyType.IsGenericType && Property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    var list = (IList<object>)Activator.CreateInstance(Property.PropertyType);
-                    list.Add(Convert.ChangeType(element.GetString(), Property.PropertyType.GetGenericArguments()[0]!));
-
-                    Property.SetValue(target, list);
-                }
-            }
-        }
 
         if (value.GetType().IsAssignableTo(Property.PropertyType))
         {

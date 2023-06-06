@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Reflection;
-using System.Text.Json;
 using Dgraph4Net.Core;
 
 namespace Dgraph4Net.ActiveRecords;
@@ -35,27 +31,20 @@ public readonly record struct DateTimePredicate(IClassMap ClassMap, PropertyInfo
         if (value is null)
             return;
 
-        if (value is JsonElement element)
-        {
-            Property.SetValue(target, element.Deserialize(Property.PropertyType));
-        }
-        else
-        {
-            if ((Property.PropertyType == typeof(DateTime) || Property.PropertyType == typeof(DateTime?)) &&
+        if ((Property.PropertyType == typeof(DateTime) || Property.PropertyType == typeof(DateTime?)) &&
             DateTimeOffset.TryParse(value.ToString(), out var dt))
-            {
-                Property.SetValue(target, dt.DateTime);
-            }
-            else if ((Property.PropertyType == typeof(DateTimeOffset) || Property.PropertyType == typeof(DateTimeOffset?)) &&
-                DateTimeOffset.TryParse(value.ToString(), out var dto))
-            {
-                Property.SetValue(target, dto);
-            }
-            else if ((Property.PropertyType == typeof(DateOnly) || Property.PropertyType == typeof(DateOnly?)) &&
-                DateTimeOffset.TryParse(value.ToString(), out var d))
-            {
-                Property.SetValue(target, DateOnly.FromDateTime(d.Date));
-            }
+        {
+            Property.SetValue(target, dt.DateTime);
+        }
+        else if ((Property.PropertyType == typeof(DateTimeOffset) || Property.PropertyType == typeof(DateTimeOffset?)) &&
+            DateTimeOffset.TryParse(value.ToString(), out var dto))
+        {
+            Property.SetValue(target, dto);
+        }
+        else if ((Property.PropertyType == typeof(DateOnly) || Property.PropertyType == typeof(DateOnly?)) &&
+            DateTimeOffset.TryParse(value.ToString(), out var d))
+        {
+            Property.SetValue(target, DateOnly.FromDateTime(d.Date));
         }
     }
 }

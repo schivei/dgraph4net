@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../pack.props" />
+  <Import Project="../../versions.props" />
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -19,18 +19,21 @@
   <ItemGroup>
     <PackageReference Include="Grpc.Net.ClientFactory" Version="2.53.0" />
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.2" />
+    <PackageReference Include="NetGeo.Newtonsoft.Json" Version="2023.3.157.13" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MSTest.TestAdapter" Version="3.0.3" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.0.3" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.0.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.0.4" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
+    <ProjectReference Include="..\..\src\Dgraph4Net.Newtonsoft.Json\Dgraph4Net.Newtonsoft.Json.csproj" />
     <ProjectReference Include="..\..\src\Dgraph4Net\Dgraph4Net.csproj" />
+    <ProjectReference Include="..\..\tools\Dgraph4Net.Tools\Dgraph4Net.Tools.csproj" />
   </ItemGroup>
-
 </Project>

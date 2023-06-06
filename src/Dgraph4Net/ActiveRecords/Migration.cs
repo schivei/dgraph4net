@@ -1,12 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Api;
 using Google.Protobuf;
 
@@ -69,7 +63,7 @@ public abstract class Migration : IDgnMigration
     protected void DropPredicate(string predicateName) =>
         DropPredicates.Add(predicateName);
 
-    protected void SetType<T>() where T : IEntity => Types.Add(ClassMapping.ClassMappings[typeof(T)]);
+    protected void SetType<T>() where T : IEntity => Types.Add(InternalClassMapping.ClassMappings[typeof(T)]);
 
     protected void DropType(string name) => DropTypes.Add(name);
 
@@ -89,11 +83,11 @@ public abstract class Migration : IDgnMigration
 
     private async Task Migrate(bool down = false, CancellationToken cancellationToken = default)
     {
-        await ClassMapping.EnsureAsync(_client);
+        await InternalClassMapping.EnsureAsync(_client);
 
         DgnMigration dgnm = new(this);
 
-        var dgnType = ClassMapping.ClassMappings[typeof(DgnMigration)].DgraphType ?? "dgn.migration";
+        var dgnType = InternalClassMapping.ClassMappings[typeof(DgnMigration)].DgraphType ?? "dgn.migration";
 
         {
             await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);

@@ -49,24 +49,26 @@ internal sealed class MigrationUpdateCommand : Command
             var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(ClassMapping).Assembly
+                typeof(InternalClassMapping).Assembly
             };
 
-            ClassMapping.Map(mergedAssemblies.ToArray());
+            InternalClassMapping.SetDefaults(mergedAssemblies.ToArray());
 
-            if (!ClassMapping.ClassMappings.Any())
+            InternalClassMapping.Map(mergedAssemblies.ToArray());
+
+            if (!InternalClassMapping.ClassMappings.Any())
             {
                 _logger.LogWarning("No mapping class found");
                 return;
             }
 
-            var migrations = ClassMapping.Migrations;
+            var migrations = InternalClassMapping.Migrations;
 
-            await ClassMapping.EnsureAsync(client);
+            await InternalClassMapping.EnsureAsync(client);
 
             await using var txn = client.NewTransaction(false, false);
 
-            var dgnType = ClassMapping.GetDgraphType(typeof(DgnMigration));
+            var dgnType = InternalClassMapping.GetDgraphType(typeof(DgnMigration));
 
             _logger.LogInformation("Get last migration");
             var migs = await txn.Query<DgnMigration>("dgn", @$"{{

@@ -6,6 +6,10 @@ This README is based on [Dgraph.net README](https://github.com/dgraph-io/dgraph.
 Before using this client, we highly recommend that you go through [docs.dgraph.io](https://docs.dgraph.io),
 and understand how to run and work with Dgraph.
 
+## IMPORTANT!
+
+> It is not recommended to use the Dgraph4Net.System.Text.Json package, this has caused data loss in deserialization due to a not identified bug.
+
 ## Table of contents
 
   - [Packages](#packages)
@@ -21,7 +25,6 @@ and understand how to run and work with Dgraph.
     - [Running a Query](#running-a-query)
     - [Running an Upsert: Query + Mutation](#running-an-upsert-query-mutation)
     - [Committing a Transaction](#committing-a-transaction)
-    - [ASP.NET Identity](#asp.net-identity)
     - [Uid propagation after Mutation](#uid-propagation-after-mutation)
   - [Migrations](#migrations)
     - [Creating a Migration](#creating-a-migration)
@@ -30,6 +33,8 @@ and understand how to run and work with Dgraph.
   - [In Development](#in-development)
 
 ## Packages
+- **Dgraph4Net.Newtonsoft.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Newtonsoft.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Newtonsoft.Json/)
+- **Dgraph4Net.System.Text.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.System.Text.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.System.Text.Json/)
 - **Dgraph4Net**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net?style=flat)](https://www.nuget.org/packages/Dgraph4Net/)
 - **Dgraph4Net.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Core/)
 
@@ -44,11 +49,14 @@ and understand how to run and work with Dgraph.
 Install using nuget:
 
 ```sh
+dotnet add package Dgraph4Net.Newtonsoft.Json
+dotnet add package Dgraph4Net.System.Text.Json
 dotnet add package Dgraph4Net
 dotnet add package Dgraph4Net.Core
 dotnet tool install Dgraph4Net.Tools
 ```
 
+> The json packages already references Dgraph4Net.\
 > The package Dgraph4Net already references Dgraph4Net.Core.\
 > The package tool Dgraph4Net.Tools references Dgraph4Net for code generation.
 
@@ -309,13 +317,6 @@ catch
   throw;
 }
 ```
-
-### ASP.NET Identity
-
-You can use ASP.NET Identity for a complete native ASP.NET user access security.
-
-Check out the example code [`examples/DGraph4Net.Identity.Example`](examples/DGraph4Net.Identity.Example).
-
 
 ### Uid propagation after Mutation
 
