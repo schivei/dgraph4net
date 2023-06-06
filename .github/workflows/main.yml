@@ -104,8 +104,7 @@ jobs:
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Create PR with master
-        run: |
-          [ -z $(gh pr list -s open -S "dependabot changes" -L 1 --json number | grep "number") ] && gh pr create --title "dependabot changes" --body "Merging from dependabot"
+        run: gh pr create --title "dependabot changes" --body "Merging from dependabot" 2&>/dev/null
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
