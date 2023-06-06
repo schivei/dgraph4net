@@ -104,7 +104,7 @@ jobs:
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Create PR with master
-        run: gh pr create --title "dependabot changes" --body "Merging from dependabot" 2&>/dev/null
+        run: gh pr create --title "dependabot changes" --body "Merging from dependabot"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         continue-on-error: true
