@@ -95,6 +95,9 @@ jobs:
     needs: build
     # create a pr to master
     steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+
       - name: Set Up current git user
         run: |
           git config --global user.name "${{ github.actor }}"
