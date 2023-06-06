@@ -107,6 +107,7 @@ jobs:
         run: gh pr create --title "dependabot changes" --body "Merging from dependabot" 2&>/dev/null
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        continue-on-error: true
 
   # This workflow contains a single job called "build"
   publish:
