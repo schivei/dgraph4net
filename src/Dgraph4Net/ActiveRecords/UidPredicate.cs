@@ -1,9 +1,4 @@
-#nullable enable
-
-using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -32,9 +27,6 @@ public readonly record struct UidPredicate(IClassMap ClassMap, PropertyInfo Prop
     {
         if (value is null)
             return;
-
-        if (value is JsonElement element)
-            value = element.GetString();
 
         Uid uid = value.ToString();
 

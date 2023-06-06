@@ -4,14 +4,19 @@ using System.Threading.Tasks;
 using Xunit;
 using Dgraph4Net.ActiveRecords;
 using Google.Protobuf;
+using System.Text.Json.Serialization;
 
 namespace Dgraph4Net.Tests;
 
 public sealed class Testing : IEntity
 {
+    [JsonPropertyName("uid")]
     public Uid Id { get; set; }
+    [JsonPropertyName("name")]
     public string Name { get; set; }
+    [JsonPropertyName("parent")]
     public Testing? Test { get; set; }
+    [JsonPropertyName("dgraph.type")]
     public string[] DgraphType { get; set; } = new[] { "Testing" };
 }
 
@@ -41,7 +46,7 @@ public class AclTest : ExamplesTest
             {
                 Id = id,
                 Name = "test",
-                Test = new(){ Id = refs }
+                Test = new() { Id = refs }
             };
 
             var t = ByteString.CopyFromUtf8(expected).FromJson<Testing>();

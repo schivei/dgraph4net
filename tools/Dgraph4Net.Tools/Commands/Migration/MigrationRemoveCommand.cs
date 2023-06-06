@@ -64,31 +64,33 @@ internal sealed class MigrationRemoveCommand : Command
         var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(ClassMapping).Assembly
+                typeof(InternalClassMapping).Assembly
             };
 
-        ClassMapping.Map(mergedAssemblies.ToArray());
+        InternalClassMapping.SetDefaults(mergedAssemblies.ToArray());
 
-        if (!ClassMapping.ClassMappings.Any())
+        InternalClassMapping.Map(mergedAssemblies.ToArray());
+
+        if (!InternalClassMapping.ClassMappings.Any())
         {
             _logger.LogWarning("No mapping class found");
             return;
         }
 
-        var migration = ClassMapping.Migrations.FirstOrDefault(x => x.Name == name) ?? throw new Exception("Migration not found");
+        var migration = InternalClassMapping.Migrations.FirstOrDefault(x => x.Name == name) ?? throw new Exception("Migration not found");
 
         // check if have more migrations after this
-        var migrations = ClassMapping.Migrations.Where(x => x.GeneratedAt > migration.GeneratedAt).ToList();
+        var migrations = InternalClassMapping.Migrations.Where(x => x.GeneratedAt > migration.GeneratedAt).ToList();
 
         migrations.Add(migration);
 
-        await ClassMapping.EnsureAsync(client);
+        await InternalClassMapping.EnsureAsync(client);
 
         // get previous migration
 
         await using var txn = client.NewTransaction(false, false);
 
-        var dgnType = ClassMapping.GetDgraphType(typeof(DgnMigration));
+        var dgnType = InternalClassMapping.GetDgraphType(typeof(DgnMigration));
 
         var migs = await txn.QueryWithVars<DgnMigration>("dgn", @$"query Q($date: string) {{
   dgn(func: type({dgnType}), orderdesc: dgn.generated_at, first: 1) @filter(lt(dgn.generated_at, $date)) {{
@@ -101,7 +103,7 @@ internal sealed class MigrationRemoveCommand : Command
 }}", new(){ ["date"] = migration.GeneratedAt.ToString("O") });
 
         // get previous ClassMapping.Migrations from migs[0]
-        var previousMigration = migs.Any() ? ClassMapping.Migrations.FirstOrDefault(x => x.Name == migs[0].Name) : null;
+        var previousMigration = migs.Any() ? InternalClassMapping.Migrations.FirstOrDefault(x => x.Name == migs[0].Name) : null;
         if (previousMigration is not null)
         {
             _logger.LogInformation("Set previous '{Migration}' migration as current", previousMigration.Name);

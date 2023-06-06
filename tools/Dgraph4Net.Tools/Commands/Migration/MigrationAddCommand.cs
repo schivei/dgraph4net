@@ -83,12 +83,14 @@ internal sealed class MigrationAddCommand : Command
             var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(ClassMapping).Assembly
+                typeof(InternalClassMapping).Assembly
             };
 
-            ClassMapping.Map(mergedAssemblies.ToArray());
+            InternalClassMapping.SetDefaults(mergedAssemblies.ToArray());
 
-            if (!ClassMapping.ClassMappings.Any())
+            InternalClassMapping.Map(mergedAssemblies.ToArray());
+
+            if (!InternalClassMapping.ClassMappings.Any())
             {
                 _logger.LogWarning("No mapping class found");
                 return;
@@ -100,14 +102,14 @@ internal sealed class MigrationAddCommand : Command
             var migrationFile = new FileInfo(Path.Combine(outputs.FullName, fileName));
             var scriptFile = new FileInfo(Path.Combine(outputs.FullName, $"{fileName}.schema"));
 
-            var migrations = ClassMapping.Migrations.OrderByDescending(x => x.GeneratedAt);
+            var migrations = InternalClassMapping.Migrations.OrderByDescending(x => x.GeneratedAt);
 
-            var mappings = ClassMapping.ClassMappings.Values
+            var mappings = InternalClassMapping.ClassMappings.Values
                 .Where(x => !x.Type.IsAssignableTo(typeof(DgnMigration)))
                 .OrderBy(x => x.Type.FullName)
                 .ToArray();
 
-            var script = ClassMapping.CreateScript();
+            var script = InternalClassMapping.CreateScript();
 
             if (!migrations.Any())
             {
@@ -137,7 +139,7 @@ internal sealed class MigrationAddCommand : Command
 
                     // get predicates mappings
                     mappings = newPredicates
-                        .Select(x => ClassMapping.ClassMappings[x.Key.DeclaringType])
+                        .Select(x => InternalClassMapping.ClassMappings[x.Key.DeclaringType])
                         .GroupBy(x => x.Type.FullName)
                         .Select(x => x.First())
                         .ToArray();

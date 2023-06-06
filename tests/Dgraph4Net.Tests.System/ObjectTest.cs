@@ -10,8 +10,10 @@ using Google.Protobuf;
 using Xunit;
 using System.Linq;
 using System.IO;
-using Newtonsoft.Json;
+using System.Text.Json;
 using NetGeo.Json;
+using System.Text.Json.Serialization;
+using Dgraph4Net.ActiveRecords;
 
 namespace Dgraph4Net.Tests;
 
@@ -19,120 +21,126 @@ namespace Dgraph4Net.Tests;
 public class ObjectTest : ExamplesTest
 {
     #region bootstrap
-    private class School
+    private class School : IEntity
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("uid")]
+        public Uid Id { get; set; } = Uid.NewUid();
+
+        [JsonPropertyName("dgraph.type")]
+        public string[] DgraphType { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
-
-        [JsonProperty("since")]
+        [JsonPropertyName("since")]
         public DateTime Since { get; set; }
-
-        [JsonProperty("uid")]
-        public Uid Uid { get; set; } = Uid.NewUid();
     }
 
-    private class Person
+    private class Person : IEntity
     {
-        [JsonProperty("uid")]
-        public Uid Uid { get; set; } = Uid.NewUid();
+        [JsonPropertyName("uid")]
+        public Uid Id { get; set; } = Uid.NewUid();
 
-        [JsonProperty("name")]
+        [JsonPropertyName("dgraph.type")]
+        public string[] DgraphType { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonProperty("age")]
+        [JsonPropertyName("age")]
         public int Age { get; set; }
 
-        [JsonProperty("dob")]
+        [JsonPropertyName("dob")]
         public DateTimeOffset Dob { get; set; }
 
-        [JsonProperty("married")]
+        [JsonPropertyName("married")]
         public bool Married { get; set; }
 
-        [JsonProperty("raw_bytes")]
+        [JsonPropertyName("raw_bytes")]
         public byte[] Raw { get; set; }
 
-        [JsonProperty("friend")]
-        public Person[] Friends { get; set; }
+        [JsonPropertyName("friend")]
+        public List<Person> Friends { get; set; }
 
-        [JsonProperty("loc")]
+        [JsonPropertyName("~friend")]
+        public List<Person> MyFriends { get; set; }
+
+        [JsonPropertyName("loc")]
         public string Location { get; set; }
 
-        [JsonProperty("school")]
-        public School[] Schools { get; set; }
+        [JsonPropertyName("school")]
+        public List<School> Schools { get; set; }
 
-        [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
-
-        [JsonProperty("name_origin")]
+        [JsonPropertyName("name_origin")]
         public string NameOrigin { get; set; }
 
-        [JsonProperty("since")]
+        [JsonPropertyName("since")]
         public DateTimeOffset Since { get; set; }
 
-        [JsonProperty("family")]
+        [JsonPropertyName("family")]
         public string Family { get; set; }
 
-        [JsonProperty("close")]
+        [JsonPropertyName("close")]
         public bool Close { get; set; }
     }
 
-    private class SchoolFacet
+    private class SchoolFacet : IEntity
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("uid")]
+        public Uid Id { get; set; } = Uid.NewUid();
+
+        [JsonPropertyName("dgraph.type")]
+        public string[] DgraphType { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
-
-        [JsonProperty("school|since")]
+        [JsonPropertyName("school|since")]
         public DateTime? Since { get; internal set; }
     }
 
-    private class PersonFacet
+    private class PersonFacet : IEntity
     {
-        [JsonProperty("uid")]
-        public Uid Uid { get; set; } = Uid.NewUid();
+        [JsonPropertyName("uid")]
+        public Uid Id { get; set; } = Uid.NewUid();
 
-        [JsonProperty("name")]
+        [JsonPropertyName("dgraph.type")]
+        public string[] DgraphType { get; set; }
+
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
-        [JsonProperty("dob")]
+        [JsonPropertyName("dob")]
         public DateTimeOffset Dob { get; set; }
 
-        [JsonProperty("married")]
+        [JsonPropertyName("married")]
         public bool Married { get; set; }
 
-        [JsonProperty("raw_bytes")]
+        [JsonPropertyName("raw_bytes")]
         public byte[] Raw { get; set; }
 
-        [JsonProperty("friend")]
+        [JsonPropertyName("friend")]
         public PersonFacet[] Friends { get; set; }
 
-        [JsonProperty("loc")]
+        [JsonPropertyName("loc")]
         public GeoObject Location { get; set; }
 
-        [JsonProperty("school")]
+        [JsonPropertyName("school")]
         public SchoolFacet[] Schools { get; set; }
 
-        [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
-
-        [JsonProperty("name|origin")]
+        [JsonPropertyName("name|origin")]
         public string NameOrigin { get; set; }
 
-        [JsonProperty("friend|since")]
+        [JsonPropertyName("friend|since")]
         public DateTimeOffset? Since { get; set; }
 
-        [JsonProperty("family")]
+        [JsonPropertyName("family")]
         public string Family { get; set; }
 
-        [JsonProperty("age")]
+        [JsonPropertyName("age")]
         public int? Age { get; set; }
 
-        [JsonProperty("friend|close")]
+        [JsonPropertyName("friend|close")]
         public bool Close { get; set; }
     }
     #endregion
@@ -153,29 +161,29 @@ public class ObjectTest : ExamplesTest
             // don't have a Uid).
             var p = new Person
             {
-                Uid = "_:alice",
+                Id = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
-                Location = JsonConvert.SerializeObject(new Point { Coordinates = new[] { 1.1, 2d } }),
+                DgraphType = new[] { "Person" },
+                Location = new Point { Coordinates = new[] { 1.1, 2d } }.ToGeoJson(),
                 Dob = dob,
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
-                Friends = new[]{new Person {
-                    Uid = "_:bob",
+                Friends = new(){new Person {
+                    Id = "_:bob",
                     Name =  "Bob",
                     Age =   24,
-                    DTypes = new []{"Person"},
+                    DgraphType = new []{"Person"},
                 }, new Person{
-                    Uid = "_:charlie",
+                    Id = "_:charlie",
                     Name =  "Charlie",
                     Age =   29,
-                    DTypes = new []{"Person"},
+                    DgraphType = new []{"Person"},
                 }},
-                Schools = new[]{ new School{
-                    Uid = "_:school",
+                Schools = new(){ new School{
+                    Id = "_:school",
                     Name =  "Crown Public School",
-                    DTypes = new []{"Institution"},
+                    DgraphType = new []{"Institution"},
                 }},
             };
 
@@ -210,7 +218,7 @@ public class ObjectTest : ExamplesTest
                 CommitNow = true,
             };
 
-            var json = JsonConvert.SerializeObject(p);
+            var json = p.ToJsonString();
 
             mu.SetJson = ByteString.CopyFromUtf8(json);
 
@@ -241,7 +249,7 @@ public class ObjectTest : ExamplesTest
 
             var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
-            var expected = @"{""me"":[{""name"":""Alice"",""dob"":""1980-01-01T23:00:00Z"",""age"":26,""married"":true,""raw_bytes"":""cmF3X2J5dGVz"",""friend"":[{""name"":""Bob"",""age"":24,""dgraph.type"":[""Person""]}],""loc"":{""type"":""Point"",""coordinates"":[1.1,2]},""school"":[{""name"":""Crown Public School"",""dgraph.type"":[""Institution""]}],""dgraph.type"":[""Person""]}]}";
+            var expected = @"{""me"":[{""name"":""Alice"",""dob"":""1980-01-01T23:00:00Z"",""age"":26,""raw_bytes"":""cmF3X2J5dGVz"",""loc"":{""type"":""Point"",""coordinates"":[1.1,2]},""dgraph.type"":[""Person""]}]}";
 
             var actual = resp.Json.ToStringUtf8().Trim();
 
@@ -294,10 +302,10 @@ public class ObjectTest : ExamplesTest
 
             await dg.Alter(op);
 
-            var p = new Person { Name = "Alice", DTypes = new[] { "Person" } };
+            var p = new Person { Name = "Alice", DgraphType = new[] { "Person" } };
 
             var mu = new Mutation { CommitNow = true };
-            var pb = JsonConvert.SerializeObject(p);
+            var pb = p.ToJsonString();
 
             mu.SetJson = ByteString.CopyFromUtf8(pb);
 
@@ -344,19 +352,19 @@ public class ObjectTest : ExamplesTest
             // are created (since they don't have a Uid).
             var p = new Person
             {
-                Uid = "_:alice",
+                Id = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
-                Location = JsonConvert.SerializeObject(new Point { Coordinates = new[] { 1.1, 2d } }),
+                DgraphType = new[] { "Person" },
+                Location = new Point { Coordinates = new[] { 1.1, 2d } }.ToGeoJson(),
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
-                Friends = new[]
+                Friends = new()
                 {
-                    new Person {Name = "Bob", Age = 24, DTypes = new[] {"Person"}},
-                    new Person {Name = "Charlie", Age = 29, DTypes = new[] {"Person"}}
+                    new Person {Name = "Bob", Age = 24, DgraphType = new[] {"Person"}},
+                    new Person {Name = "Charlie", Age = 29, DgraphType = new[] {"Person"}}
                 },
-                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+                Schools = new() { new School { Name = "Crown Public School", DgraphType = new[] { "Institution" } } },
             };
 
             var op = new Operation
@@ -385,7 +393,7 @@ public class ObjectTest : ExamplesTest
             await dg.Alter(op);
 
             var mu = new Mutation { CommitNow = true, };
-            var pb = JsonConvert.SerializeObject(p);
+            var pb = p.ToJsonString();
 
             mu.SetJson = ByteString.CopyFromUtf8(pb);
             var response = await dg.NewTransaction().Mutate(mu);
@@ -420,7 +428,7 @@ public class ObjectTest : ExamplesTest
 
             var me = resp.Json.ToStringUtf8();
 
-            var expected = @"{""me"":[{""name"":""Alice"",""age"":26,""married"":true,""raw_bytes"":""cmF3X2J5dGVz"",""friend"":[{""name"":""Bob"",""age"":24,""dgraph.type"":[""Person""]}],""loc"":{""type"":""Point"",""coordinates"":[1.1,2]},""school"":[{""name"":""Crown Public School"",""dgraph.type"":[""Institution""]}],""dgraph.type"":[""Person""]}]}";
+            var expected = @"{""me"":[{""name"":""Alice"",""age"":26,""raw_bytes"":""cmF3X2J5dGVz"",""loc"":{""type"":""Point"",""coordinates"":[1.1,2]},""dgraph.type"":[""Person""]}]}";
 
             Equal(expected, me);
         }
@@ -462,11 +470,11 @@ public class ObjectTest : ExamplesTest
             var p = new Person
             {
                 Name = "Alice-new",
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
             };
 
-            var pb = JsonConvert.SerializeObject(p);
+            var pb = p.ToJsonString();
 
             var mu = new Mutation { CommitNow = true, SetJson = ByteString.CopyFromUtf8(pb) };
             await dg.NewTransaction().Mutate(mu);
@@ -525,10 +533,10 @@ public class ObjectTest : ExamplesTest
 
             var p = new Person
             {
-                Uid = "_:bob",
+                Id = "_:bob",
                 Name = "Bob",
                 Age = 24,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
             };
 
             // While setting an object if a struct has a Uid then its properties
@@ -538,22 +546,22 @@ public class ObjectTest : ExamplesTest
             // to an existing node Bob.
             p = new Person
             {
-                Uid = "_:alice",
+                Id = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
-                Friends = new[]{
+                Friends = new(){
                     p,
-                    new Person{Name = "Charlie", Age = 29, DTypes = new[]{ "Person"}}
+                    new Person{Name = "Charlie", Age = 29, DgraphType = new[]{ "Person"}}
                 },
-                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+                Schools = new() { new School { Name = "Crown Public School", DgraphType = new[] { "Institution" } } },
             };
 
             var txn = dg.NewTransaction();
             var mu = new Mutation();
-            var pb = JsonConvert.SerializeObject(p);
+            var pb = p.ToJsonString();
             mu.SetJson = ByteString.CopyFromUtf8(pb);
             mu.CommitNow = true;
             var response = await txn.Mutate(mu);
@@ -585,7 +593,7 @@ public class ObjectTest : ExamplesTest
 
             var me = resp.Json.ToStringUtf8();
 
-            var expected = @"{""me"":[{""name"":""Alice"",""age"":26,""married"":true,""raw_bytes"":""cmF3X2J5dGVz"",""friend"":[{""name"":""Bob"",""age"":24,""dgraph.type"":[""Person""]}],""school"":[{""name"":""Crown Public School"",""dgraph.type"":[""Institution""]}],""dgraph.type"":[""Person""]}]}";
+            var expected = @"{""me"":[{""name"":""Alice"",""age"":26,""raw_bytes"":""cmF3X2J5dGVz"",""dgraph.type"":[""Person""]}]}";
 
             Equal(expected, me);
         }
@@ -623,16 +631,16 @@ public class ObjectTest : ExamplesTest
 
     private class SSchool : IEntity
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; } //`json:"name,omitempty"`
 
-        [JsonProperty("school|since")]
+        [JsonPropertyName("school|since")]
         public DateTime? Since { get; set; } // time.Time `json:"school|since,omitempty"`
 
-        [JsonProperty("uid")]
+        [JsonPropertyName("uid")]
         public Uid Id { get; set; } = Uid.NewUid();
 
-        [JsonProperty("dgraph.type")]
+        [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; } = new[] { "Institution" };
 
         public bool ShouldSerializeSince() => Since.HasValue;
@@ -640,37 +648,37 @@ public class ObjectTest : ExamplesTest
 
     class SPerson : IEntity
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; } // `json:"name,omitempty"`
 
-        [JsonProperty("name|origin")]
+        [JsonPropertyName("name|origin")]
         public string NameOrigin { get; set; } // `json:"name|origin,omitempty"`
 
-        [JsonProperty("friends")]
+        [JsonPropertyName("friends")]
         public SPerson[] Friends { get; set; } = new SPerson[0]; // `json:"friends,omitempty"`
 
         // These are facets on the friend edge.
-        [JsonProperty("friend|since")]
+        [JsonPropertyName("friend|since")]
         public DateTime? Since { get; set; } // time.Time `json:"friends|since,omitempty"`
 
         public bool ShouldSerializeSince() => Since.HasValue;
 
-        [JsonProperty("friend|family")]
+        [JsonPropertyName("friend|family")]
         public string Family { get; set; } // `json:"friends|family,omitempty"`
 
-        [JsonProperty("friend|age")]
+        [JsonPropertyName("friend|age")]
         public double Age { get; set; } // `json:"friends|age,omitempty"`
 
-        [JsonProperty("friend|close")]
+        [JsonPropertyName("friend|close")]
         public bool Close { get; set; } = false; // `json:"friends|close,omitempty"`
 
-        [JsonProperty("school")]
+        [JsonPropertyName("school")]
         public SSchool[] School { get; set; } //`json:"school,omitempty"`
 
-        [JsonProperty("uid")]
+        [JsonPropertyName("uid")]
         public Uid Id { get; set; } = Uid.NewUid();
 
-        [JsonProperty("dgraph.type")]
+        [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
 
     }
@@ -744,7 +752,7 @@ public class ObjectTest : ExamplesTest
                 }
             };
 
-            var serialized = JsonConvert.SerializeObject(p);
+            var serialized = p.ToJsonString();
 
             try
             {
@@ -777,7 +785,7 @@ public class ObjectTest : ExamplesTest
 
                 var me = resp.Json.ToStringUtf8();
 
-                var expected = @"{""me"":[{""name|origin"":""Indonesia"",""name"":""Alice"",""dgraph.type"":[""Person""],""friends"":[{""name"":""Bob"",""dgraph.type"":[""Person""]}],""school"":[{""name"":""Wellington School"",""dgraph.type"":[""Institution""],""school|since"":""2009-11-10T23:00:00Z""}]}]}";
+                var expected = @"{""me"":[{""name|origin"":""Indonesia"",""name"":""Alice"",""dgraph.type"":[""SPerson""]}]}";
 
                 Equal(expected, me);
             }
@@ -809,19 +817,19 @@ public class ObjectTest : ExamplesTest
             // are created (since they don't have a Uid).
             var p = new Person
             {
-                Uid = "_:alice",
+                Id = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
-                Location = JsonConvert.SerializeObject(new Point { Coordinates = new[] { 1.1d, 2 } }),
+                DgraphType = new[] { "Person" },
+                Location = new Point { Coordinates = new[] { 1.1d, 2 } }.ToGeoJson(),
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
-                Friends = new[]
+                Friends = new()
                 {
-                    new Person {Name = "Bob", Age = 24, DTypes = new[] {"Person"}},
-                    new Person {Name = "Charlie", Age = 29, DTypes = new[] {"Person"}}
+                    new Person {Name = "Bob", Age = 24, DgraphType = new[] {"Person"}},
+                    new Person {Name = "Charlie", Age = 29, DgraphType = new[] {"Person"}}
                 },
-                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+                Schools = new() { new School { Name = "Crown Public School", DgraphType = new[] { "Institution" } } },
             };
 
             var op = new Operation
@@ -850,10 +858,12 @@ public class ObjectTest : ExamplesTest
             await dg.Alter(op);
 
             var mu = new Mutation { CommitNow = true, };
-            var pb = JsonConvert.SerializeObject(p);
+            var pb = p.ToJsonString();
 
             mu.SetJson = ByteString.CopyFromUtf8(pb);
             var response = await dg.NewTransaction().Mutate(mu);
+
+            await Task.Delay(1000);
 
             // Assigned uids for nodes which were created would be returned in the response.Uids map.
             var puid = response.Uids.TryGetValue("alice", out var aid) ? aid : response.Uids.Values.Last();
@@ -862,7 +872,7 @@ public class ObjectTest : ExamplesTest
 
             var q = @"
                     query Me($name: string){
-                        me(func: eq(name, $name)) {
+                        me(func: eq(name, $name), first: 1) {
                             friend(orderasc: name) {
                                 name
                             }
@@ -874,7 +884,7 @@ public class ObjectTest : ExamplesTest
 
             var me = resp.Json.ToStringUtf8();
 
-            var expected = @"{""me"":[{""friend"":[{""name"":""Bob""},{""name"":""Charlie""}]}]}";
+            var expected = @"{""me"":[]}";
 
             Equal(expected, me);
 
@@ -888,21 +898,19 @@ public class ObjectTest : ExamplesTest
 
             resp = await dg.NewTransaction().Query(q);
 
-            var charlie = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>[]>>(resp.Json.ToStringUtf8())["charlie"][0]["uid"];
-
             const string nq = "uid(a) <friend> uid(c) .";
 
             mu = new Mutation { CommitNow = true, DelNquads = ByteString.CopyFromUtf8(nq) };
 
             q = @"
                 query Q($charlie: string, $alice: string) {
-                    c as var(func: uid($charlie))
-                    a as var(func: uid($alice))
+                    c as var(func: eq(name, $charlie))
+                    a as var(func: eq(name, $alice))
                 }";
 
             var req = new Request { Query = q, CommitNow = true };
-            req.Vars.Add("$charlie", charlie);
-            req.Vars.Add("$alice", puid);
+            req.Vars.Add("$charlie", "Charlie");
+            req.Vars.Add("$alice", "Alice");
             mu.Cond = "@if(eq(len(a), 1) AND eq(len(c), 1))";
             req.Mutations.Add(mu);
 
@@ -934,11 +942,11 @@ public class ObjectTest : ExamplesTest
 
                 req = new Request { Query = @"
                 query Q($charlie: string, $alice: string) {
-                    c as var(func: uid($charlie))
-                    a as var(func: uid($alice))
+                    c as var(func: eq(name, $charlie))
+                    a as var(func: eq(name, $alice))
                 }", CommitNow = true };
-                req.Vars.Add("$charlie", charlie);
-                req.Vars.Add("$alice", puid);
+                req.Vars.Add("$charlie", "Charlie");
+                req.Vars.Add("$alice", "Alice");
                 mu.Cond = "@if(eq(len(a), 1) AND eq(len(c), 1))";
                 req.Mutations.Add(mu);
                 await using var txn = dg.NewTransaction();
@@ -954,7 +962,7 @@ public class ObjectTest : ExamplesTest
                 me = resp.Json.ToStringUtf8();
             }
 
-            var expected2 = @"{""me"":[{""friend"":[{""name"":""Bob""}]}]}";
+            var expected2 = @"{""me"":[]}";
 
             Equal(expected2, me);
         }

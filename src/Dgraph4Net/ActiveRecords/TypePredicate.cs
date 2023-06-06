@@ -1,9 +1,4 @@
-#nullable enable
-
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -31,14 +26,6 @@ public readonly record struct TypePredicate(IClassMap ClassMap, PropertyInfo Pro
     {
         if (value is null)
             return;
-
-        if (value is JsonElement element)
-        {
-            if (element.ValueKind == JsonValueKind.Array)
-                value = element.EnumerateArray().Select(x => x.GetString()).ToArray();
-            else
-                value = new[] { element.GetString() };
-        }
 
         if (value is IEnumerable<string> ie)
             Property.SetValue(target, ie.ToArray());

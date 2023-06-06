@@ -1,9 +1,4 @@
-#nullable enable
-
-using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text.Json;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -34,9 +29,6 @@ public readonly record struct BooleanPredicate(IClassMap ClassMap, PropertyInfo 
     {
         if (value is null)
             return;
-
-        if (value is JsonElement element)
-            value = element.ValueKind == JsonValueKind.String ? element.GetString() : element.GetBoolean();
 
         if (value is bool b)
             Property.SetValue(target, b);
