@@ -58,15 +58,15 @@ jobs:
         dotnet restore src/Dgraph4Net.System.Text.Json/Dgraph4Net.System.Text.Json.csproj &&
         dotnet restore src/Dgraph4Net.Newtonsoft.Json/Dgraph4Net.Newtonsoft.Json.csproj &&
         dotnet restore tests/Dgraph4Net.Tests/Dgraph4Net.Tests.csproj &&
-        dotnet restore tests/Dgraph4Net.Tests/Dgraph4Net.Tests.System.csproj &&
+        dotnet restore tests/Dgraph4Net.Tests.System/Dgraph4Net.Tests.System.csproj &&
         dotnet build src/Dgraph4Net.Core/Dgraph4Net.Core.csproj --no-restore &&
         dotnet build src/Dgraph4Net/Dgraph4Net.csproj --no-restore &&
         dotnet build src/Dgraph4Net.System.Text.Json/Dgraph4Net.System.Text.Json.csproj --no-restore &&
         dotnet build src/Dgraph4Net.Newtonsoft.Json/Dgraph4Net.Newtonsoft.Json.csproj --no-restore &&
         dotnet build tests/Dgraph4Net.Tests/Dgraph4Net.Tests.csproj --no-restore &&
-        dotnet build tests/Dgraph4Net.Tests/Dgraph4Net.Tests.System.csproj --no-restore &&
+        dotnet build tests/Dgraph4Net.Tests.System/Dgraph4Net.Tests.System.csproj --no-restore &&
         dotnet test tests/Dgraph4Net.Tests/Dgraph4Net.Tests.csproj --no-build --no-restore &&
-        dotnet test tests/Dgraph4Net.Tests/Dgraph4Net.Tests.System.csproj --no-build --no-restore
+        dotnet test tests/Dgraph4Net.Tests.System/Dgraph4Net.Tests.System.csproj --no-build --no-restore
     
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
