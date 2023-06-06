@@ -100,11 +100,9 @@ jobs:
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: Create PR with master
-        uses: peter-evans/create-pull-request@v3
-        with:
-          branch: master
-          delete-branch: false
-          labels: dependencies
+        run: gh pr create --title "dependabot changes" --body "Merging from dependabot"
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
   # This workflow contains a single job called "build"
   publish:
