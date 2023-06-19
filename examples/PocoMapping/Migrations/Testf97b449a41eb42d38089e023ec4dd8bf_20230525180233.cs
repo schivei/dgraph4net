@@ -14,4 +14,3 @@ internal sealed class Testf97b449a41eb42d38089e023ec4dd8bf_20230525180233 : Migr
     {
     }
 }
-

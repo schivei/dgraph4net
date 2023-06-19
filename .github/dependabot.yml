@@ -17,6 +17,13 @@ updates:
     open-pull-requests-limit: 5
     target-branch: "dependabot/master"
   - package-ecosystem: "nuget"
+    directory: "/src/Dgraph4Net.Newtonsoft.Json" #Dgraph4Net.Newtonsoft.Json.csproj
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 5
+    target-branch: "dependabot/master"
+  - package-ecosystem: "nuget"
     directory: "/tools/Dgraph4Net.Tools" #DGraph4Net.Tools.csproj
     schedule:
       interval: "weekly"

@@ -1,4 +1,3 @@
-#nullable enable
 
 using Dgraph4Net.Core;
 

@@ -1,16 +1,22 @@
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
-namespace System;
+namespace Dgraph4Net.Newtonsoft.Json;
 
 internal class UidConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType)
     {
         return objectType == typeof(Uid) ||
-                objectType == typeof(string) ||
-                objectType == typeof(ulong) ||
-                objectType == typeof(object);
+               objectType == typeof(string) ||
+               objectType == typeof(int) ||
+               objectType == typeof(uint) ||
+               objectType == typeof(long) ||
+               objectType == typeof(ulong) ||
+               objectType == typeof(byte) ||
+               objectType == typeof(char) ||
+               objectType == typeof(sbyte) ||
+               objectType == typeof(short) ||
+               objectType == typeof(ushort);
     }
 
     public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)

@@ -231,7 +231,7 @@ public abstract class Migration : IDgnMigration
             var mutation = new Mutation
             {
                 CommitNow = true,
-                SetJson = dgnm.ToJson()
+                SetJson = ClassMapping.ToJson(dgnm)
             };
 
             try

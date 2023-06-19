@@ -16,6 +16,9 @@ public class ExamplesTest : Assert
 {
     public ExamplesTest()
     {
+        // just to set Newtonsoft manually
+        ClassMapping.ImplClassMapping = new NJClassMapping();
+
         if (Environment.GetEnvironmentVariable("GRPC_DNS_RESOLVER") != "native")
         {
             Environment.SetEnvironmentVariable("GRPC_DNS_RESOLVER", "native");

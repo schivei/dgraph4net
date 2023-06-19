@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.projitems" Label="Shared" />
   <Import Project="../../pack.props" />
 
   <ItemGroup>

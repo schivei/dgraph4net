@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -8,10 +6,9 @@ using Dgraph4Net;
 
 using Google.Protobuf.Collections;
 
-#nullable enable
-
 namespace System;
 
+[JsonConverter(typeof(UidConverter))]
 public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
 {
     private readonly IDisposable? _unsubscriber;
@@ -176,32 +173,56 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
     public static implicit operator Uid(ulong uid) =>
         uid > 0 ? new Uid(uid) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
-    public static implicit operator ulong(Uid uid) =>
+    public static explicit operator ulong(Uid uid) =>
         uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ulong.") : ulong.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static implicit operator Uid(uint uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
+    public static explicit operator uint(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to uint.") : uint.Parse(uid.ToString(), NumberStyles.HexNumber);
+
     public static implicit operator Uid(ushort uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+    public static explicit operator ushort(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ushort.") : ushort.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static implicit operator Uid(byte uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
+    public static explicit operator byte(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to byte.") : byte.Parse(uid.ToString(), NumberStyles.HexNumber);
+
     public static implicit operator Uid(char uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+    public static explicit operator char(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to char.") : (char)int.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static implicit operator Uid(long uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
+    public static explicit operator long(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to long.") : long.Parse(uid.ToString(), NumberStyles.HexNumber);
+
     public static implicit operator Uid(int uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+    public static explicit operator int(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to int.") : int.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static implicit operator Uid(short uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
+    public static explicit operator short(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to short.") : short.Parse(uid.ToString(), NumberStyles.HexNumber);
+
     public static implicit operator Uid(sbyte uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
+
+    public static explicit operator sbyte(Uid uid) =>
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to sbyte.") : sbyte.Parse(uid.ToString(), NumberStyles.HexNumber);
 
     public static bool operator <(Uid left, Uid right)
     {

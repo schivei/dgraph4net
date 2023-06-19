@@ -1,6 +1,3 @@
-using System;
-
-#nullable enable
 
 namespace Dgraph4Net.ActiveRecords;
 

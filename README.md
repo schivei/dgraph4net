@@ -6,10 +6,6 @@ This README is based on [Dgraph.net README](https://github.com/dgraph-io/dgraph.
 Before using this client, we highly recommend that you go through [docs.dgraph.io](https://docs.dgraph.io),
 and understand how to run and work with Dgraph.
 
-## IMPORTANT!
-
-> It is not recommended to use the Dgraph4Net.System.Text.Json package, this has caused data loss in deserialization due to a not identified bug.
-
 ## Table of contents
 
   - [Packages](#packages)
@@ -34,7 +30,6 @@ and understand how to run and work with Dgraph.
 
 ## Packages
 - **Dgraph4Net.Newtonsoft.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Newtonsoft.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Newtonsoft.Json/)
-- **Dgraph4Net.System.Text.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.System.Text.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.System.Text.Json/)
 - **Dgraph4Net**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net?style=flat)](https://www.nuget.org/packages/Dgraph4Net/)
 - **Dgraph4Net.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Core/)
 
@@ -50,7 +45,6 @@ Install using nuget:
 
 ```sh
 dotnet add package Dgraph4Net.Newtonsoft.Json
-dotnet add package Dgraph4Net.System.Text.Json
 dotnet add package Dgraph4Net
 dotnet add package Dgraph4Net.Core
 dotnet tool install Dgraph4Net.Tools

@@ -7,6 +7,12 @@ namespace Dgraph4Net.ActiveRecords;
 
 internal static class InternalClassMapping
 {
+    internal static List<IPredicate> GetPredicates(Type type) =>
+      ClassMap.Predicates.Where(x => x.Key.DeclaringType == type).Select(x => x.Value).ToList();
+
+    internal static IPredicate GetPredicate(PropertyInfo prop) =>
+        ClassMap.Predicates.First(x => x.Key == prop).Value;
+
     internal static ConcurrentDictionary<Type, IClassMap> ClassMappings { get; }
 
     internal static ConcurrentBag<Migration> Migrations { get; set; }

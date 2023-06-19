@@ -1,5 +1,3 @@
-using System;
-
 namespace Dgraph4Net.ActiveRecords;
 
 public interface IDgnMigration : IEntity
