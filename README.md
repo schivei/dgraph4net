@@ -34,7 +34,7 @@ and understand how to run and work with Dgraph.
 - **Dgraph4Net.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Core/)
 
 ### Tools
-- **Dgraph4Net.Tools**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Identity?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Tools/)
+- **Dgraph4Net.Tools**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Tools?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Tools/)
   - For migrations and schema management
 
 ![Package Publisher](https://github.com/schivei/dgraph4net/workflows/Package%20Publisher/badge.svg)
