@@ -25,5 +25,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
+    <PackageReference Update="Grpc.Net.ClientFactory" Version="2.54.0" />
   </ItemGroup>
 </Project>

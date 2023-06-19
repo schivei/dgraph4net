@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Dgraph4Net;
 
 public interface IDgraph4NetClient

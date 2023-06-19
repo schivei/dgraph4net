@@ -17,4 +17,3 @@ internal sealed class Teste199e45d7e1e4d538306bc9c61acc4a8_20230525175626 : Migr
         DropType("Person");
     }
 }
-

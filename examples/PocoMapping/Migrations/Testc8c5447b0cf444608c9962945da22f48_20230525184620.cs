@@ -18,4 +18,3 @@ internal sealed class Testc8c5447b0cf444608c9962945da22f48_20230525184620 : Migr
         DropType("Company");
     }
 }
-

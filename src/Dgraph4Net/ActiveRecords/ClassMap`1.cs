@@ -1,13 +1,9 @@
-using System;
 using System.Collections;
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
 using Dgraph4Net.Core;
 using NetGeo.Json;
-
-#nullable enable
 
 namespace Dgraph4Net.ActiveRecords;
 

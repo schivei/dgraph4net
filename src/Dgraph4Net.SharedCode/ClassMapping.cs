@@ -9,12 +9,10 @@ using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NetGeo.Json;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Dgraph4Net.ActiveRecords;
 
-public static class ClassMapping
+public static partial class ClassMapping
 {
     internal static ConcurrentDictionary<Type, IClassMap> ClassMappings => InternalClassMapping.ClassMappings;
 
@@ -241,7 +239,7 @@ public static class ClassMapping
                         {
                             json.Append('\"').Append(predicate.ToTypePredicate()).Append("\": ");
 
-                            json.Append(JsonConvert.SerializeObject(listValue)).Append(',');
+                            json.Append(Serialize(listValue)).Append(',');
                         }
                         else if (!doNotPropagateNulls)
                         {
@@ -293,7 +291,7 @@ public static class ClassMapping
                     if (strValue is not null)
                     {
                         json.Append('\"').Append(predicate.ToTypePredicate()).Append("\": ")
-                            .Append(JsonConvert.SerializeObject(strValue)).Append(','); // to escape quotes
+                            .Append(Serialize(strValue)).Append(','); // to escape quotes
                     }
                     else if (!doNotPropagateNulls)
                     {
@@ -332,7 +330,7 @@ public static class ClassMapping
             return default;
 
         if (type.IsAssignableTo(typeof(Dictionary<string, object>)))
-            return JsonConvert.DeserializeObject<Dictionary<string, object>>(bytes.ToStringUtf8());
+            return Deserialize<Dictionary<string, object>>(bytes.ToStringUtf8());
 
         Type dataType;
 
@@ -349,16 +347,11 @@ public static class ClassMapping
         {
             var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(dataType));
 
-            var element = JsonConvert.DeserializeObject<JObject?>(bytes.ToStringUtf8());
-
-            if (element is null || element.Property(param) is not JProperty parameter || parameter.Type != JTokenType.Array)
-                return list;
-
-            return parameter.ToList().ConvertAll(e => e.ToObject(dataType));
+            return DeserializeFromJsonBS(bytes, param, dataType, list, type: type);
         }
         else
         {
-            return JsonConvert.DeserializeObject(bytes.ToStringUtf8(), type);
+            return Deserialize(bytes.ToStringUtf8(), type);
         }
     }
 
@@ -386,7 +379,7 @@ public static class ClassMapping
             return default;
 
         if (type.IsAssignableTo(typeof(Dictionary<string, object>)))
-            return JsonConvert.DeserializeObject<Dictionary<string, object>>(bytes.ToStringUtf8());
+            return Deserialize<Dictionary<string, object>>(bytes.ToStringUtf8());
 
         Type dataType;
 
@@ -403,87 +396,11 @@ public static class ClassMapping
         {
             var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(dataType));
 
-            var element = JsonConvert.DeserializeObject<JArray?>(bytes.ToStringUtf8());
-
-            if (element is null || element.Count == 0)
-                return list;
-
-            foreach (var el in element.AsJEnumerable())
-            {
-                if (el is not JObject child)
-                    continue;
-
-                Uid uid = child.Property("uid").ToString();
-
-                if (uid.IsEmpty)
-                    continue;
-
-                if (loaded.ContainsKey(uid))
-                {
-                    list.Add(loaded[uid]);
-                    continue;
-                }
-
-                var entity = (IEntity)Activator.CreateInstance(dataType);
-
-                dataType.GetProperty(nameof(IEntity.Id))
-                    .SetValue(entity, uid);
-
-                list.Add(entity);
-
-                foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))
-                {
-                    if (child.Property(predicate.Value.PredicateName) is not null and { } value)
-                        predicate.Value.SetValue(value.ToObject(predicate.Key.PropertyType), entity);
-                }
-            }
-
-            return list;
+            return DeserializeFromJson(bytes, dataType, list, loaded);
         }
         else if (dataType.IsAssignableTo(typeof(IEntity)))
         {
-            var element = JsonConvert.DeserializeObject<JObject>(bytes.ToStringUtf8());
-
-            Uid uid = element.Property("uid").Value.ToString();
-
-            if (uid.IsEmpty)
-                return null;
-
-            if (loaded.ContainsKey(uid))
-            {
-                return loaded[uid];
-            }
-
-            var entity = (IEntity)Activator.CreateInstance(dataType);
-
-            dataType.GetProperty(nameof(IEntity.Id))
-                .SetValue(entity, uid);
-
-            foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))
-            {
-                if (element.Property(predicate.Value.PredicateName) is not null and JProperty value)
-                {
-                    if (predicate.Key.PropertyType == typeof(Uid))
-                    {
-                        Uid id = value.Value.ToString();
-                        predicate.Value.SetValue(id, entity);
-                    }
-                    else
-                    {
-                        var js = JsonConvert.SerializeObject(value.Value);
-                        if (value.Value.Type == JTokenType.Object && predicate.Key.PropertyType.IsAssignableTo(typeof(IEntity)))
-                        {
-                            predicate.Value.SetValue(ByteString.CopyFromUtf8(js).FromJson(predicate.Key.PropertyType, loaded), entity);
-                        }
-                        else
-                        {
-                            predicate.Value.SetValue(JsonConvert.DeserializeObject(js, predicate.Key.PropertyType), entity);
-                        }
-                    }
-                }
-            }
-
-            return entity;
+            return DeserializeFromJson(bytes, dataType, loaded);
         }
 
         return null;
@@ -510,84 +427,7 @@ public static class ClassMapping
         return false;
     }
 
-    private class JsonClassMap<T> : ClassMap<T> where T : IEntity
-    {
-        protected override void Map()
-        {
-            SetType(typeof(T).Name);
-
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(x => x.GetCustomAttribute<JsonPropertyAttribute>() is not null &&
-                    x.Name != "Id" && x.Name != "DgraphType");
-
-            foreach (var prop in properties)
-            {
-                var attr = prop.GetCustomAttribute<JsonPropertyAttribute>();
-
-                if (prop.PropertyType.IsEnum)
-                {
-                    if (prop.PropertyType.GetCustomAttribute<FlagsAttribute>(true) is not null)
-                    {
-                        ListString(prop, attr.PropertyName);
-                    }
-                    else
-                    {
-                        String(prop, attr.PropertyName, false, false, false, StringToken.Exact, null);
-                    }
-                }
-                else
-                {
-                    if (TryGetType(prop.PropertyType, out var dataType))
-                    {
-                        switch (dataType)
-                        {
-                            case "uid":
-                                HasOne(prop, attr.PropertyName.Replace("~", ""), attr.PropertyName.StartsWith("~"), false);
-                                break;
-
-                            case "string":
-                                String(prop, attr.PropertyName, false, false, false, StringToken.Term, null);
-                                break;
-
-                            case "int":
-                                Integer(prop, attr.PropertyName, true);
-                                break;
-
-                            case "float":
-                                Float(prop, attr.PropertyName, true);
-                                break;
-
-                            case "datetime":
-                                DateTime(prop, attr.PropertyName, Core.DateTimeToken.Hour, false);
-                                break;
-
-                            case "geo":
-                                Geo(prop, attr.PropertyName, true, false);
-                                break;
-                        }
-                    }
-                    else if (dataType.StartsWith("["))
-                    {
-                        switch (dataType)
-                        {
-                            case "[uid]":
-                                HasMany(prop, attr.PropertyName);
-                                break;
-
-                            case "[string]":
-                            case "[int]":
-                            case "[float]":
-                            case "[datetime]":
-                            case "[geo]":
-                                var dt = dataType[1..^1];
-                                List(prop, dt, attr.PropertyName);
-                                break;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    private partial class JsonClassMap<T> : ClassMap<T> where T : IEntity { }
 
     public static IServiceCollection AddDgraph(this IServiceCollection services) =>
         services.AddDgraph("DefaultConnection");
@@ -643,25 +483,6 @@ public static class ClassMapping
         return services;
     }
 
-    public static void SetDefaults()
-    {
-        GeoExtensions.SetDefaults();
-
-        var settings = JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings();
-
-        if (settings.Converters.Any(x => x is UidConverter))
-            return;
-
-        settings.Converters = new List<JsonConverter>(settings.Converters)
-        {
-            new UidConverter()
-        };
-
-        settings.Culture = CultureInfo.InvariantCulture;
-
-        JsonConvert.DefaultSettings = () => settings;
-    }
-
     public static void Map()
     {
         SetDefaults();
@@ -677,9 +498,18 @@ public static class ClassMapping
     internal static Task EnsureAsync(Dgraph4NetClient client) =>
         InternalClassMapping.EnsureAsync(client);
 
-    public static object GetDgraphType(Type type) =>
+    public static string GetDgraphType(Type type) =>
         InternalClassMapping.GetDgraphType(type);
 
     internal static string CreateScript() =>
         InternalClassMapping.CreateScript();
+
+    public static List<IPredicate> GetPredicates(Type type) =>
+        InternalClassMapping.GetPredicates(type);
+
+    public static List<IPredicate> GetPredicates<T>() =>
+        InternalClassMapping.GetPredicates(typeof(T));
+
+    public static IPredicate GetPredicate(PropertyInfo prop) =>
+        InternalClassMapping.GetPredicate(prop);
 }

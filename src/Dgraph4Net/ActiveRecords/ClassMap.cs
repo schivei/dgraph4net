@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 
-#nullable enable
-
 namespace Dgraph4Net.ActiveRecords;
 
 public abstract class ClassMap : IClassMap
