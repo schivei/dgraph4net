@@ -1,6 +1,8 @@
 using System.Reflection;
 using Api;
 using Dgraph4Net.ActiveRecords;
+using Google.Protobuf.Collections;
+using Grpc.Net.Client.Balancer;
 
 namespace Dgraph4Net;
 
@@ -32,4 +34,16 @@ public static class TxnExtensions
 
         return resp.Json.FromJson<List<T>>(param);
     }
+
+    internal static void Resolve(this Uid.UidResolver resolver, MapField<string, string> uids)
+    {
+        uids.ToList().ForEach(kv =>
+        {
+            if (Uid.IsValid($"_:{kv.Key}") && Uid.IsValid(kv.Value))
+                resolver.Resolve($"_:{kv.Key}", kv.Value);
+        });
+    }
+
+    public static void Resolve(MapField<string, string> uids) =>
+        Uid.s_resolver.Resolve(uids);
 }

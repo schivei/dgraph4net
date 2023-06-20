@@ -31,24 +31,11 @@ public static class ClassMapping
     public static ByteString ToJson<T>(this T entity, bool deep = false, bool doNotPropagateNulls = false) where T : IEntity =>
         ImplClassMapping.ToJson<T>(entity, deep, doNotPropagateNulls);
 
-    private static string ToJson<T>(this T entity, HashSet<IEntity> mapped, bool deep, bool doNotPropagateNulls = false) where T : IEntity =>
-        ImplClassMapping.ToJson<T>(entity, mapped, deep, doNotPropagateNulls);
-
     public static object? FromJson(this ByteString bytes, Type type, string param) =>
         ImplClassMapping.FromJson(bytes, type, param);
 
     public static T? FromJson<T>(this ByteString bytes, string param) =>
         ImplClassMapping.FromJson<T>(bytes, param);
-
-    /// <summary>
-    /// Inverse of <see cref="ToJson{T}(T, Dictionary{Uid, object}, bool, bool)"/>
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="bytes"></param>
-    /// <param name="loaded"></param>
-    /// <returns>DB Result</returns>
-    private static object? FromJsonBS(this ByteString bytes, Type type, string param) =>
-        ImplClassMapping.FromJsonBS(bytes, type, param);
 
     public static object? FromJson(this string str, Type type) =>
         ImplClassMapping.FromJson(str, type);
@@ -67,12 +54,6 @@ public static class ClassMapping
 
     public static T? FromJson<T>(this ByteString bytes) =>
         ImplClassMapping.FromJson<T>(bytes);
-
-    private static object? FromJson(this ByteString bytes, Type type, Dictionary<Uid, object> loaded) =>
-        ImplClassMapping.FromJson(bytes, type, loaded);
-
-    private static bool TryMapJson(Type type, out IClassMap? classMap) =>
-        ImplClassMapping.TryMapJson(type, out classMap);
 
     public static IServiceCollection AddDgraph(this IServiceCollection services) =>
         services.AddDgraph("DefaultConnection");

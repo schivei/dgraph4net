@@ -249,7 +249,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
                 resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
 
                 if (resp.Uids is not null)
-                    Uid.Resolve(resp.Uids);
+                    TxnExtensions.Resolve(resp.Uids);
             }
             catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
             {
@@ -258,7 +258,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
                 resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
 
                 if (resp.Uids is not null)
-                    Uid.Resolve(resp.Uids);
+                    TxnExtensions.Resolve(resp.Uids);
             }
             catch
             {
