@@ -322,8 +322,5 @@ namespace Dgraph4Net
 
         public async Task<object> Alter(object operation) =>
             await Alter(operation as Operation);
-
-        object IDgraph4NetClient.NewTransaction(bool readOnly, bool bestEffort, CancellationToken? cancellationToken) =>
-            NewTransaction(readOnly, bestEffort, cancellationToken);
     }
 }

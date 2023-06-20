@@ -4,8 +4,6 @@ using System.Text.RegularExpressions;
 
 using Dgraph4Net;
 
-using Google.Protobuf.Collections;
-
 namespace System;
 
 [JsonConverter(typeof(UidConverter))]
@@ -13,7 +11,7 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
 {
     private readonly IDisposable? _unsubscriber;
 
-    private sealed class UidResolver : IObservable<Uid>
+    internal sealed class UidResolver : IObservable<Uid>
     {
         private readonly IList<IObserver<Uid>> _observers;
 
@@ -28,15 +26,6 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
                 _observers.Add(observer);
 
             return new Unsubscriber(this, observer);
-        }
-
-        public void Resolve(MapField<string, string> uids)
-        {
-            uids.ToList().ForEach(kv =>
-            {
-                if (IsValid($"_:{kv.Key}") && IsValid(kv.Value))
-                    Resolve($"_:{kv.Key}", kv.Value);
-            });
         }
 
         public void Resolve(Uid source, Uid target)
@@ -98,10 +87,7 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
 
     private UidValue _uid = new(string.Empty);
 
-    private static readonly UidResolver s_resolver;
-
-    public static void Resolve(MapField<string, string> uids) =>
-        s_resolver.Resolve(uids);
+    internal static readonly UidResolver s_resolver;
 
     static Uid()
     {
