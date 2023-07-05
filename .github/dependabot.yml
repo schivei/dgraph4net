@@ -24,7 +24,21 @@ updates:
     open-pull-requests-limit: 5
     target-branch: "dependabot/master"
   - package-ecosystem: "nuget"
-    directory: "/tools/Dgraph4Net.Tools" #DGraph4Net.Tools.csproj
+    directory: "/tools/Dgraph4Net.Tools" #Dgraph4Net.Tools.csproj
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 5
+    target-branch: "dependabot/master"
+  - package-ecosystem: "nuget"
+    directory: "/tests/Dgraph4Net.Tests" #Dgraph4Net.Tests.csproj
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 5
+    target-branch: "dependabot/master"
+  - package-ecosystem: "nuget"
+    directory: "/tests/Dgraph4Net.Tests.System" #Dgraph4Net.Tests.System.csproj
     schedule:
       interval: "weekly"
       day: "wednesday"
