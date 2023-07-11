@@ -119,7 +119,7 @@ Follow the example below to create a mapping:
 // poco types
 public class Person : IEntity
 {
-    public Uid Id { get; set; }
+    public Uid Id { get; set; } = Uid.NewUid(); // you must initialize Uid
     public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public List<Person> BossOf { get; set; } = new List<Person>();
@@ -129,7 +129,7 @@ public class Person : IEntity
 
 public class Company : IEntity
 {
-    public Uid Id { get; set; }
+    public Uid Id { get; set; } = Uid.NewUid(); // you must initialize Uid
     public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public CompanyIndustry Industry { get; set; }
