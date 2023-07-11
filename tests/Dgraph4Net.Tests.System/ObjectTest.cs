@@ -24,7 +24,7 @@ public class ObjectTest : ExamplesTest
     private class School : IEntity
     {
         [JsonPropertyName("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; }
@@ -39,7 +39,7 @@ public class ObjectTest : ExamplesTest
     private class Person : IEntity
     {
         [JsonPropertyName("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; }
@@ -87,7 +87,7 @@ public class ObjectTest : ExamplesTest
     private class SchoolFacet : IEntity
     {
         [JsonPropertyName("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; }
@@ -102,7 +102,7 @@ public class ObjectTest : ExamplesTest
     private class PersonFacet : IEntity
     {
         [JsonPropertyName("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; }
@@ -161,7 +161,7 @@ public class ObjectTest : ExamplesTest
             // don't have a Uid).
             var p = new Person
             {
-                Id = "_:alice",
+                Uid = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
@@ -170,18 +170,18 @@ public class ObjectTest : ExamplesTest
                 Dob = dob,
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
                 Friends = new(){new Person {
-                    Id = "_:bob",
+                    Uid = "_:bob",
                     Name =  "Bob",
                     Age =   24,
                     DgraphType = new []{"Person"},
                 }, new Person{
-                    Id = "_:charlie",
+                    Uid = "_:charlie",
                     Name =  "Charlie",
                     Age =   29,
                     DgraphType = new []{"Person"},
                 }},
                 Schools = new(){ new School{
-                    Id = "_:school",
+                    Uid = "_:school",
                     Name =  "Crown Public School",
                     DgraphType = new []{"Institution"},
                 }},
@@ -352,7 +352,7 @@ public class ObjectTest : ExamplesTest
             // are created (since they don't have a Uid).
             var p = new Person
             {
-                Id = "_:alice",
+                Uid = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
@@ -533,7 +533,7 @@ public class ObjectTest : ExamplesTest
 
             var p = new Person
             {
-                Id = "_:bob",
+                Uid = "_:bob",
                 Name = "Bob",
                 Age = 24,
                 DgraphType = new[] { "Person" },
@@ -546,7 +546,7 @@ public class ObjectTest : ExamplesTest
             // to an existing node Bob.
             p = new Person
             {
-                Id = "_:alice",
+                Uid = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,
@@ -638,7 +638,7 @@ public class ObjectTest : ExamplesTest
         public DateTime? Since { get; set; } // time.Time `json:"school|since,omitempty"`
 
         [JsonPropertyName("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; } = new[] { "Institution" };
@@ -676,7 +676,7 @@ public class ObjectTest : ExamplesTest
         public SSchool[] School { get; set; } //`json:"school,omitempty"`
 
         [JsonPropertyName("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonPropertyName("dgraph.type")]
         public string[] DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
@@ -727,7 +727,7 @@ public class ObjectTest : ExamplesTest
 
             var p = new SPerson
             {
-                Id = "_:alice",
+                Uid = "_:alice",
                 Name = "Alice",
                 NameOrigin = "Indonesia",
                 Friends = new[] {
@@ -817,7 +817,7 @@ public class ObjectTest : ExamplesTest
             // are created (since they don't have a Uid).
             var p = new Person
             {
-                Id = "_:alice",
+                Uid = "_:alice",
                 Name = "Alice",
                 Age = 26,
                 Married = true,

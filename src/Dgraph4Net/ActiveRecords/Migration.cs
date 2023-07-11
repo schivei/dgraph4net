@@ -16,7 +16,7 @@ public abstract class Migration : IDgnMigration
     public DateTimeOffset AppliedAt { get; }
     public DateTimeOffset GeneratedAt { get; }
     public string Name { get; }
-    public Uid Id { get; }
+    public Uid Uid { get; }
     public string[] DgraphType { get; } = Array.Empty<string>();
 
     internal void SetClient(IDgraph4NetClient client) => _client = client;
@@ -208,7 +208,7 @@ public abstract class Migration : IDgnMigration
             }
         }
 
-        dgnm.Id.Resolve();
+        dgnm.Uid.Resolve();
 
         if (down)
         {
@@ -218,10 +218,10 @@ public abstract class Migration : IDgnMigration
             await txn.Mutate(new Mutation
             {
                 CommitNow = true,
-                DelNquads = new NQuad { Subject = $"<{dgnm.Id}>" }.ToByteString()
+                DelNquads = new NQuad { Subject = $"<{dgnm.Uid}>" }.ToByteString()
             });
         }
-        else if (!dgnm.Id.IsConcrete)
+        else if (!dgnm.Uid.IsConcrete)
         {
             dgnm.AppliedAt = DateTimeOffset.UtcNow;
 
