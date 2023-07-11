@@ -4,7 +4,7 @@ public interface IEntityBase { }
 
 public interface IEntity : IEntityBase
 {
-    public Uid Id { get; }
+    public Uid Uid { get; }
 
     public string[] DgraphType { get; }
 }

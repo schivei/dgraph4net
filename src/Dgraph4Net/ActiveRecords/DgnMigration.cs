@@ -12,7 +12,7 @@ internal sealed class DgnMigration : IDgnMigration
     }
 
     public string[] DgraphType { get; set; } = Array.Empty<string>();
-    public Uid Id { get; set; }
+    public Uid Uid { get; set; }
 
     public DateTimeOffset AppliedAt { get; set; }
     public DateTimeOffset GeneratedAt { get; set; }

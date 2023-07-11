@@ -119,7 +119,7 @@ Follow the example below to create a mapping:
 // poco types
 public class Person : IEntity
 {
-    public Uid Id { get; set; }
+    public Uid Uid { get; set; } = Uid.NewUid(); // you must initialize Uid
     public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public List<Person> BossOf { get; set; } = new List<Person>();
@@ -129,7 +129,7 @@ public class Person : IEntity
 
 public class Company : IEntity
 {
-    public Uid Id { get; set; }
+    public Uid Uid { get; set; } = Uid.NewUid(); // you must initialize Uid
     public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public CompanyIndustry Industry { get; set; }
@@ -258,6 +258,41 @@ var res = await client.NewTransaction(true, true).QueryWithVars(query, vars);
 Console.Write(res.Json);
 ```
 
+You can also create queries with helpers, as seen below:
+
+```c#
+var vars = new VarTriples();
+vars.Add(new("id1", "Alice"));
+
+var query = @$"query Me({vars.ToQueryString()}){{
+    me(func: eq({DType<Person>.Predicate(p => p.Name)}, $id1), first: 1) {{
+        {DType<Person>.Predicate(p => p.Name)}
+        {DType<Person>.Predicate(p => p.Dob)}
+        {DType<Person>.Predicate(p => p.Age)}
+        {DType<Person>.Predicate(p => p.Married)}
+        {DType<Person>.Predicate(p => p.Raw)}
+        {DType<Person>.Predicate(p => p.Friends)} @filter(eq({DType<Person>.Predicate(p => p.Name)}, ""Bob"")){{
+            {DType<Person>.Predicate(p => p.Name)}
+            {DType<Person>.Predicate(p => p.Age)}
+            dgraph.type
+        }}
+        loc
+        {DType<Person>.Predicate(p => p.Schools)} {{
+            {DType<School>.Predicate(p => p.Name)}
+            dgraph.type
+        }}
+        dgraph.type
+    }}
+}}";
+
+var res = await client.NewTransaction(true, true).QueryWithVars(query, vars.ToDictionary());
+
+// Print results.
+Console.Write(res.Json);
+```
+
+It is useful to prevent predicate and types typos, and also to help with refactoring.
+
 ### Running an Upsert: Query + Mutation
 
 The `Transaction.Mutate` function allows you to run upserts consisting of one query and one mutation. 
@@ -375,18 +410,5 @@ The remove will update the database schema to the previous migration and remove 
 
 ## In Development
 
-* High Level Query Builder
-  * [ ] Query
-  * [ ] QuerySingle
-  * [ ] Aggregation
-  * [ ] Pagination
-  * [ ] Variables
-  * [ ] Find
-  * [ ] Multiple Queries
-* High Level Mutation Builder
-  * [ ] Insert / Update / Delete / Upsert
-  * [ ] Conditional Mutation
-  * [ ] Multiple Mutations
-  * [ ] Variables
 * .NET 8
   * Comming in Dec 2023

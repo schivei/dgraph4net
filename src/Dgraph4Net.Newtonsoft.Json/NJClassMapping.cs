@@ -93,7 +93,7 @@ internal class NJClassMapping : ClassMappingImpl
 
             var entity = (IEntity)Activator.CreateInstance(dataType);
 
-            dataType.GetProperty(nameof(IEntity.Id))
+            dataType.GetProperty(nameof(IEntity.Uid))
                 .SetValue(entity, uid);
             list.Add(entity);
 
@@ -123,7 +123,7 @@ internal class NJClassMapping : ClassMappingImpl
 
         var entity = (IEntity)Activator.CreateInstance(dataType);
 
-        dataType.GetProperty(nameof(IEntity.Id))
+        dataType.GetProperty(nameof(IEntity.Uid))
             .SetValue(entity, uid);
 
         foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))

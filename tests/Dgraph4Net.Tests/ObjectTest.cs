@@ -12,6 +12,7 @@ using System.Linq;
 using System.IO;
 using Newtonsoft.Json;
 using NetGeo.Json;
+using Dgraph4Net.ActiveRecords;
 
 namespace Dgraph4Net.Tests;
 
@@ -19,13 +20,13 @@ namespace Dgraph4Net.Tests;
 public class ObjectTest : ExamplesTest
 {
     #region bootstrap
-    private class School
+    private class School : IEntity
     {
         [JsonProperty("name")]
         public string Name { get; set; }
 
         [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
+        public string[] DgraphType { get; set; }
 
         [JsonProperty("since")]
         public DateTime Since { get; set; }
@@ -34,7 +35,17 @@ public class ObjectTest : ExamplesTest
         public Uid Uid { get; set; } = Uid.NewUid();
     }
 
-    private class Person
+    private class SchoolMap : ClassMap<School>
+    {
+        protected override void Map()
+        {
+            SetType("School");
+            String(x => x.Name, "name");
+            DateTime(x => x.Since, "since");
+        }
+    }
+
+    private class Person : IEntity
     {
         [JsonProperty("uid")]
         public Uid Uid { get; set; } = Uid.NewUid();
@@ -64,7 +75,7 @@ public class ObjectTest : ExamplesTest
         public School[] Schools { get; set; }
 
         [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
+        public string[] DgraphType { get; set; }
 
         [JsonProperty("name_origin")]
         public string NameOrigin { get; set; }
@@ -79,61 +90,24 @@ public class ObjectTest : ExamplesTest
         public bool Close { get; set; }
     }
 
-    private class SchoolFacet
+    private class PersonMap : ClassMap<Person>
     {
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
-
-        [JsonProperty("school|since")]
-        public DateTime? Since { get; internal set; }
-    }
-
-    private class PersonFacet
-    {
-        [JsonProperty("uid")]
-        public Uid Uid { get; set; } = Uid.NewUid();
-
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("dob")]
-        public DateTimeOffset Dob { get; set; }
-
-        [JsonProperty("married")]
-        public bool Married { get; set; }
-
-        [JsonProperty("raw_bytes")]
-        public byte[] Raw { get; set; }
-
-        [JsonProperty("friend")]
-        public PersonFacet[] Friends { get; set; }
-
-        [JsonProperty("loc")]
-        public GeoObject Location { get; set; }
-
-        [JsonProperty("school")]
-        public SchoolFacet[] Schools { get; set; }
-
-        [JsonProperty("dgraph.type")]
-        public string[] DTypes { get; set; }
-
-        [JsonProperty("name|origin")]
-        public string NameOrigin { get; set; }
-
-        [JsonProperty("friend|since")]
-        public DateTimeOffset? Since { get; set; }
-
-        [JsonProperty("family")]
-        public string Family { get; set; }
-
-        [JsonProperty("age")]
-        public int? Age { get; set; }
-
-        [JsonProperty("friend|close")]
-        public bool Close { get; set; }
+        protected override void Map()
+        {
+            SetType("Person");
+            String(x => x.Name, "name");
+            Integer(x => x.Age, "age");
+            DateTime(x => x.Dob, "dob");
+            Boolean(x => x.Married, "married");
+            String(x => x.Raw, "raw_bytes");
+            HasMany(x => x.Friends, "friend");
+            String(x => x.Location, "loc");
+            HasMany(x => x.Schools, "school");
+            String(x => x.NameOrigin, "name_origin");
+            DateTime(x => x.Since, "since");
+            String(x => x.Family, "family");
+            Boolean(x => x.Close, "close");
+        }
     }
     #endregion
 
@@ -157,7 +131,7 @@ public class ObjectTest : ExamplesTest
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Location = JsonConvert.SerializeObject(new Point { Coordinates = new[] { 1.1, 2d } }),
                 Dob = dob,
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
@@ -165,17 +139,17 @@ public class ObjectTest : ExamplesTest
                     Uid = "_:bob",
                     Name =  "Bob",
                     Age =   24,
-                    DTypes = new []{"Person"},
+                    DgraphType = new []{"Person"},
                 }, new Person{
                     Uid = "_:charlie",
                     Name =  "Charlie",
                     Age =   29,
-                    DTypes = new []{"Person"},
+                    DgraphType = new []{"Person"},
                 }},
                 Schools = new[]{ new School{
                     Uid = "_:school",
                     Name =  "Crown Public School",
-                    DTypes = new []{"Institution"},
+                    DgraphType = new []{"Institution"},
                 }},
             };
 
@@ -217,27 +191,29 @@ public class ObjectTest : ExamplesTest
             var response = await dg.NewTransaction().Mutate(mu);
 
             // Assigned uids for nodes which were created would be returned in the response.Uids map.
-            var variables = new Dictionary<string, string>() { { "$id1", "Alice" } };
-            const string q = @"query Me($id1: string){
-                me(func: eq(name, $id1), first: 1) {
-                    name
-                    dob
-                    age
-                    married
-                    raw_bytes
-                    friend @filter(eq(name, ""Bob"")){
-                        name
-                        age
+            var vars = new VarTriples();
+            vars.Add(new("id1", "Alice"));
+            var variables = vars.ToDictionary();
+            var q = @$"query Me({vars.ToQueryString()}){{
+                me(func: eq({DType<Person>.Predicate(p => p.Name)}, $id1), first: 1) {{
+                    {DType<Person>.Predicate(p => p.Name)}
+                    {DType<Person>.Predicate(p => p.Dob)}
+                    {DType<Person>.Predicate(p => p.Age)}
+                    {DType<Person>.Predicate(p => p.Married)}
+                    {DType<Person>.Predicate(p => p.Raw)}
+                    {DType<Person>.Predicate(p => p.Friends)} @filter(eq({DType<Person>.Predicate(p => p.Name)}, ""Bob"")){{
+                        {DType<Person>.Predicate(p => p.Name)}
+                        {DType<Person>.Predicate(p => p.Age)}
                         dgraph.type
-                    }
+                    }}
                     loc
-                    school {
-                        name
+                    {DType<Person>.Predicate(p => p.Schools)} {{
+                        {DType<School>.Predicate(p => p.Name)}
                         dgraph.type
-                    }
+                    }}
                     dgraph.type
-                }
-            }";
+                }}
+            }}";
 
             var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
@@ -294,7 +270,7 @@ public class ObjectTest : ExamplesTest
 
             await dg.Alter(op);
 
-            var p = new Person { Name = "Alice", DTypes = new[] { "Person" } };
+            var p = new Person { Name = "Alice", DgraphType = new[] { "Person" } };
 
             var mu = new Mutation { CommitNow = true };
             var pb = JsonConvert.SerializeObject(p);
@@ -348,15 +324,15 @@ public class ObjectTest : ExamplesTest
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Location = JsonConvert.SerializeObject(new Point { Coordinates = new[] { 1.1, 2d } }),
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
                 Friends = new[]
                 {
-                    new Person {Name = "Bob", Age = 24, DTypes = new[] {"Person"}},
-                    new Person {Name = "Charlie", Age = 29, DTypes = new[] {"Person"}}
+                    new Person {Name = "Bob", Age = 24, DgraphType = new[] {"Person"}},
+                    new Person {Name = "Charlie", Age = 29, DgraphType = new[] {"Person"}}
                 },
-                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+                Schools = new[] { new School { Name = "Crown Public School", DgraphType = new[] { "Institution" } } },
             };
 
             var op = new Operation
@@ -462,7 +438,7 @@ public class ObjectTest : ExamplesTest
             var p = new Person
             {
                 Name = "Alice-new",
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
             };
 
@@ -528,7 +504,7 @@ public class ObjectTest : ExamplesTest
                 Uid = "_:bob",
                 Name = "Bob",
                 Age = 24,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
             };
 
             // While setting an object if a struct has a Uid then its properties
@@ -542,13 +518,13 @@ public class ObjectTest : ExamplesTest
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
                 Friends = new[]{
                     p,
-                    new Person{Name = "Charlie", Age = 29, DTypes = new[]{ "Person"}}
+                    new Person{Name = "Charlie", Age = 29, DgraphType = new[]{ "Person"}}
                 },
-                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+                Schools = new[] { new School { Name = "Crown Public School", DgraphType = new[] { "Institution" } } },
             };
 
             var txn = dg.NewTransaction();
@@ -630,7 +606,7 @@ public class ObjectTest : ExamplesTest
         public DateTime? Since { get; set; } // time.Time `json:"school|since,omitempty"`
 
         [JsonProperty("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonProperty("dgraph.type")]
         public string[] DgraphType { get; set; } = new[] { "Institution" };
@@ -668,7 +644,7 @@ public class ObjectTest : ExamplesTest
         public SSchool[] School { get; set; } //`json:"school,omitempty"`
 
         [JsonProperty("uid")]
-        public Uid Id { get; set; } = Uid.NewUid();
+        public Uid Uid { get; set; } = Uid.NewUid();
 
         [JsonProperty("dgraph.type")]
         public string[] DgraphType { get; set; } = new[] { "Person" }; //string `json:"dgraph.type,omitempty"`
@@ -719,7 +695,7 @@ public class ObjectTest : ExamplesTest
 
             var p = new SPerson
             {
-                Id = "_:alice",
+                Uid = "_:alice",
                 Name = "Alice",
                 NameOrigin = "Indonesia",
                 Friends = new[] {
@@ -813,15 +789,15 @@ public class ObjectTest : ExamplesTest
                 Name = "Alice",
                 Age = 26,
                 Married = true,
-                DTypes = new[] { "Person" },
+                DgraphType = new[] { "Person" },
                 Location = JsonConvert.SerializeObject(new Point { Coordinates = new[] { 1.1d, 2 } }),
                 Raw = Encoding.UTF8.GetBytes("raw_bytes"),
                 Friends = new[]
                 {
-                    new Person {Name = "Bob", Age = 24, DTypes = new[] {"Person"}},
-                    new Person {Name = "Charlie", Age = 29, DTypes = new[] {"Person"}}
+                    new Person {Name = "Bob", Age = 24, DgraphType = new[] {"Person"}},
+                    new Person {Name = "Charlie", Age = 29, DgraphType = new[] {"Person"}}
                 },
-                Schools = new[] { new School { Name = "Crown Public School", DTypes = new[] { "Institution" } } },
+                Schools = new[] { new School { Name = "Crown Public School", DgraphType = new[] { "Institution" } } },
             };
 
             var op = new Operation

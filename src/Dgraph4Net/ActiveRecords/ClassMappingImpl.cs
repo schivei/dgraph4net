@@ -99,11 +99,11 @@ internal class ClassMappingImpl : IClassMapping
 
         json.Append("{ ");
 
-        entity.Id.Resolve();
+        entity.Uid.Resolve();
 
         var dtype = classMap.DgraphType;
 
-        json.Append("\"uid\": \"").Append(entity.Id.ToString()).Append("\",");
+        json.Append("\"uid\": \"").Append(entity.Uid.ToString()).Append("\",");
 
         if (!mapped.Contains(entity))
         {
@@ -171,18 +171,18 @@ internal class ClassMappingImpl : IClassMapping
 
                     if (edgeValue is not null)
                     {
-                        edgeValue.Id.Resolve();
+                        edgeValue.Uid.Resolve();
 
-                        if (deep && !edgeValue.Id.IsConcrete)
+                        if (deep && !edgeValue.Uid.IsConcrete)
                         {
                             json.Append('\"').Append(predicate.ToTypePredicate()).Append("\": ");
 
                             json.Append(ToJson(edgeValue, mapped, deep, doNotPropagateNulls)).Append(',');
                         }
-                        else if (edgeValue.Id.IsConcrete)
+                        else if (edgeValue.Uid.IsConcrete)
                         {
                             json.Append('\"').Append(predicate.ToTypePredicate()).Append("\": { \"uid\": \"")
-                                .Append(edgeValue.Id.ToString()).Append("\" },");
+                                .Append(edgeValue.Uid.ToString()).Append("\" },");
                         }
                         else
                         {
@@ -266,15 +266,15 @@ internal class ClassMappingImpl : IClassMapping
                         {
                             var listData = listValue.Select(item =>
                             {
-                                item.Id.Resolve();
+                                item.Uid.Resolve();
 
-                                if (deep && !item.Id.IsConcrete)
+                                if (deep && !item.Uid.IsConcrete)
                                 {
                                     return ToJson(item, mapped, deep, doNotPropagateNulls);
                                 }
-                                else if (item.Id.IsConcrete)
+                                else if (item.Uid.IsConcrete)
                                 {
-                                    return $"{{ \"uid\": \"{item.Id}\" }}";
+                                    return $"{{ \"uid\": \"{item.Uid}\" }}";
                                 }
 
                                 return string.Empty;
@@ -463,7 +463,7 @@ internal class ClassMappingImpl : IClassMapping
 
             var entity = (IEntity)Activator.CreateInstance(dataType);
 
-            dataType.GetProperty(nameof(IEntity.Id))
+            dataType.GetProperty(nameof(IEntity.Uid))
                 .SetValue(entity, uid);
 
             list.Add(entity);
@@ -494,7 +494,7 @@ internal class ClassMappingImpl : IClassMapping
 
         var entity = (IEntity)Activator.CreateInstance(dataType);
 
-        dataType.GetProperty(nameof(IEntity.Id))
+        dataType.GetProperty(nameof(IEntity.Uid))
             .SetValue(entity, uid);
 
         foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))

@@ -9,7 +9,7 @@ namespace Dgraph4Net.Tests;
 
 public sealed class Testing : IEntity
 {
-    public Uid Id { get; set; }
+    public Uid Uid { get; set; } = Uid.NewUid();
     public string Name { get; set; }
     public Testing? Test { get; set; }
     public string[] DgraphType { get; set; } = new[] { "Testing" };
@@ -39,9 +39,9 @@ public class AclTest : ExamplesTest
 
             var test = new Testing
             {
-                Id = id,
+                Uid = id,
                 Name = "test",
-                Test = new(){ Id = refs }
+                Test = new(){ Uid = refs }
             };
 
             var t = ByteString.CopyFromUtf8(expected).FromJson<Testing>();

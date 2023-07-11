@@ -19,11 +19,11 @@ public class SchemaTest : ExamplesTest
             var op = new Operation
             {
                 Schema = @"
-		                sct.name: string @index(exact) .
-		                sct.age: int .
-		                sct.married: bool .
-		                sct.loc: geo .
-		                sct.dob: datetime .
+                        sct.name: string @index(exact) .
+                        sct.age: int .
+                        sct.married: bool .
+                        sct.loc: geo .
+                        sct.dob: datetime .
                     "
             };
             await dg.Alter(op);

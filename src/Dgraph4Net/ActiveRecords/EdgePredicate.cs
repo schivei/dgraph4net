@@ -6,6 +6,8 @@ public readonly record struct EdgePredicate<T>(IClassMap ClassMap, PropertyInfo 
 {
     public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
 
+    public Type EdgeType => typeof(T);
+
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: uid {(Count ? "@count" : "")} {(Reverse ? "@reverse" : "")} .";
 
