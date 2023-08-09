@@ -25,7 +25,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
-    <PackageReference Include="Google.Protobuf" Version="3.23.4" />
+    <PackageReference Include="Google.Protobuf" Version="3.24.0" />
     <PackageReference Update="Grpc.Net.ClientFactory" Version="2.55.0" />
   </ItemGroup>
 </Project>
