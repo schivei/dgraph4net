@@ -314,11 +314,13 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
             Predicates.TryAdd(property, predicate);
     }
 
-    protected void HasMany<TE>(Expression<Func<T, ICollection<TE>>> expression, string? predicateName = null, Expression<Func<TE, T>>? reversedFrom = null) where TE : IEntity
+    protected void HasMany<TE>(Expression<Func<T, ICollection<TE>>> expression, string? predicateName, Expression<Func<TE, ICollection<T>>>? reversedFrom) where TE : IEntity
     {
         var property = GetProperty(expression);
         if (Predicates.ContainsKey(property))
             return;
+
+        predicateName ??= property.Name;
 
         var reversed = reversedFrom is not null;
         if (reversed)
@@ -331,6 +333,49 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         {
             HasMany(property, predicateName);
         }
+    }
+
+    protected void HasMany<TE>(Expression<Func<T, ICollection<TE>>> expression, string? predicateName, Expression<Func<TE, T>>? reversedFrom) where TE : IEntity
+    {
+        var property = GetProperty(expression);
+        if (Predicates.ContainsKey(property))
+            return;
+
+        predicateName ??= property.Name;
+
+        var reversed = reversedFrom is not null;
+        if (reversed)
+        {
+            PropertyInfo? reversedProperty = GetProperty(reversedFrom);
+
+            HasMany(property, predicateName, reversedProperty);
+        }
+        else
+        {
+            HasMany(property, predicateName);
+        }
+    }
+
+    protected void HasMany<TE>(Expression<Func<T, ICollection<TE>>> expression, string? predicateName) where TE : IEntity
+    {
+        var property = GetProperty(expression);
+        if (Predicates.ContainsKey(property))
+            return;
+
+        predicateName ??= property.Name;
+
+        HasMany(property, predicateName);
+    }
+
+    protected void HasMany<TE>(Expression<Func<T, ICollection<TE>>> expression) where TE : IEntity
+    {
+        var property = GetProperty(expression);
+        if (Predicates.ContainsKey(property))
+            return;
+
+        var predicateName = property.Name;
+
+        HasMany(property, predicateName);
     }
 
     internal void HasMany(PropertyInfo property, string? predicateName = null, PropertyInfo? reversedProperty = null)

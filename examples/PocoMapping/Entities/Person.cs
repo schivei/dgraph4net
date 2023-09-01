@@ -12,4 +12,6 @@ public class Person : IEntity
     public Company WorksFor { get; set; }
 
     public Person? MyBoss { get; set; }
+
+    public ICollection<Company> WorkedAt { get; set; } = new List<Company>();
 }
