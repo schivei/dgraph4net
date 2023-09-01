@@ -11,5 +11,6 @@ internal sealed class CompanyMapping : ClassMap<Company>
         String(x => x.Name, "name");
         String<CompanyIndustry>(x => x.Industry, "industry");
         HasMany(x => x.WorksHere, "works_for", x => x.WorksFor);
+        HasMany(x => x.WorkedHere, "worked_at");
     }
 }
