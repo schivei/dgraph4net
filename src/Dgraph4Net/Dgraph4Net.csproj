@@ -10,6 +10,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
   </ItemGroup>
   
   <ItemGroup>
@@ -27,5 +28,6 @@
     <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
     <PackageReference Include="Google.Protobuf" Version="3.24.3" />
     <PackageReference Update="Grpc.Net.ClientFactory" Version="2.57.0" />
+    <PackageReference Update="Microsoft.Extensions.Configuration.Abstractions" Version="7.0.0" />
   </ItemGroup>
 </Project>
