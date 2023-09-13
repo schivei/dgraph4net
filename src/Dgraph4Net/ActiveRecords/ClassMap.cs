@@ -119,4 +119,7 @@ public abstract class ClassMap : IClassMap
         return parent.GetProperty(pi.Name, BindingFlags.Public) ??
             throw new ArgumentException("Invalid expression.", nameof(expression));
     }
+
+    internal static PropertyInfo GetProperty(Expression expression) =>
+        GetProperty<T>(expression);
 }
