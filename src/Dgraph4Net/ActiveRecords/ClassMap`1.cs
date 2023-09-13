@@ -95,7 +95,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         ListInt(property, predicateName);
     }
 
-    internal void ListInt(PropertyInfo property, string? predicateName = null)
+    protected void ListInt(PropertyInfo property, string? predicateName = null)
     {
         var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "int", false);
 
@@ -114,7 +114,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         ListString(property, predicateName);
     }
 
-    internal void ListString(PropertyInfo property, string? predicateName = null)
+    protected void ListString(PropertyInfo property, string? predicateName = null)
     {
         var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "string", false);
 
@@ -168,7 +168,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         List(property, dataType, predicateName);
     }
 
-    internal void List(PropertyInfo property, string dataType, string? predicateName)
+    protected void List(PropertyInfo property, string dataType, string? predicateName)
     {
         var predicate = new ListPredicate(this, property, predicateName ?? property.Name, dataType, true);
         if (!Predicates.ContainsKey(property))
@@ -192,7 +192,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void String(Expression<Func<T, byte[]?>> expression, string? predicateName = null) =>
         String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, null);
 
-    internal void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, string? cultures)
+    protected void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, string? cultures)
     {
         var predicate = new StringPredicate(this, property, predicateName ?? property.Name, fulltext, trigram, upsert, token, cultures);
         if (!Predicates.ContainsKey(property))
@@ -225,7 +225,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Integer(Expression<Func<T, TimeSpan?>> expression, string? predicateName = null, bool index = false) =>
         Integer(GetProperty(expression), predicateName, index);
 
-    internal void Integer(PropertyInfo property, string predicateName, bool index)
+    protected void Integer(PropertyInfo property, string predicateName, bool index)
     {
         var predicate = new IntegerPredicate(this, property, predicateName ?? property.Name, index);
         if (!Predicates.ContainsKey(property))
@@ -241,7 +241,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Float(Expression<Func<T, decimal?>> expression, string? predicateName = null, bool index = false) =>
         Float(GetProperty(expression), predicateName, index);
 
-    internal void Float(PropertyInfo property, string predicateName, bool index)
+    protected void Float(PropertyInfo property, string predicateName, bool index)
     {
         var predicate = new FloatPredicate(this, property, predicateName ?? property.Name, index);
         if (!Predicates.ContainsKey(property))
@@ -257,7 +257,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void DateTime(Expression<Func<T, DateTimeOffset?>> expression, string? predicateName = null, DateTimeToken token = DateTimeToken.None, bool upsert = false) =>
         DateTime(GetProperty(expression), predicateName, token, upsert);
 
-    internal void DateTime(PropertyInfo property, string predicateName, DateTimeToken token, bool upsert)
+    protected void DateTime(PropertyInfo property, string predicateName, DateTimeToken token, bool upsert)
     {
         var predicate = new DateTimePredicate(this, property, predicateName ?? property.Name, token, upsert);
         if (!Predicates.ContainsKey(property))
@@ -267,7 +267,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Boolean(Expression<Func<T, bool?>> expression, string? predicateName = null, bool index = false, bool upsert = false) =>
         Boolean(GetProperty(expression), predicateName, index, upsert);
 
-    internal void Boolean(PropertyInfo property, string predicateName, bool index, bool upsert)
+    protected void Boolean(PropertyInfo property, string predicateName, bool index, bool upsert)
     {
         var predicate = new BooleanPredicate(this, property, predicateName ?? property.Name, index, upsert);
         if (!Predicates.ContainsKey(property))
@@ -277,7 +277,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Password(Expression<Func<T, string?>> expression, string? predicateName = null) =>
         Password(GetProperty(expression), predicateName);
 
-    internal void Password(PropertyInfo property, string predicateName)
+    protected void Password(PropertyInfo property, string predicateName)
     {
         var predicate = new PasswordPredicate(this, property, predicateName ?? property.Name);
         if (!Predicates.ContainsKey(property))
@@ -287,27 +287,27 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     protected void Geo<TE>(Expression<Func<T, TE?>> expression, string? predicateName = null, bool index = false, bool upsert = false) where TE : GeoObject =>
         Geo(GetProperty(expression), predicateName, index, upsert);
 
-    internal void Geo(PropertyInfo property, string predicateName, bool index, bool upsert)
+    protected void Geo(PropertyInfo property, string predicateName, bool index, bool upsert)
     {
         var predicate = new GeoPredicate(this, property, predicateName ?? property.Name, index, upsert);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    internal void Uid(Expression<Func<T, Uid>> expression) =>
+    protected void Uid(Expression<Func<T, Uid>> expression) =>
         Uid(GetProperty(expression));
 
-    internal void Uid(PropertyInfo property)
+    protected void Uid(PropertyInfo property)
     {
         var predicate = new UidPredicate(this, property);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
 
-    internal void Types(Expression<Func<T, IEnumerable<string>>> expression) =>
+    protected void Types(Expression<Func<T, IEnumerable<string>>> expression) =>
         Types(GetProperty(expression));
 
-    internal void Types(PropertyInfo property)
+    protected void Types(PropertyInfo property)
     {
         var predicate = new TypePredicate(this, property);
         if (!Predicates.ContainsKey(property))
@@ -378,7 +378,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         HasMany(property, predicateName);
     }
 
-    internal void HasMany(PropertyInfo property, string? predicateName = null, PropertyInfo? reversedProperty = null)
+    protected void HasMany(PropertyInfo property, string? predicateName = null, PropertyInfo? reversedProperty = null)
     {
         var reversed = reversedProperty is not null;
         if (reversed)
@@ -419,7 +419,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
         HasOne(property, predicateName, reverse, count);
     }
 
-    internal void HasOne(PropertyInfo property, string? predicateName = null, bool reverse = false, bool count = false)
+    protected void HasOne(PropertyInfo property, string? predicateName = null, bool reverse = false, bool count = false)
     {
         var predicate = typeof(EdgePredicate<>).MakeGenericType(property.PropertyType)
             .GetConstructors()
@@ -430,6 +430,7 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
             Predicates.TryAdd(property, predicate);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1158:Static member in generic type should use a type parameter.", Justification = "<Pending>")]
     internal static PropertyInfo GetProperty(Expression expression) =>
         GetProperty<T>(expression);
 }
