@@ -77,9 +77,25 @@ public static class ClassMapping
                                               s => s.StartsWith("use tls=", StringComparison.InvariantCultureIgnoreCase))?
                 .Split('=')[1].ToLowerInvariant() ?? "true";
 
-            return useTls == "false" ?
-                new Channel(server, ChannelCredentials.Insecure) :
-                new Channel(server, ChannelCredentials.SecureSsl);
+            var apiKey = Array.Find(connectionString
+                              .Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                              s => s.StartsWith("api-key=", StringComparison.InvariantCultureIgnoreCase))?
+                .Split('=')[1];
+
+            var credentials = useTls == "false" ?
+                    ChannelCredentials.Insecure :
+                    ChannelCredentials.SecureSsl;
+
+            if (apiKey is not null)
+            {
+                ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
+                {
+                    metadata.Add("Authorization", $"Bearer {apiKey}");
+                    return Task.CompletedTask;
+                }));
+            }
+
+            return new Channel(server, credentials);
         });
 
         services.AddTransient(sp =>
