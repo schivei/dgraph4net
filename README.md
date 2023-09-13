@@ -83,7 +83,7 @@ Add the following line to your appsettings.json file:
 ```json
 {
   "ConnectionStrings": {
-    "DgraphConnection": "server=<host_port:9080>;user id=[optional username];password=[optional password];use tls=[false to insecure conecctions (no SSL validation)]"
+    "DgraphConnection": "server=<host_port:9080>;[user id=<username>];[password=<password>];[use tls=<false to insecure is default, no SSL validation>];[api-key=<cloud bearer api key>]"
   }
 }
 ```
