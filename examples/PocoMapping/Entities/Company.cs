@@ -9,4 +9,5 @@ public class Company : IEntity
     public string Name { get; set; }
     public CompanyIndustry Industry { get; set; }
     public ICollection<Person> WorksHere { get; set; } = new List<Person>();
+    public ICollection<Person> WorkedHere { get; set; } = new List<Person>();
 }
