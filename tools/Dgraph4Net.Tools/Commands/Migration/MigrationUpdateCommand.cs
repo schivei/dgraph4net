@@ -11,7 +11,8 @@ internal sealed class MigrationUpdateCommand : Command
     private readonly ILogger _logger;
 
     public MigrationUpdateCommand(ILogger<MigrationUpdateCommand> logger, ProjectOption projectLocation,
-        ServerOption serverOption, UserIdOption userIdOption, PasswordOption passwordOption) : base("update", "Update database schema")
+        ServerOption serverOption, UserIdOption userIdOption, PasswordOption passwordOption,
+        ApiKeyOption apiKeyOption) : base("update", "Update database schema")
     {
         _logger = logger;
 
@@ -21,6 +22,7 @@ internal sealed class MigrationUpdateCommand : Command
         AddOption(serverOption);
         AddOption(userIdOption);
         AddOption(passwordOption);
+        AddOption(apiKeyOption);
         AddAlias("up");
 
         this.SetHandler(Exec, projectLocation, serverOption);
