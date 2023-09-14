@@ -39,7 +39,7 @@ internal sealed class ServerOption : Option<Dgraph4NetClient>
 
                     channel = new Channel(address, ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
                     {
-                        metadata.Add("authorization", $"Bearer {apk}");
+                        metadata.Add("authorization", apk);
 
                         return Task.CompletedTask;
                     })));
