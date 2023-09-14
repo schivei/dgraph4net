@@ -198,6 +198,10 @@ internal sealed class MigrationAddCommand : Command
 
     private async Task CreateAsync(FileInfo migrationFile, FileInfo scriptFile, string projectName, string output, string script, IClassMap[] mappings, ImmutableHashSet<string>? predicatesToRemove = null, ImmutableHashSet<string>? typesToRemove = null)
     {
+        mappings ??= Array.Empty<IClassMap>();
+        predicatesToRemove ??= ImmutableHashSet<string>.Empty;
+        typesToRemove ??= ImmutableHashSet<string>.Empty;
+
         _logger.LogInformation("Create migration file {file} into {output}", migrationFile.Name, output);
 
         predicatesToRemove ??= ImmutableHashSet<string>.Empty;
