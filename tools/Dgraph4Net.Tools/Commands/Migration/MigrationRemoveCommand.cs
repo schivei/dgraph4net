@@ -12,7 +12,8 @@ internal sealed class MigrationRemoveCommand : Command
 
     public MigrationRemoveCommand(ILogger<MigrationRemoveCommand> logger, ProjectOption projectLocation,
         OutputOption outputDirectory, MigrationNameArgument migrationName, ServerOption serverOption,
-        UserIdOption userIdOption, PasswordOption passwordOption) : base("remove", "Remove a migration")
+        UserIdOption userIdOption, PasswordOption passwordOption, ApiKeyOption apiKeyOption)
+        : base("remove", "Remove a migration")
     {
         _logger = logger;
 
@@ -25,6 +26,7 @@ internal sealed class MigrationRemoveCommand : Command
         AddOption(serverOption);
         AddOption(userIdOption);
         AddOption(passwordOption);
+        AddOption(apiKeyOption);
 
         this.SetHandler(Exec, migrationName, projectLocation, outputDirectory, serverOption);
     }

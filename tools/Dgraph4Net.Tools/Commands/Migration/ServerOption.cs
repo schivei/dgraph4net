@@ -29,8 +29,22 @@ internal sealed class ServerOption : Option<Dgraph4NetClient>
 
                 var userId = result.Parent.Parent.GetValueForOption((result.Parent.Parent.Symbol as Command).Options.OfType<UserIdOption>().First());
                 var password = result.Parent.Parent.GetValueForOption((result.Parent.Parent.Symbol as Command).Options.OfType<PasswordOption>().First());
+                var apk = result.Parent.Parent.GetValueForOption((result.Parent.Parent.Symbol as Command).Options.OfType<ApiKeyOption>().First());
 
                 var channel = new Channel(address, ChannelCredentials.Insecure);
+
+                if (apk is not null)
+                {
+                    logger.LogInformation("Authenticating in server {server}", address);
+
+                    channel = new Channel(address, ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
+                    {
+                        metadata.Add("authorization", $"Bearer {apk}");
+
+                        return Task.CompletedTask;
+                    })));
+                }
+
                 var client = new Dgraph4NetClient(channel);
 
                 if (userId is not null && password is not null)

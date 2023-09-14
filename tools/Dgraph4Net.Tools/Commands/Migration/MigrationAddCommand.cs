@@ -15,7 +15,8 @@ internal sealed class MigrationAddCommand : Command
     public MigrationAddCommand(ILogger<MigrationAddCommand> logger, ProjectOption projectLocation,
         OutputOption outputDirectory, MigrationNameArgument migrationName, ServerOption serverOption,
         UserIdOption userIdOption, PasswordOption passwordOption, UpdateOption updateOption,
-        MigrationUpdateCommand updateCommand) : base("add", "Create a new migration")
+        ApiKeyOption apiKeyOption, MigrationUpdateCommand updateCommand)
+        : base("add", "Create a new migration")
     {
         _logger = logger;
 
@@ -28,6 +29,7 @@ internal sealed class MigrationAddCommand : Command
         AddOption(userIdOption);
         AddOption(passwordOption);
         AddOption(updateOption);
+        AddOption(apiKeyOption);
         AddValidator(Validate);
 
         updateCommand.Options.OfType<ServerOption>().First().IsRequired = false;
