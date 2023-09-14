@@ -87,7 +87,7 @@ public abstract class ClassMap : IClassMap
         return true;
     }
 
-    internal static PropertyInfo GetProperty<T>(Expression expression)
+    public static PropertyInfo GetProperty<T>(Expression expression)
     {
         var lambda = expression as LambdaExpression ??
             throw new ArgumentException("Invalid expression.", nameof(expression));

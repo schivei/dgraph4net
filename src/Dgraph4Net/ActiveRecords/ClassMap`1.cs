@@ -431,6 +431,6 @@ public abstract class ClassMap<T> : ClassMap where T : IEntity
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1158:Static member in generic type should use a type parameter.", Justification = "<Pending>")]
-    internal static PropertyInfo GetProperty(Expression expression) =>
+    public static PropertyInfo GetProperty(Expression expression) =>
         GetProperty<T>(expression);
 }
