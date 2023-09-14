@@ -90,7 +90,7 @@ public static class ClassMapping
             {
                 ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
                 {
-                    metadata.Add("Authorization", $"Bearer {apiKey}");
+                    metadata.Add("authorization", apiKey);
                     return Task.CompletedTask;
                 }));
             }
