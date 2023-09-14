@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using Google.Protobuf;
+using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.ActiveRecords;
 
@@ -208,7 +209,7 @@ type dgn.migration {
             {
                 return Array.Empty<Type>();
             }
-        }).FirstOrDefault(x => x.Name == "ClassMapping" && x.IsClass && !x.IsAbstract && (
+        }).FirstOrDefault(x => x.Name == nameof(ClassMappingImpl) && x.IsClass && !x.IsAbstract && (
             x.Namespace == "Dgraph4Net.ActiveRecords"
         ));
 
