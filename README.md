@@ -16,6 +16,7 @@ and understand how to run and work with Dgraph.
       - [Using DI](#using-di)
     - [Mapping Classes](#mapping-classes)
       - [Creating mappings](#creating-mappings)
+      - [Using Facets](#using-facets)
     - [Creating a Transaction](#creating-a-transaction)
     - [Running a Mutation](#running-a-mutation)
     - [Running a Query](#running-a-query)
@@ -104,33 +105,29 @@ Mapping classes can perform a schema migration and marshaling.
 ```c#
 services.AddDgraph(); // already call mapping
 // or, for manual mapping
-ClassMapping.Map(); // to map all assemblies with classes that implements IEntity
+ClassMapping.Map(); // to map all assemblies with classes that implements AEntity
 // or
 ClassMapping.Map(assemlies); // to map specifics assemblies
 ```
 
-**\*\*NOTE**: your classes need to implement `Dgraph4Net.IEntity` interface.
+**\*\*NOTE**: your classes need to implement `Dgraph4Net.AEntity<T>` abstract class.
 
-### Creating mappings
+#### Creating mappings
 
 Follow the example below to create a mapping:
 
 ```c#
 // poco types
-public class Person : IEntity
+public class Person : AEntity<Person>
 {
-    public Uid Uid { get; set; } = Uid.NewUid(); // you must initialize Uid
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public List<Person> BossOf { get; set; } = new List<Person>();
     public Company WorksFor { get; set; }
     public Person? MyBoss { get; set; }
 }
 
-public class Company : IEntity
+public class Company : AEntity<Company>
 {
-    public Uid Uid { get; set; } = Uid.NewUid(); // you must initialize Uid
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public CompanyIndustry Industry { get; set; }
     public ICollection<Person> WorksHere { get; set; } = new List<Person>();
@@ -168,6 +165,45 @@ internal sealed class CompanyMapping : ClassMap<Company>
         HasMany(x => x.WorksHere, "works_for", x => x.WorksFor); // to map a property to reversed works_for
     }
 }
+```
+
+#### Using Facets
+
+Facets are a way to store metadata for predicates. They are key-value pairs that can be associated with a predicate. Facets can be used to store information like timestamps, geolocations, and other metadata. Facets are stored as part of the predicate, and are returned with the predicate when queried.
+
+You can use i18n facets too, to store multiple languages in the same predicate.
+
+```c#
+public class Person : AEntity<Person>
+{
+    public string[] DgraphType { get; set; } = Array.Empty<string>();
+    public List<Person> BossOf { get; set; } = new List<Person>();
+    public Company WorksFor { get; set; }
+    public Person? MyBoss { get; set; }
+
+    // using a FacetPredicate, you can create your own implementation, see the source code
+    public FacetPredicate<Person, string> Name { get; set; }
+
+    // using attribute
+    [Facet<Person>("origin", nameof(Name))]
+    public string Origin { get; set; }
+
+    public Person()
+    {
+        // you need to initialize the faceted predicate on constructor
+        // pay attemption, FacetPredicate does not accept non system types or collections
+        Name = new NameFacet(this, GetType().GetProperty(nameof(Name)));
+    }
+}
+
+// or
+
+// access the facet by GetFacet inside the class
+var nameOrigin = person.GetFacet("origin", p => p.Name, string.Empty);
+
+
+// to get a i18n facet
+var nameRu = person.GetFacet("@ru", p => p.Name, string.Empty);
 ```
 
 ### Creating a Transaction

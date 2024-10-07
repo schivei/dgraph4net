@@ -1,7 +1,6 @@
-
 namespace Dgraph4Net.ActiveRecords;
 
-internal sealed class DgnMigration : IDgnMigration
+internal sealed class DgnMigration : AEntity<DgnMigration>, IDgnMigration
 {
     public DgnMigration() { }
 
@@ -10,9 +9,6 @@ internal sealed class DgnMigration : IDgnMigration
         Name = migration.Name;
         GeneratedAt = migration.GeneratedAt;
     }
-
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
-    public Uid Uid { get; set; }
 
     public DateTimeOffset AppliedAt { get; set; }
     public DateTimeOffset GeneratedAt { get; set; }

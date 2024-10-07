@@ -1,8 +1,6 @@
-using System.Reflection;
 using Api;
 using Dgraph4Net.ActiveRecords;
 using Google.Protobuf.Collections;
-using Grpc.Net.Client.Balancer;
 
 namespace Dgraph4Net;
 
@@ -11,7 +9,7 @@ public static class TxnExtensions
     public static Task<Response> MutateWithQuery(this Txn txn, Mutation mutation, string query, Dictionary<string, string> vars = null)
     {
         var req = new Request { Query = query };
-        vars ??= new Dictionary<string, string>();
+        vars ??= [];
 
         foreach (var (key, value) in vars)
             req.Vars.Add(key, value);

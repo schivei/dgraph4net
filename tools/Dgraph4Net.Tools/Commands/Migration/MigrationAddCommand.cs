@@ -88,9 +88,9 @@ internal sealed class MigrationAddCommand : Command
                 typeof(InternalClassMapping).Assembly
             };
 
-            InternalClassMapping.SetDefaults(mergedAssemblies.ToArray());
+            InternalClassMapping.SetDefaults([.. mergedAssemblies]);
 
-            InternalClassMapping.Map(mergedAssemblies.ToArray());
+            InternalClassMapping.Map([.. mergedAssemblies]);
 
             if (!InternalClassMapping.ClassMappings.Any())
             {
@@ -177,7 +177,7 @@ internal sealed class MigrationAddCommand : Command
                 {
                     _logger.LogInformation("No changes found");
 
-                    await CreateAsync(migrationFile, scriptFile, fifo.Name.Replace(".csproj", ""), outputDirectory, script, Array.Empty<IClassMap>());
+                    await CreateAsync(migrationFile, scriptFile, fifo.Name.Replace(".csproj", ""), outputDirectory, script, []);
                 }
             }
 
@@ -198,13 +198,13 @@ internal sealed class MigrationAddCommand : Command
 
     private async Task CreateAsync(FileInfo migrationFile, FileInfo scriptFile, string projectName, string output, string script, IClassMap[] mappings, ImmutableHashSet<string>? predicatesToRemove = null, ImmutableHashSet<string>? typesToRemove = null)
     {
-        mappings ??= Array.Empty<IClassMap>();
-        predicatesToRemove ??= ImmutableHashSet<string>.Empty;
-        typesToRemove ??= ImmutableHashSet<string>.Empty;
+        mappings ??= [];
+        predicatesToRemove ??= [];
+        typesToRemove ??= [];
 
         _logger.LogInformation("Create migration file {file} into {output}", migrationFile.Name, output);
 
-        predicatesToRemove ??= ImmutableHashSet<string>.Empty;
+        predicatesToRemove ??= [];
 
         await using var swt = scriptFile.CreateText();
         await swt.WriteAsync(script);
@@ -223,7 +223,7 @@ internal sealed class MigrationAddCommand : Command
 
         await mwt.WriteLineAsync();
 
-        var ns = string.Join(".", Path.Combine(projectName, output).Split(Path.DirectorySeparatorChar) ?? Array.Empty<string>());
+        var ns = string.Join(".", Path.Combine(projectName, output).Split(Path.DirectorySeparatorChar) ?? []);
 
         // normalize ns name to C# namespace conventions
         ns = ns?.Replace(" ", ".").Replace("-", ".");

@@ -4,6 +4,6 @@ namespace Dgraph4Net.Tools.Commands.Migration;
 
 internal sealed class OutputOption : Option<string>
 {
-    public OutputOption() : base(new[] { "--output", "-o" }, Application.ResolveOutputDirectory, "The output directory")
+    public OutputOption() : base(["--output", "-o"], Application.ResolveOutputDirectory, "The output directory")
     { }
 }

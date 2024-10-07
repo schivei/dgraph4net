@@ -2,17 +2,22 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using Google.Protobuf;
-using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.ActiveRecords;
 
 internal static class InternalClassMapping
 {
     internal static List<IPredicate> GetPredicates(Type type) =>
-      ClassMap.Predicates.Where(x => x.Key.DeclaringType == type).Select(x => x.Value).ToList();
+        ClassMap.GetPredicates(type).ToList();
 
     internal static IPredicate GetPredicate(PropertyInfo prop) =>
-        ClassMap.Predicates.First(x => x.Key == prop).Value;
+        ClassMap.GetPredicate(prop);
+
+    internal static IPredicate GetPredicate<T>(string predicateName) where T : AEntity<T> =>
+        ClassMap.GetPredicate<T>(predicateName);
+
+    internal static IPredicate GetPredicate(Type objectType, string predicateName) =>
+        ClassMap.GetPredicate(objectType, predicateName);
 
     internal static ConcurrentDictionary<Type, IClassMap> ClassMappings { get; }
 
@@ -40,7 +45,7 @@ internal static class InternalClassMapping
             }
             catch
             {
-                return Array.Empty<Type>();
+                return [];
             }
         })
             .Where(x => x.IsAssignableTo(typeof(IClassMap)) && x.IsClass && !x.IsAbstract)
@@ -73,7 +78,7 @@ internal static class InternalClassMapping
             }
             catch
             {
-                return Array.Empty<Type>();
+                return [];
             }
         }).Where(x => x.IsAssignableTo(typeof(Migration)) && x.IsClass && !x.IsAbstract)
         .Select(x =>
@@ -172,7 +177,7 @@ type dgn.migration {
 
         bool hasFlags = enumType.GetCustomAttributes(true).Any(attr => attr is FlagsAttribute);
 
-        List<Enum> values = new();
+        List<Enum> values = [];
         if (hasFlags)
         {
             foreach (Enum currValue in Enum.GetValues(enumType))
@@ -192,10 +197,10 @@ type dgn.migration {
     }
 
     public static ByteString ToJson<T>(this T entity, bool deep = false, bool doNotPropagateNulls = false) where T : IEntity =>
-        ToJsonByteStringFunc.MakeGenericMethod(typeof(T)).Invoke(null, new object[] { entity, deep, doNotPropagateNulls }) as ByteString;
+        ToJsonByteStringFunc.MakeGenericMethod(typeof(T)).Invoke(null, [entity, deep, doNotPropagateNulls]) as ByteString;
 
     public static object? FromJson(this ByteString bytes, Type type) =>
-        FromJsonByteStringFunc.Invoke(null, new object[] { bytes, type });
+        FromJsonByteStringFunc.Invoke(null, [bytes, type]);
 
     internal static void SetDefaults(Assembly[] assemblies)
     {
@@ -207,7 +212,7 @@ type dgn.migration {
             }
             catch
             {
-                return Array.Empty<Type>();
+                return [];
             }
         }).FirstOrDefault(x => x.Name == nameof(ClassMappingImpl) && x.IsClass && !x.IsAbstract && (
             x.Namespace == "Dgraph4Net.ActiveRecords"

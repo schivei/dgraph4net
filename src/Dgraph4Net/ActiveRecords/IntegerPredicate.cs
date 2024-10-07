@@ -4,8 +4,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct IntegerPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Index = false, bool Upsert = false) : IPredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
-
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: int {(Index || Upsert ? "@index(int)" : "")} {(Upsert ? "@upsert" : "")} .";
     readonly string IPredicate.ToTypePredicate() =>
@@ -24,12 +22,10 @@ public readonly record struct IntegerPredicate(IClassMap ClassMap, PropertyInfo 
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<T>(T? target, object? value) where T : IEntity
     {
-        if (value is null)
-        {
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
-        }
 
         if ((Property.PropertyType == typeof(int) || Property.PropertyType == typeof(int?)) && int.TryParse(value.ToString(), out var i))
         {

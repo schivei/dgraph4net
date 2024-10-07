@@ -4,7 +4,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct PasswordPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName) : IPredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: password .";
     readonly string IPredicate.ToTypePredicate() =>
@@ -23,5 +22,5 @@ public readonly record struct PasswordPredicate(IClassMap ClassMap, PropertyInfo
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? _, object? __) { }
+    public void SetValue<T>(T? target, object? value) where T : IEntity { }
 }

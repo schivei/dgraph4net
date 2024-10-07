@@ -104,8 +104,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <returns><see cref="Txn"/></returns>
     public Txn BestEffort()
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(Txn));
+        ObjectDisposedException.ThrowIf(_disposed, typeof(Txn));
 
         if (!_readOnly)
             throw new InvalidOperationException("Best effort only works for read-only queries.");
@@ -211,8 +210,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public async Task<IEnumerable<Response>> Do(IEnumerable<Request> requests)
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(Txn));
+        ObjectDisposedException.ThrowIf(_disposed, typeof(Txn));
 
         if (_finished)
             throw ErrFinished;
@@ -221,7 +219,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
         if (reqs.Length == 0)
         {
             _finished = true;
-            return new[] { new Response { Txn = _context, Latency = new Latency() } };
+            return [new Response { Txn = _context, Latency = new Latency() }];
         }
 
         if (reqs.Any(x => x.CommitNow))
@@ -312,7 +310,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public async Task<Response> Do(Request request)
     {
-        var responses = await Do(new[] { request })
+        var responses = await Do([request])
             .ConfigureAwait(false);
 
         return responses.First();
@@ -369,8 +367,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public Task Discard(TxnContext txn, Request request)
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(Txn));
+        ObjectDisposedException.ThrowIf(_disposed, typeof(Txn));
 
         if (txn is not null)
             _context = txn;
@@ -400,8 +397,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public async Task Commit()
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(Txn));
+        ObjectDisposedException.ThrowIf(_disposed, typeof(Txn));
 
         if (_readOnly)
             throw ErrReadOnly;
@@ -432,8 +428,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     private void MergeContext(TxnContext src)
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(Txn));
+        ObjectDisposedException.ThrowIf(_disposed, typeof(Txn));
 
         if (src is null)
             return;
@@ -444,9 +439,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
         if (_context.StartTs != src.StartTs)
             throw new ContextMarshalException("StartTs mismatch.");
 
-        _context.Keys.AddRange(src.Keys.ToList());
+        _context.Keys.AddRange([.. src.Keys]);
 
-        _context.Preds.AddRange(src.Preds.ToList());
+        _context.Preds.AddRange([.. src.Preds]);
     }
 
     /// <summary>
@@ -459,8 +454,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     private async Task CommitOrAbort()
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(Txn));
+        ObjectDisposedException.ThrowIf(_disposed, typeof(Txn));
 
         if (_finished)
             return;

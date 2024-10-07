@@ -41,7 +41,7 @@ public static class DType<T>
             {
                 sb.Append(ep.PredicateName).AppendLine(" {");
                 var subType = typeof(DType<>).MakeGenericType(ep.EdgeType);
-                var exp = subType.GetMethod(nameof(ExpandAll))?.Invoke(null, new object[] { deep - 1 });
+                var exp = subType.GetMethod(nameof(ExpandAll))?.Invoke(null, [deep - 1]);
                 sb.Append(exp);
                 sb.AppendLine("}");
             }

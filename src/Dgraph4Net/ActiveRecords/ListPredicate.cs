@@ -4,8 +4,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct ListPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, string ListType, bool Count = true, bool Reversed = false) : IPredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
-
     public ListPredicate Merge(ListPredicate lpa) =>
         new(ClassMap, Property, PredicateName, ListType, Count || lpa.Count);
 
@@ -26,9 +24,9 @@ public readonly record struct ListPredicate(IClassMap ClassMap, PropertyInfo Pro
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<T>(T? target, object? value) where T : IEntity
     {
-        if (value is null)
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
 
         if (value.GetType().IsAssignableTo(Property.PropertyType))
