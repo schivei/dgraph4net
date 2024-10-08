@@ -31,6 +31,7 @@ and understand how to run and work with Dgraph.
     - [Applying a Migration](#applying-a-migration)
     - [Removing a Migration](#removing-a-migration)
   - [In Development](#in-development)
+  - [Notes](#notes)
 
 ## Packages
 - **Dgraph4Net.Newtonsoft.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Newtonsoft.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Newtonsoft.Json/)
@@ -482,5 +483,8 @@ The remove will update the database schema to the previous migration and remove 
 
 ## In Development
 
-* .NET 8
-  * Comming in Dec 2023
+* LINQ for dgraph
+
+## Notes
+
+Now we will only update the .NET version when it is a LTS version.
