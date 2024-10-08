@@ -12,5 +12,9 @@ public class Person : AEntity<Person>
     public ICollection<Company> WorkedAt { get; set; } = [];
 
     [Facet<Person>("amiable", nameof(Amiable))]
-    public bool Amiable => GetFacet(false);
+    public bool Amiable
+    {
+        get => GetFacet(false);
+        set => SetFacet<bool>(value);
+    }
 }

@@ -663,7 +663,7 @@ public class ObjectTest : ExamplesTest
             bob.Name += "Bob";
 
             bob.SetFacet("friend|family", "yes");
-            bob.SetFacet("friend|age", 13);
+            bob.SetFacet(x => x.Friends, "age", 13);
             bob.SetFacet("friend|close", true);
 
             var charlie = new Person

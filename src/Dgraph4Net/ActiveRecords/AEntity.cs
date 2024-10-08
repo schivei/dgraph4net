@@ -27,7 +27,18 @@ public abstract class AEntity<T> : IEntity where T : AEntity<T>
         var prop = ClassMap.GetProperty<T>(predicate) ??
             throw new ArgumentException($"Can not find property from {predicate}");
 
-        SetFacet($"{ClassMap.GetPredicate(prop).PredicateName}|{name}", value);
+        var prep = ClassMap.GetPredicate(prop) ??
+            throw new ArgumentException($"Can not find predicate from {prop}");
+
+        var sep = '|';
+
+        if (name is ['@', ..])
+        {
+            sep = '@';
+            name = name[1..];
+        }
+
+        SetFacet($"{prep.PredicateName}{sep}{name}", value);
     }
 
     public void SetFacet(Expression<Func<T, object?>> predicate, string name, object? value) =>
@@ -55,6 +66,27 @@ public abstract class AEntity<T> : IEntity where T : AEntity<T>
 
     public void RemoveFacet(FacetInfo facet) =>
         Facets.Remove(facet);
+
+    public void SetFacet<TR>(object? value, [CallerMemberName] string name = "")
+        where TR : notnull, IComparable, IComparable<TR>, IEquatable<TR>
+    {
+        var prop = GetType().GetProperty(name);
+
+        var facetAttr = prop?.GetCustomAttribute<FacetAttribute<T>>();
+
+        if (prop is null || facetAttr is null)
+            throw new ArgumentException($"Can not find property from {name}");
+
+        if (ClassMap.GetPredicate(facetAttr.Property) is not IPredicate predicate)
+            throw new ArgumentException($"Can not find predicate from {facetAttr.Property}");
+
+        var sep = '|';
+
+        if (facetAttr.IsI18n)
+            sep = '@';
+
+        SetFacet($"{predicate.PredicateName}{sep}{facetAttr.Name}", value);
+    }
 
     public TR GetFacet<TR>(TR defaultValue = default!, [CallerMemberName] string name = "")
         where TR : notnull, IComparable, IComparable<TR>, IEquatable<TR>

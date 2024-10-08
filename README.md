@@ -17,6 +17,9 @@ and understand how to run and work with Dgraph.
     - [Mapping Classes](#mapping-classes)
       - [Creating mappings](#creating-mappings)
       - [Using Facets](#using-facets)
+        - [With Attribute](#with-attribute)
+        - [With Type](#with-type)
+        - [With direct access](#with-direct-access)
     - [Creating a Transaction](#creating-a-transaction)
     - [Running a Mutation](#running-a-mutation)
     - [Running a Query](#running-a-query)
@@ -173,37 +176,70 @@ Facets are a way to store metadata for predicates. They are key-value pairs that
 
 You can use i18n facets too, to store multiple languages in the same predicate.
 
-```c#
-public class Person : AEntity<Person>
-{
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
-    public List<Person> BossOf { get; set; } = new List<Person>();
-    public Company WorksFor { get; set; }
-    public Person? MyBoss { get; set; }
+**Pay Attention**: You MUST NOT map facets.
 
-    // using a FacetPredicate, you can create your own implementation, see the source code
-    public FacetPredicate<Person, string> Name { get; set; }
+##### With Attribute
 
-    // using attribute
-    [Facet<Person>("origin", nameof(Name))]
-    public string Origin { get; set; }
+```csharp
+class MyClass1 : AEntity<MyClass1> {
+    public List<MyClass2> Classes { get; set; }
+}
 
-    public Person()
+class MyClass2 : AEntity<MyClass2> {
+    [Facet<MyClass1>("since", nameof(MyClass1.Classes))]
+    public DateTimeOffset Since
     {
-        // you need to initialize the faceted predicate on constructor
-        // pay attemption, FacetPredicate does not accept non system types or collections
-        Name = new NameFacet(this, GetType().GetProperty(nameof(Name)));
+        get => GetFacet(DateTimeOffset.MinValue);
+        set => SetFacet<DateTimeOffset>(value);
+    }
+}
+```
+
+##### With Type
+
+You can use the `FacetPredicate<T, TE>` on your predicate or create a custom one likes:
+
+```csharp
+class MyCustomFacets(MyClass3 instance, string value = default) : FacetPredicate<MyClass3, string>(instance, property => property.Name, value) {
+    public string Origin
+    {
+        get => GetFacet("origin", "american");
+        set => SetFacet("origin", value);
     }
 }
 
-// or
+class MyClass3 : AEntity<MyClass3> {
+    public MyCustomFacets Name { get; set; }
+}
+```
 
-// access the facet by GetFacet inside the class
-var nameOrigin = person.GetFacet("origin", p => p.Name, string.Empty);
+**Note**: Custom facets must have a constructor with two arguments (in order): ClassType for instance and the value of predicate.
 
+##### With direct access
 
-// to get a i18n facet
-var nameRu = person.GetFacet("@ru", p => p.Name, string.Empty);
+Use it if you need to gets or sets any facet inside an object.
+
+```csharp
+...
+var mc = new MyClass();
+
+// - Getter
+mc.GetFacet("property|facet", defaultValue);
+mc.GetFacet(m => m.Property, "facet", defaultValue);
+
+// - Setter
+mc.SetFacet("property|facet", value);
+mc.SetFacet(m => m.Property, "facet", value);
+
+// - i18n, use an 'at' (@) instead of a 'pipe' (|); if using expression selection, put the 'at' at the start of facet name
+// - Getter
+mc.GetFacet("property@es", defaultValue);
+mc.GetFacet(m => m.Property, "@es", defaultValue);
+
+// - Setter
+mc.SetFacet("property@es", value);
+mc.SetFacet(m => m.Property, "@es", value);
+...
 ```
 
 ### Creating a Transaction
