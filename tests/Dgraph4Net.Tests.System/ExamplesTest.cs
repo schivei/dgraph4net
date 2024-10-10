@@ -1,25 +1,38 @@
 using System;
-using System.Threading;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Api;
 using Dgraph4Net.ActiveRecords;
+using dotenv.net;
 using Grpc.Core;
 using Grpc.Net.Client;
-
-using Xunit;
 
 namespace Dgraph4Net.Tests;
 
 [Collection("Dgraph4Net")]
 public class ExamplesTest : Assert
 {
+    private static readonly IReadOnlyDictionary<string, string> s_env;
+
+    public static string? GetEnv(string key, string? defaultValue = null) =>
+        s_env.TryGetValue(key, out var value) ? value :
+            Environment.GetEnvironmentVariable(key) ?? defaultValue;
+
+    static ExamplesTest()
+    {
+        DotEnv.Load();
+        s_env = DotEnv.Read().AsReadOnly();
+    }
+
     public ExamplesTest()
     {
-        if (Environment.GetEnvironmentVariable("GRPC_DNS_RESOLVER") != "native")
+        if (GetEnv("GRPC_DNS_RESOLVER") != "native")
         {
             Environment.SetEnvironmentVariable("GRPC_DNS_RESOLVER", "native");
         }
+
+        ClassMapping.ImplClassMapping.SetDefaults();
 
         try
         {
@@ -33,11 +46,11 @@ public class ExamplesTest : Assert
 
     protected static Dgraph4NetClient GetDgraphClient()
     {
-        // This switch must be set before creating the GrpcChannel/HttpClient.
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-        // The port number(5000) must match the port of the gRPC server.
-        var channel = GrpcChannel.ForAddress("http://localhost:9080", new GrpcChannelOptions
+        var host = GetEnv("DGRAPH_HOST", "http://localhost:9080");
+
+        var channel = GrpcChannel.ForAddress(host, new GrpcChannelOptions
         {
             Credentials = ChannelCredentials.Insecure
         });

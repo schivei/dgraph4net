@@ -2,85 +2,65 @@ using Newtonsoft.Json;
 
 namespace Dgraph4Net.Newtonsoft.Json;
 
-internal class UidConverter : JsonConverter
+internal class UidConverter : JsonConverter<Uid>
 {
-    public override bool CanConvert(Type objectType)
+    private class Setter : IDisposable
     {
-        return objectType == typeof(Uid) ||
-               objectType == typeof(string) ||
-               objectType == typeof(int) ||
-               objectType == typeof(uint) ||
-               objectType == typeof(long) ||
-               objectType == typeof(ulong) ||
-               objectType == typeof(byte) ||
-               objectType == typeof(char) ||
-               objectType == typeof(sbyte) ||
-               objectType == typeof(short) ||
-               objectType == typeof(ushort);
+        private readonly JsonSerializer _serializer;
+        private readonly int _index;
+        private readonly JsonConverter _converter;
+
+        public Setter(JsonSerializer serializer, JsonConverter converter)
+        {
+            _serializer = serializer;
+            _converter = converter;
+            _index = serializer.Converters.IndexOf(converter);
+
+            serializer.Converters.RemoveAt(_index);
+        }
+
+        public void Dispose() => _serializer.Converters.Insert(_index, _converter);
     }
 
-    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+    private Setter setter(JsonSerializer serializer) =>
+        new(serializer, this);
+
+    public override Uid ReadJson(JsonReader reader, Type objectType, Uid existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        var value = reader.Value;
+        string? value;
+        using (setter(serializer))
+            value = reader.ReadAsString();
 
         if (value is null)
             return existingValue;
 
-        if (objectType != typeof(Uid))
-        {
-            return JsonSerializer.Create(new JsonSerializerSettings())
-                .Deserialize(reader, objectType);
-        }
+        if (reader.TokenType == JsonToken.String)
+            return new Uid(value);
 
-        if (string.IsNullOrEmpty(value?.ToString()?.Trim()))
-        {
-            return default(Uid);
-        }
+        if (reader.TokenType == JsonToken.Integer)
+            return new Uid(ulong.Parse(value));
 
-        switch (value)
+        if (reader.TokenType == JsonToken.StartObject)
         {
-            case Uid uid:
-                return uid;
-            case string str:
-                return new Uid(str);
-        }
+            reader.Read();
+            if (reader.TokenType == JsonToken.PropertyName && (string)reader.Value == "uid")
+            {
+                reader.Read();
 
-        if (value is int ||
-            value is uint ||
-            value is long ||
-            value is ulong ||
-            value is byte ||
-            value is char ||
-            value is sbyte ||
-            value is short ||
-            value is ushort)
-        {
-            return new Uid(Convert.ToUInt64(reader.Value), true);
+                if (reader.TokenType == JsonToken.String)
+                    return new Uid(reader.Value.ToString());
+
+                if (reader.TokenType == JsonToken.Integer)
+                    return new Uid(ulong.Parse(reader.Value.ToString()));
+            }
         }
 
         return existingValue;
     }
 
-    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, Uid value, JsonSerializer serializer)
     {
-        if (value is not Uid uid)
-        {
-            if (value is null)
-            {
-                writer.WriteNull();
-            }
-            else
-            {
-                var settings = new JsonSerializerSettings();
-                settings.Converters.Clear();
-
-                JsonSerializer.Create(settings).Serialize(writer, value);
-            }
-
-            return;
-        }
-
-        if (uid.IsEmpty)
+        if (value.IsEmpty)
         {
             writer.WriteNull();
             return;
@@ -94,7 +74,7 @@ internal class UidConverter : JsonConverter
             writer.WritePropertyName("uid");
         }
 
-        writer.WriteValue(uid.ToString());
+        writer.WriteValue(value.ToString());
 
         if (isRef)
         {

@@ -5,7 +5,6 @@ namespace Dgraph4Net.ActiveRecords;
 public readonly record struct UidPredicate(IClassMap ClassMap, PropertyInfo Property) : IPredicate
 {
     public string PredicateName => "uid";
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
     readonly string IPredicate.ToSchemaPredicate() => string.Empty;
 
     readonly string IPredicate.ToTypePredicate() => PredicateName;
@@ -23,9 +22,9 @@ public readonly record struct UidPredicate(IClassMap ClassMap, PropertyInfo Prop
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<T>(T? target, object? value) where T : IEntity
     {
-        if (value is null)
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
 
         Uid uid = value.ToString();

@@ -6,7 +6,7 @@ using Google.Protobuf;
 
 namespace Dgraph4Net.ActiveRecords;
 
-public abstract class Migration : IDgnMigration
+public abstract class Migration : AEntity<Migration>, IDgnMigration
 {
     private IDgraph4NetClient _client;
 
@@ -16,8 +16,6 @@ public abstract class Migration : IDgnMigration
     public DateTimeOffset AppliedAt { get; }
     public DateTimeOffset GeneratedAt { get; }
     public string Name { get; }
-    public Uid Uid { get; }
-    public string[] DgraphType { get; } = Array.Empty<string>();
 
     internal void SetClient(IDgraph4NetClient client) => _client = client;
 

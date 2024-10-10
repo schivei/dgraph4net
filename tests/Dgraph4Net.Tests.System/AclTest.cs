@@ -1,23 +1,21 @@
 using System;
-using System.Threading.Tasks;
-
-using Xunit;
+using System.Text.Json.Serialization;
 using Dgraph4Net.ActiveRecords;
 using Google.Protobuf;
-using System.Text.Json.Serialization;
+using LateApexEarlySpeed.Xunit.Assertion.Json;
 
 namespace Dgraph4Net.Tests;
 
-public sealed class Testing : IEntity
+public sealed class Testing : AEntity<Testing>
 {
     [JsonPropertyName("uid")]
-    public Uid Uid { get; set; }
+    public override Uid Uid { get; set; }
     [JsonPropertyName("name")]
     public string Name { get; set; }
     [JsonPropertyName("parent")]
     public Testing? Test { get; set; }
     [JsonPropertyName("dgraph.type")]
-    public string[] DgraphType { get; set; } = new[] { "Testing" };
+    public override string[] DgraphType { get; set; } = new[] { "Testing" };
 }
 
 public sealed class TestingMap : ClassMap<Testing>
@@ -35,7 +33,7 @@ public class AclTest : ExamplesTest
     [Fact]
     public void ExpTest()
     {
-        const string expected = @"{ ""uid"": ""0x1"",""dgraph.type"": ""Testing"",""name"": ""test"",""parent"": { ""uid"": ""_:0"",""dgraph.type"": ""Testing"",""name"": null,""parent"": null } }" + "\n";
+        const string expected = @"{ ""uid"": ""0x1"",""dgraph.type"": [""Testing""],""name"": ""test"",""parent"": { ""uid"": ""_:0"",""dgraph.type"": [""Testing""],""name"": null,""parent"": null } }" + "\n";
 
         try
         {
@@ -49,15 +47,19 @@ public class AclTest : ExamplesTest
                 Test = new() { Uid = refs }
             };
 
-            var t = ByteString.CopyFromUtf8(expected).FromJson<Testing>();
+            var bs = ByteString.CopyFromUtf8(expected);
+
+            var t = bs.FromJson<Testing>();
 
             Equivalent(test, t);
 
-            var actual = ClassMapping.ToJson(test, true).ToStringUtf8().Trim();
+            var actual = ClassMapping.ToJson(test).ToStringUtf8().Trim();
 
             var expec = expected.Trim();
 
-            Equal(expec, actual);
+            Console.WriteLine(actual);
+
+            JsonAssertion.Equivalent(expec, actual);
         }
         finally
         {

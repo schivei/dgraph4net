@@ -5,14 +5,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal sealed class ServerOption : Option<Dgraph4NetClient>
+internal sealed class ServerOption(ILogger<ServerOption> logger) : Option<Dgraph4NetClient>(["--server", "-s"], Parse(logger), false, "The server address")
 {
     private static Dgraph4NetClient s_client;
     private static readonly object s_lock = new();
-
-    public ServerOption(ILogger<ServerOption> logger) : base(new[] { "--server", "-s" }, Parse(logger), false, "The server address")
-    {
-    }
 
     private static ParseArgument<Dgraph4NetClient> Parse(ILogger logger)
     {

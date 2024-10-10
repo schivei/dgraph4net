@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <Version>$([System.DateTime]::UtcNow.Year).$([System.Convert]::ToInt32($([MSBuild]::Divide($([MSBuild]::Add($([System.DateTime]::UtcNow.Month), 2)), 3)))).$([System.DateTime]::UtcNow.DayOfYear).$([System.DateTime]::UtcNow.Hour)</Version>
     <NoWarn>nullable;NU5118;$(NoWarn)</NoWarn>
   </PropertyGroup>

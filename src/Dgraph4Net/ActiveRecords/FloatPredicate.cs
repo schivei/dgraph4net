@@ -4,8 +4,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct FloatPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Index = false, bool Upsert = false) : IPredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
-
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: float {(Index || Upsert ? "@index(float)" : "")} {(Upsert ? "@upsert" : "")} .";
     readonly string IPredicate.ToTypePredicate() =>
@@ -22,9 +20,9 @@ public readonly record struct FloatPredicate(IClassMap ClassMap, PropertyInfo Pr
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<T>(T? target, object? value) where T : IEntity
     {
-        if (value is null)
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
 
         if ((Property.PropertyType == typeof(float) || Property.PropertyType == typeof(float?)) &&

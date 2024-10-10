@@ -69,9 +69,9 @@ internal sealed class MigrationRemoveCommand : Command
                 typeof(InternalClassMapping).Assembly
             };
 
-        InternalClassMapping.SetDefaults(mergedAssemblies.ToArray());
+        InternalClassMapping.SetDefaults([.. mergedAssemblies]);
 
-        InternalClassMapping.Map(mergedAssemblies.ToArray());
+        InternalClassMapping.Map([.. mergedAssemblies]);
 
         if (!InternalClassMapping.ClassMappings.Any())
         {

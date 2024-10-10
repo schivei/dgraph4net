@@ -4,8 +4,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Fulltext, bool Trigram, bool Upsert, StringToken Token, string? Cultures = null) : IPredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
-
     public readonly StringPredicate Merge(StringPredicate spa) =>
         new(ClassMap, Property, PredicateName, Fulltext || spa.Fulltext, Trigram || spa.Trigram, Upsert || spa.Upsert, (StringToken)Math.Max((int)spa.Token, (int)Token), Concat(GetCultures(), spa.GetCultures()));
 
@@ -18,7 +16,7 @@ public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo P
     }
 
     public readonly string[] GetCultures() =>
-        Cultures?.Split(",", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+        Cultures?.Split(",", StringSplitOptions.RemoveEmptyEntries) ?? [];
 
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: string{ToIndex()} .";
@@ -47,14 +45,14 @@ public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo P
 
             predicate += !string.IsNullOrEmpty(tk) ? fll : "";
 
-            predicate += GetCultures().Any() ? ") @lang" : ")";
+            predicate += GetCultures().Length != 0 ? ") @lang" : ")";
             predicate += Upsert ? " @upsert" : "";
 
             return predicate;
         }
         else
         {
-            return GetCultures().Any() ? " @lang" : "";
+            return GetCultures().Length != 0 ? " @lang" : "";
         }
     }
 
@@ -68,9 +66,9 @@ public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo P
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<T>(T? target, object? value) where T : IEntity
     {
-        if (value is null)
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
 
         if (Property.PropertyType == typeof(byte[]))
@@ -85,7 +83,7 @@ public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo P
         {
             Property.SetValue(target, Enum.Parse(Property.PropertyType, value.ToString() ?? "", true));
         }
-        else if (Property.PropertyType.IsValueType && Property.PropertyType.GetMethod("TryParse", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(string), Property.PropertyType.MakeByRefType() }, null) is MethodInfo tryParse && tryParse.ReturnType == typeof(bool))
+        else if (Property.PropertyType.IsValueType && Property.PropertyType.GetMethod("TryParse", BindingFlags.Public | BindingFlags.Static, null, [typeof(string), Property.PropertyType.MakeByRefType()], null) is MethodInfo tryParse && tryParse.ReturnType == typeof(bool))
         {
             var parameters = new object[] { value, Activator.CreateInstance(Property.PropertyType) };
             if ((bool)tryParse.Invoke(null, parameters))

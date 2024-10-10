@@ -10,9 +10,8 @@ public abstract class ClassMap : IClassMap
 {
     protected object _lock = new();
 
-    public static ConcurrentDictionary<PropertyInfo, IPredicate> Predicates { get; } = new();
-
-    public static ConcurrentDictionary<PropertyInfo, ConcurrentBag<IFacet>> Facets { get; } = new();
+    public static ConcurrentDictionary<PropertyInfo, IPredicate> Predicates { get; } =
+        EntityConverter.Predicates;
 
     public Type Type { get; protected internal set; }
     public string DgraphType { get; protected internal set; }
@@ -33,6 +32,15 @@ public abstract class ClassMap : IClassMap
 
     internal static bool TryGetType(Type te, out string dataType)
     {
+        var faceted = typeof(IFacetPredicate<,>);
+        var teIfaces = te.GetInterfaces();
+        var facetedIface = teIfaces.FirstOrDefault(iface => iface.Name == faceted.Name);
+
+        if (facetedIface is not null)
+        {
+            te = facetedIface.GetGenericArguments()[1];
+        }
+
         switch (te)
         {
             case Type _ when te == typeof(Uid) ||
@@ -87,6 +95,19 @@ public abstract class ClassMap : IClassMap
         return true;
     }
 
+    internal protected static PropertyInfo PreventFacetedAndIgnored(PropertyInfo property)
+    {
+        var facetAttrType = typeof(FacetAttribute<>);
+
+        if (property.GetCustomAttributes().Exists(attr => attr.GetType().Name.StartsWith(facetAttrType.Name)))
+            throw new InvalidOperationException($"The property {property.Name} can not be faceted.");
+
+        if (property.GetCustomAttribute<IgnoreMappingAttribute>(true) is not null)
+            throw new InvalidOperationException($"The property {property.Name} can not be ignored.");
+
+        return property;
+    }
+
     public static PropertyInfo GetProperty<T>(Expression expression)
     {
         var lambda = expression as LambdaExpression ??
@@ -109,7 +130,7 @@ public abstract class ClassMap : IClassMap
         var pi = memberExpr.Member as PropertyInfo;
 
         if (pi is not null)
-            return pi;
+            return PreventFacetedAndIgnored(pi);
 
         var parent = memberExpr.Member.DeclaringType;
 
@@ -119,4 +140,19 @@ public abstract class ClassMap : IClassMap
         return parent.GetProperty(pi.Name, BindingFlags.Public) ??
             throw new ArgumentException("Invalid expression.", nameof(expression));
     }
+
+    public static IPredicate GetPredicate(Type objectType, string predicateName) =>
+        EntityConverter.GetPredicate(objectType, predicateName);
+
+    public static IPredicate GetPredicate<T>(string predicateName) where T : AEntity<T> =>
+        GetPredicate(typeof(T), predicateName);
+
+    public static IPredicate GetPredicate(PropertyInfo prop) =>
+        EntityConverter.GetPredicate(prop);
+
+    public static IPredicate GetPredicate<T, TE>(Expression<Func<T, TE?>> expression) =>
+        GetPredicate(GetProperty<T>(expression));
+
+    public static IEnumerable<IPredicate> GetPredicates(Type type) =>
+        EntityConverter.GetPredicates(type);
 }

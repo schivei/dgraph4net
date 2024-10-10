@@ -16,6 +16,10 @@ and understand how to run and work with Dgraph.
       - [Using DI](#using-di)
     - [Mapping Classes](#mapping-classes)
       - [Creating mappings](#creating-mappings)
+      - [Using Facets](#using-facets)
+        - [With Attribute](#with-attribute)
+        - [With Type](#with-type)
+        - [With direct access](#with-direct-access)
     - [Creating a Transaction](#creating-a-transaction)
     - [Running a Mutation](#running-a-mutation)
     - [Running a Query](#running-a-query)
@@ -27,6 +31,7 @@ and understand how to run and work with Dgraph.
     - [Applying a Migration](#applying-a-migration)
     - [Removing a Migration](#removing-a-migration)
   - [In Development](#in-development)
+  - [Notes](#notes)
 
 ## Packages
 - **Dgraph4Net.Newtonsoft.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Newtonsoft.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Newtonsoft.Json/)
@@ -63,6 +68,7 @@ Dgraph version   | Dgraph4Net version | dotnet Version
   21.2.Y         |  2022.X.Y          | .NET6
   22.0.Y         |  2023.2.<145X.Z    | .NET7
   23.0.Y         |  2023.2.>145X.Z    | .NET7
+  24.0.Y         |  2023.2.>145X.Z    | .NET8
 
 ## Using a Client
 
@@ -104,33 +110,29 @@ Mapping classes can perform a schema migration and marshaling.
 ```c#
 services.AddDgraph(); // already call mapping
 // or, for manual mapping
-ClassMapping.Map(); // to map all assemblies with classes that implements IEntity
+ClassMapping.Map(); // to map all assemblies with classes that implements AEntity
 // or
 ClassMapping.Map(assemlies); // to map specifics assemblies
 ```
 
-**\*\*NOTE**: your classes need to implement `Dgraph4Net.IEntity` interface.
+**\*\*NOTE**: your classes need to implement `Dgraph4Net.AEntity<T>` abstract class.
 
-### Creating mappings
+#### Creating mappings
 
 Follow the example below to create a mapping:
 
 ```c#
 // poco types
-public class Person : IEntity
+public class Person : AEntity<Person>
 {
-    public Uid Uid { get; set; } = Uid.NewUid(); // you must initialize Uid
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public List<Person> BossOf { get; set; } = new List<Person>();
     public Company WorksFor { get; set; }
     public Person? MyBoss { get; set; }
 }
 
-public class Company : IEntity
+public class Company : AEntity<Company>
 {
-    public Uid Uid { get; set; } = Uid.NewUid(); // you must initialize Uid
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public CompanyIndustry Industry { get; set; }
     public ICollection<Person> WorksHere { get; set; } = new List<Person>();
@@ -168,6 +170,78 @@ internal sealed class CompanyMapping : ClassMap<Company>
         HasMany(x => x.WorksHere, "works_for", x => x.WorksFor); // to map a property to reversed works_for
     }
 }
+```
+
+#### Using Facets
+
+Facets are a way to store metadata for predicates. They are key-value pairs that can be associated with a predicate. Facets can be used to store information like timestamps, geolocations, and other metadata. Facets are stored as part of the predicate, and are returned with the predicate when queried.
+
+You can use i18n facets too, to store multiple languages in the same predicate.
+
+**Pay Attention**: You MUST NOT map facets.
+
+##### With Attribute
+
+```csharp
+class MyClass1 : AEntity<MyClass1> {
+    public List<MyClass2> Classes { get; set; }
+}
+
+class MyClass2 : AEntity<MyClass2> {
+    [Facet<MyClass1>("since", nameof(MyClass1.Classes))]
+    public DateTimeOffset Since
+    {
+        get => GetFacet(DateTimeOffset.MinValue);
+        set => SetFacet<DateTimeOffset>(value);
+    }
+}
+```
+
+##### With Type
+
+You can use the `FacetPredicate<T, TE>` on your predicate or create a custom one likes:
+
+```csharp
+class MyCustomFacets(MyClass3 instance, string value = default) : FacetPredicate<MyClass3, string>(instance, property => property.Name, value) {
+    public string Origin
+    {
+        get => GetFacet("origin", "american");
+        set => SetFacet("origin", value);
+    }
+}
+
+class MyClass3 : AEntity<MyClass3> {
+    public MyCustomFacets Name { get; set; }
+}
+```
+
+**Note**: Custom facets must have a constructor with two arguments (in order): ClassType for instance and the value of predicate.
+
+##### With direct access
+
+Use it if you need to gets or sets any facet inside an object.
+
+```csharp
+...
+var mc = new MyClass();
+
+// - Getter
+mc.GetFacet("property|facet", defaultValue);
+mc.GetFacet(m => m.Property, "facet", defaultValue);
+
+// - Setter
+mc.SetFacet("property|facet", value);
+mc.SetFacet(m => m.Property, "facet", value);
+
+// - i18n, use an 'at' (@) instead of a 'pipe' (|); if using expression selection, put the 'at' at the start of facet name
+// - Getter
+mc.GetFacet("property@es", defaultValue);
+mc.GetFacet(m => m.Property, "@es", defaultValue);
+
+// - Setter
+mc.SetFacet("property@es", value);
+mc.SetFacet(m => m.Property, "@es", value);
+...
 ```
 
 ### Creating a Transaction
@@ -410,5 +484,8 @@ The remove will update the database schema to the previous migration and remove 
 
 ## In Development
 
-* .NET 8
-  * Comming in Dec 2023
+* LINQ for dgraph
+
+## Notes
+
+Now we will only update the .NET version when it is a LTS version.

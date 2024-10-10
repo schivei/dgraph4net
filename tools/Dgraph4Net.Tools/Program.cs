@@ -25,7 +25,7 @@ if (arguments.Count <= 1)
 }
 #endif
 
-var builder = Host.CreateApplicationBuilder(arguments.ToArray());
+var builder = Host.CreateApplicationBuilder([.. arguments]);
 
 typeof(Application).Assembly.GetTypes()
     .Where(t => t.IsClass && !t.IsAbstract
@@ -48,4 +48,4 @@ var host = builder.Build();
 
 var app = host.Services.GetRequiredService<Application>();
 
-await app.ExecuteAsync(arguments.ToArray());
+await app.ExecuteAsync([.. arguments]);

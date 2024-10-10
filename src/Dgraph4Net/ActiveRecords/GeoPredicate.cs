@@ -5,8 +5,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct GeoPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Index = false, bool Upsert = false) : IPredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
-
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: geo {(Index || Upsert ? "@index(geo)" : "")} {(Upsert ? "@upsert" : "")} .";
 
@@ -26,9 +24,9 @@ public readonly record struct GeoPredicate(IClassMap ClassMap, PropertyInfo Prop
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<T>(T? target, object? value) where T : IEntity
     {
-        if (value is null)
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
 
         var geoExtensions = AppDomain.CurrentDomain.GetAssemblies()
@@ -40,7 +38,7 @@ public readonly record struct GeoPredicate(IClassMap ClassMap, PropertyInfo Prop
                 }
                 catch
                 {
-                    return Enumerable.Empty<Type>();
+                    return [];
                 }
             })
             .FirstOrDefault(t =>
@@ -57,7 +55,7 @@ public readonly record struct GeoPredicate(IClassMap ClassMap, PropertyInfo Prop
 
         var geoObject = geoExtensions.GetMethod("ToGeoObject", BindingFlags.Public | BindingFlags.Static)
             ?.MakeGenericMethod(Property.PropertyType)
-            ?.Invoke(null, new object[] { value }) as GeoObject;
+            ?.Invoke(null, [value]) as GeoObject;
 
         Property.SetValue(target, geoObject);
     }

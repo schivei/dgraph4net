@@ -7,7 +7,7 @@ using Dgraph4Net;
 namespace System;
 
 [JsonConverter(typeof(UidConverter))]
-public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
+public readonly partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, IComparable<ulong>, IEquatable<ulong>, IEntityBase
 {
     private readonly IDisposable? _unsubscriber;
 
@@ -17,7 +17,7 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
 
         public UidResolver()
         {
-            _observers = new List<IObserver<Uid>>();
+            _observers = [];
         }
 
         public IDisposable Subscribe(IObserver<Uid> observer)
@@ -40,11 +40,9 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
         }
     }
 
-    private sealed class UidObserver : IObserver<Uid>
+    private sealed class UidObserver(Uid source) : IObserver<Uid>
     {
-        public Uid Source { get; }
-
-        public UidObserver(Uid source) => Source = source;
+        public Uid Source { get; } = source;
 
         public void OnCompleted()
         {
@@ -62,16 +60,10 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
         }
     }
 
-    private sealed class Unsubscriber : IDisposable
+    private sealed class Unsubscriber(UidResolver resolver, IObserver<Uid> observer) : IDisposable
     {
-        private readonly UidResolver _resolver;
-        private readonly IObserver<Uid> _observer;
-
-        public Unsubscriber(UidResolver resolver, IObserver<Uid> observer)
-        {
-            _resolver = resolver;
-            _observer = observer;
-        }
+        private readonly UidResolver _resolver = resolver;
+        private readonly IObserver<Uid> _observer = observer;
 
         public void Dispose()
         {
@@ -79,13 +71,12 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
         }
     }
 
-    private sealed class UidValue
+    private sealed class UidValue(string value)
     {
-        public UidValue(string value) => Value = value;
-        public string Value { get; set; }
+        public string Value { get; set; } = value;
     }
 
-    private UidValue _uid = new(string.Empty);
+    private readonly UidValue _uid = new(string.Empty);
 
     internal static readonly UidResolver s_resolver;
 
@@ -160,55 +151,55 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
         uid > 0 ? new Uid(uid) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator ulong(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ulong.") : ulong.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ulong.") : ulong.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(uint uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator uint(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to uint.") : uint.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to uint.") : uint.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(ushort uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator ushort(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ushort.") : ushort.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to ushort.") : ushort.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(byte uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator byte(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to byte.") : byte.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to byte.") : byte.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(char uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator char(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to char.") : (char)int.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to char.") : (char)int.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(long uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator long(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to long.") : long.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to long.") : long.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(int uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator int(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to int.") : int.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to int.") : int.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(short uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator short(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to short.") : short.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to short.") : short.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static implicit operator Uid(sbyte uid) =>
         uid > 0 ? new Uid(Convert.ToUInt64(uid)) : throw new InvalidCastException($"Can't convert '{uid}' to Uid.");
 
     public static explicit operator sbyte(Uid uid) =>
-        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to sbyte.") : sbyte.Parse(uid.ToString(), NumberStyles.HexNumber);
+        uid.IsEmpty || uid.IsReferenceOnly ? throw new InvalidCastException("Can't cast reference or empty Uid to sbyte.") : sbyte.Parse(uid.ToString(true), NumberStyles.HexNumber);
 
     public static bool operator <(Uid left, Uid right)
     {
@@ -248,7 +239,10 @@ public partial struct Uid : IComparable, IComparable<Uid>, IEquatable<Uid>, ICom
 
     /// <inheritdoc/>
     public readonly override string ToString() =>
-        _uid?.Value ?? string.Empty;
+        ToString(false) ?? string.Empty;
+
+    public readonly string ToString(bool dropHexPrefix) =>
+        dropHexPrefix ? _uid?.Value[2..] : _uid?.Value;
 
     public static bool IsValid(string uid) =>
         IsValid(uid, out _);

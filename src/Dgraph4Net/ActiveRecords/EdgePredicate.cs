@@ -4,8 +4,6 @@ namespace Dgraph4Net.ActiveRecords;
 
 public readonly record struct EdgePredicate<T>(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Reverse, bool Count) : IEdgePredicate
 {
-    public ISet<IFacet> Facets { get; } = new HashSet<IFacet>();
-
     public Type EdgeType => typeof(T);
 
     readonly string IPredicate.ToSchemaPredicate() =>
@@ -27,9 +25,9 @@ public readonly record struct EdgePredicate<T>(IClassMap ClassMap, PropertyInfo 
             _ => ((IPredicate)this).ToSchemaPredicate().StartsWith(':') ? p2 : this
         };
 
-    public void SetValue(object? value, object? target)
+    public void SetValue<TE>(TE? target, object? value) where TE : IEntity
     {
-        if (value is null)
+        if (((IPredicate)this).SetFaceted(target, value))
             return;
 
         Property.SetValue(target, Convert.ChangeType(value, Property.PropertyType));

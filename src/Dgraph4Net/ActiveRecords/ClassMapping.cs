@@ -25,14 +25,8 @@ public static class ClassMapping
         private set => ImplClassMapping.Migrations = value;
     }
 
-    public static string ToJsonString<T>(this T entity, bool deep = false, bool doNotPropagateNulls = false) where T : IEntity =>
-        ImplClassMapping.ToJsonString<T>(entity, deep, doNotPropagateNulls);
-
-    public static ByteString ToJson<T>(this T entity, bool deep = false, bool doNotPropagateNulls = false) where T : IEntity =>
-        ImplClassMapping.ToJson<T>(entity, deep, doNotPropagateNulls);
-
-    public static object? FromJson(this ByteString bytes, Type type, string param) =>
-        ImplClassMapping.FromJson(bytes, type, param);
+    public static ByteString ToJson<T>(this T entity) where T : IEntity =>
+        ImplClassMapping.ToJson(entity);
 
     public static T? FromJson<T>(this ByteString bytes, string param) =>
         ImplClassMapping.FromJson<T>(bytes, param);
@@ -148,4 +142,10 @@ public static class ClassMapping
 
     public static IPredicate GetPredicate(PropertyInfo prop) =>
         InternalClassMapping.GetPredicate(prop);
+
+    public static IPredicate GetPredicate<T>(string predicateName) where T : AEntity<T> =>
+        InternalClassMapping.GetPredicate<T>(predicateName);
+
+    public static IPredicate GetPredicate(Type objectType, string predicateName) =>
+        InternalClassMapping.GetPredicate(objectType, predicateName);
 }
