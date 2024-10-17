@@ -1,3 +1,4 @@
+using System.Numerics;
 using Dgraph4Net.ActiveRecords;
 
 namespace PocoMapping.Entities;
@@ -10,6 +11,7 @@ public class Person : AEntity<Person>
     public SalaryFacet Salary { get; set; }
     public ICollection<Person> BossOf { get; set; } = [];
     public ICollection<Company> WorkedAt { get; set; } = [];
+    public Vector<float> Embedding { get; set; }
 
     [Facet<Person>("amiable", nameof(Amiable))]
     public bool Amiable

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Linq.Expressions;
+using System.Numerics;
 using System.Reflection;
 using Dgraph4Net.Core;
 using NetGeo.Json;
@@ -94,7 +95,16 @@ public abstract class ClassMap<T> : ClassMap where T : AEntity<T>
             throw new ArgumentException($"The type {te.Name} is not a non flagged enum.");
     }
 
-    protected void ListInt<TE>(Expression<Func<T, TE[]>> expression, string? predicateName = null) where TE : struct, IConvertible
+    protected void ListInt<TE>(Expression<Func<T, IEnumerable<IFacetedValue<T>>>> expression, string? predicateName = null) where TE : struct, IConvertible
+    {
+        Prevents<TE>();
+
+        var property = GetProperty(expression);
+
+        ListInt(property, predicateName);
+    }
+
+    protected void ListInt<TE>(Expression<Func<T, IEnumerable<TE>>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
         Prevents<TE>();
 
@@ -113,7 +123,30 @@ public abstract class ClassMap<T> : ClassMap where T : AEntity<T>
             Predicates.TryAdd(property, predicate);
     }
 
-    protected void ListString<TE>(Expression<Func<T, TE[]>> expression, string? predicateName = null) where TE : struct, IConvertible
+    protected void ListString(Expression<Func<T, IEnumerable<IFacetedValue<string>>>> expression, string? predicateName = null)
+    {
+        var property = GetProperty(expression);
+
+        ListString(property, predicateName);
+    }
+
+    protected void ListString<TE>(Expression<Func<T, IEnumerable<IFacetedValue<TE>>>> expression, string? predicateName = null) where TE : struct, IConvertible
+    {
+        Prevents<TE>();
+
+        var property = GetProperty(expression);
+
+        ListString(property, predicateName);
+    }
+
+    protected void ListString(Expression<Func<T, IEnumerable<string>>> expression, string? predicateName = null)
+    {
+        var property = GetProperty(expression);
+
+        ListString(property, predicateName);
+    }
+
+    protected void ListString<TE>(Expression<Func<T, IEnumerable<TE>>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
         Prevents<TE>();
 
@@ -132,31 +165,25 @@ public abstract class ClassMap<T> : ClassMap where T : AEntity<T>
             Predicates.TryAdd(property, predicate);
     }
 
-    protected void ListInt<TE>(Expression<Func<T, TE>> expression, string? predicateName = null) where TE : struct, IConvertible
+    protected void List<TE>(Expression<Func<T, IEnumerable<TE>>> expression, string? predicateName = null)
     {
-        Prevents<TE>();
+        var te = typeof(TE);
+
+        if (te.IsEnum)
+        {
+            throw new ArgumentException($"The type {typeof(TE).Name} is not a valid dgraph primitive type. Use ListInt or ListString instead for enums.");
+        }
+
+        if (!TryGetType<TE>(out string dataType))
+        {
+            throw new ArgumentException($"The type {typeof(TE).Name} is not a valid dgraph primitive type.");
+        }
 
         var property = GetProperty(expression);
-
-        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "int", false);
-
-        if (!Predicates.ContainsKey(property))
-            Predicates.TryAdd(property, predicate);
+        List(property, dataType, predicateName);
     }
 
-    protected void ListString<TE>(Expression<Func<T, TE>> expression, string? predicateName = null) where TE : struct, IConvertible
-    {
-        Prevents<TE>();
-
-        var property = GetProperty(expression);
-
-        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "string", false);
-
-        if (!Predicates.ContainsKey(property))
-            Predicates.TryAdd(property, predicate);
-    }
-
-    protected void List<TE>(Expression<Func<T, TE[]>> expression, string? predicateName = null)
+    protected void List<TE>(Expression<Func<T, IEnumerable<IFacetedValue<TE>>>> expression, string? predicateName = null)
     {
         var te = typeof(TE);
 
@@ -183,27 +210,46 @@ public abstract class ClassMap<T> : ClassMap where T : AEntity<T>
             Predicates.TryAdd(property, predicate);
     }
 
+    protected void Vector(Expression<Func<T, Vector<float>>> expression, string? predicateName = null, Float32VetorMetrics index = Float32VetorMetrics.euclidean, bool upsert = false)
+    {
+        var property = GetProperty(expression);
+
+        Vector(property, predicateName, index, upsert);
+    }
+
+    protected void Vector(PropertyInfo property, string? predicateName, Float32VetorMetrics index, bool upsert)
+    {
+        PreventFacetedAndIgnored(property);
+
+        if (property.PropertyType != typeof(Vector<float>))
+            throw new ArgumentException($"The property {property.Name} is not a Vector<float>.");
+
+        var predicate = new Float32VectorPredicate(this, property, predicateName ?? property.Name, index, upsert);
+        if (!Predicates.ContainsKey(property))
+            Predicates.TryAdd(property, predicate);
+    }
+
     protected void String<TE>(Expression<Func<T, TE?>> expression, string? predicateName = null) where TE : struct, IConvertible
     {
         var te = typeof(TE);
         if (!te.IsEnum)
             throw new ArgumentException($"The type {te.Name} is not a enum.");
 
-        String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, null);
+        String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, false);
     }
 
-    protected void String(Expression<Func<T, string?>> expression, string? predicateName = null, bool fulltext = false, bool trigram = false, bool upsert = false, StringToken token = StringToken.None, string? cultures = null) =>
-        String(GetProperty(expression), predicateName, fulltext, trigram, upsert, token, cultures);
+    protected void String(Expression<Func<T, string?>> expression, string? predicateName = null, bool fulltext = false, bool trigram = false, bool upsert = false, StringToken token = StringToken.None, bool i18n = false) =>
+        String(GetProperty(expression), predicateName, fulltext, trigram, upsert, token, i18n);
 
     protected void String(Expression<Func<T, Guid?>> expression, string? predicateName = null) =>
-        String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, null);
+        String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, false);
 
     protected void String(Expression<Func<T, byte[]?>> expression, string? predicateName = null) =>
-        String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, null);
+        String(GetProperty(expression), predicateName, false, false, false, StringToken.Exact, false);
 
-    protected void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, string? cultures)
+    protected void String(PropertyInfo property, string? predicateName, bool fulltext, bool trigram, bool upsert, StringToken token, bool i18n)
     {
-        var predicate = new StringPredicate(this, property, predicateName ?? property.Name, fulltext, trigram, upsert, token, cultures);
+        var predicate = new StringPredicate(this, property, predicateName ?? property.Name, fulltext, trigram, upsert, token, i18n);
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }
@@ -258,6 +304,34 @@ public abstract class ClassMap<T> : ClassMap where T : AEntity<T>
         PreventFacetedAndIgnored(property);
 
         var predicate = new FloatPredicate(this, property, predicateName ?? property.Name, index);
+        if (!Predicates.ContainsKey(property))
+            Predicates.TryAdd(property, predicate);
+    }
+
+    protected void ListFloat<TE>(Expression<Func<T, IEnumerable<IFacetedValue<TE>>>> expression, string? predicateName = null) where TE : struct, IConvertible
+    {
+        Prevents<TE>();
+
+        var property = GetProperty(expression);
+
+        ListFloat(property, predicateName);
+    }
+
+    protected void ListFloat<TE>(Expression<Func<T, IEnumerable<TE>>> expression, string? predicateName = null) where TE : struct, IConvertible
+    {
+        Prevents<TE>();
+
+        var property = GetProperty(expression);
+
+        ListFloat(property, predicateName);
+    }
+
+    protected void ListFloat(PropertyInfo property, string? predicateName = null)
+    {
+        PreventFacetedAndIgnored(property);
+
+        var predicate = new ListPredicate(this, property, predicateName ?? property.Name, "float", false);
+
         if (!Predicates.ContainsKey(property))
             Predicates.TryAdd(property, predicate);
     }

@@ -9,6 +9,7 @@ internal sealed class PersonMapping : ClassMap<Person>
     {
         SetType("Person");
         String(x => x.Name, "name");
+        Vector(x => x.Embedding, "embedding");
         HasOne(x => x.WorksFor, "works_for", true, true);
         HasOne(x => x.MyBoss, "my_boss", true, true);
         HasMany(x => x.BossOf, "my_boss", x => x.MyBoss);

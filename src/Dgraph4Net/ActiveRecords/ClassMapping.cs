@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Data;
 using System.Reflection;
 using Google.Protobuf;
 using Grpc.Core;
@@ -25,8 +26,40 @@ public static class ClassMapping
         private set => ImplClassMapping.Migrations = value;
     }
 
+    public static string ToJsonString<T>(this IEnumerable<T> entities) where T : IEntity =>
+        ImplClassMapping.ToJsonString(entities);
+
+    public static string ToJsonString<T>(this T entity) where T : IEntity =>
+        ImplClassMapping.ToJsonString(entity);
+
     public static ByteString ToJson<T>(this T entity) where T : IEntity =>
         ImplClassMapping.ToJson(entity);
+
+    public static (ByteString, ByteString) ToNQuads<T>(this T entity, bool dropIfNull = false) where T : IEntity =>
+        ImplClassMapping.ToNQuads(entity, dropIfNull);
+
+    public static (ByteString, ByteString) ToNQuads<T>(this IEnumerable<T> entities, bool dropIfNull = false) where T : IEntity =>
+        ImplClassMapping.ToNQuads(entities, dropIfNull);
+
+    public static (ByteString, ByteString) ToJsonBS<T>(this T entity, bool dropIfNull = false) where T : IEntity =>
+        ImplClassMapping.ToJsonBS(entity, dropIfNull);
+
+    public static ByteString ToJson<T>(this IEnumerable<T> entities) where T : IEntity =>
+        ImplClassMapping.ToJson(entities);
+
+    public static (ByteString, ByteString) ToJsonBS<T>(this IEnumerable<T> entities, bool dropIfNull = false) where T : IEntity =>
+        ImplClassMapping.ToJsonBS(entities, dropIfNull);
+
+    public static (ByteString, ByteString) ToJsonBS(object data, bool dropIfNull = false)
+    {
+        if (data is IEntity entity)
+            return ImplClassMapping.ToJsonBS(entity, dropIfNull);
+
+        if (data is IEnumerable<IEntity> entities)
+            return ImplClassMapping.ToJsonBS(entities, dropIfNull);
+
+        throw new InvalidConstraintException("The object must be an IEntity or IEnumerable<IEntity>.");
+    }
 
     public static T? FromJson<T>(this ByteString bytes, string param) =>
         ImplClassMapping.FromJson<T>(bytes, param);
@@ -49,13 +82,13 @@ public static class ClassMapping
     public static T? FromJson<T>(this ByteString bytes) =>
         ImplClassMapping.FromJson<T>(bytes);
 
-    public static IServiceCollection AddDgraph(this IServiceCollection services) =>
-        services.AddDgraph("DefaultConnection");
+    public static IServiceCollection AddDgraph(this IServiceCollection services, bool useNQuads = false) =>
+        services.AddDgraph("DefaultConnection", useNQuads);
 
-    public static IServiceCollection AddDgraph(this IServiceCollection services, string connectionName) =>
-        services.AddDgraph(sp => sp.GetRequiredService<IConfiguration>().GetConnectionString(connectionName));
+    public static IServiceCollection AddDgraph(this IServiceCollection services, string connectionName, bool useNQuads = false) =>
+        services.AddDgraph(sp => sp.GetRequiredService<IConfiguration>().GetConnectionString(connectionName), useNQuads);
 
-    public static IServiceCollection AddDgraph(this IServiceCollection services, Func<IServiceProvider, string> getConnectionString)
+    public static IServiceCollection AddDgraph(this IServiceCollection services, Func<IServiceProvider, string> getConnectionString, bool useNQuads = false)
     {
         services.AddTransient<ChannelBase>(sp =>
         {
@@ -97,16 +130,16 @@ public static class ClassMapping
             var connectionString = getConnectionString(sp);
 
             var userId = Array.Find(connectionString
-                               .Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-                                    s => s.StartsWith("user id=", StringComparison.InvariantCultureIgnoreCase))?
-                .Split('=')[1];
+                .Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    s => s.StartsWith("user id", StringComparison.InvariantCultureIgnoreCase))?
+                .Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1]?.Trim();
 
             var password = Array.Find(connectionString
-                                              .Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-                                                                                           s => s.StartsWith("password=", StringComparison.InvariantCultureIgnoreCase))?
-                .Split('=')[1];
+                .Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    s => s.StartsWith("password", StringComparison.InvariantCultureIgnoreCase))?
+                .Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[1]?.Trim();
 
-            var client = new Dgraph4NetClient(sp.GetRequiredService<ChannelBase>());
+            var client = new Dgraph4NetClient([sp.GetRequiredService<ChannelBase>()], useNQuads);
 
             if (userId is not null)
                 client.Login(userId, password);

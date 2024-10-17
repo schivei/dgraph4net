@@ -13,12 +13,10 @@ public class Assert : Xunit.Assert
             act.Invoke();
             True(true);
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
         {
             True(false, ex.Message);
         }
-#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     public static async Task TaskAsync(Func<Task> act, string msg = null)
@@ -28,7 +26,6 @@ public class Assert : Xunit.Assert
             await act.Invoke();
             True(true);
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
         {
             if (msg is null)
@@ -36,7 +33,6 @@ public class Assert : Xunit.Assert
             else
                 True(false, $"{msg}: {ex.Message}");
         }
-#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     public static Task TaskAsync<T>(Func<T, Task> act, T obj, string msg = null) =>

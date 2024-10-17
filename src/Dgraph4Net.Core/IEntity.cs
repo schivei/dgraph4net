@@ -16,7 +16,7 @@ public interface IEntity : IEntityBase
     /// <summary>
     /// Gets or sets the unique identifier of the entity.
     /// </summary>
-    Uid Uid { get; set; }
+    Uid Uid { get; }
 
     /// <summary>
     /// Gets or sets the type of the entity.

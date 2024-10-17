@@ -1,4 +1,4 @@
-﻿namespace Dgraph4Net;
+namespace Dgraph4Net;
 
 public enum VarType
 {

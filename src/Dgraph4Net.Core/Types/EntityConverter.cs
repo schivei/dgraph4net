@@ -1,15 +1,29 @@
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Globalization;
+using System.Numerics;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using NetGeo.Json;
 
 namespace Dgraph4Net;
 
-internal sealed class EntityConverter : JsonConverter<IEntity>
+internal sealed class EntityConverter(bool ignoreNulls, bool getOnlyNulls = false, bool convertDefaultToNull = false) : JsonConverter<IEntity>, IIEntityConverter
 {
+    public bool IgnoreNulls { get; set; } = ignoreNulls;
+    public bool GetOnlyNulls { get; set; } = getOnlyNulls;
+    public bool ConvertDefaultToNull { get; set; } = convertDefaultToNull;
+
+    public EntityConverter() : this(true) { }
+
     static EntityConverter()
     {
+        IIEntityConverter.Instance ??= typeof(EntityConverter);
+
         AppContext.SetSwitch("System.Text.Json.Serialization.Metadata", true);
         AppContext.SetSwitch("System.Text.Json.Serialization.Converters", true);
         AppContext.SetSwitch("System.Text.Json.JsonSerializer.IsReflectionEnabledByDefault", true);
@@ -45,72 +59,181 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
 
     public override IEntity? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.TokenType == JsonTokenType.Null || reader.TokenType == JsonTokenType.None)
+        if (reader.TokenType is JsonTokenType.Null or JsonTokenType.None)
             return default;
 
         if (Activator.CreateInstance(typeToConvert) is not IEntity entity)
             return default;
 
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject && reader.TokenType != JsonTokenType.None)
+        var map = GetPredicates(typeToConvert)?.FirstOrDefault()?.ClassMap;
+
+        if (map is null)
+            return default;
+
+        JsonObject obj = JsonSerializer.Deserialize(ref reader, typeof(JsonObject), options) as JsonObject ??
+            throw new InvalidOperationException("Can not deserialize the object");
+
+        var objProperties = obj.ToImmutableDictionary();
+
+        foreach (var (propertyName, value) in obj)
         {
-            if (reader.TokenType != JsonTokenType.PropertyName)
+            if (value is null || value.GetValueKind() is JsonValueKind.Undefined or JsonValueKind.Null)
                 continue;
 
-            var propertyName = reader.GetString();
-
-            if (propertyName is null)
+            if (propertyName == "uid")
+            {
+                entity.Uid.Replace(value.ToString());
                 continue;
+            }
 
-            reader.Read();
+            if (propertyName == "dgraph.type")
+            {
+                entity.DgraphType = value.Deserialize<string[]>(options) ?? [];
+                continue;
+            }
 
             var predicate = GetPredicate(typeToConvert, propertyName);
-
             if (predicate is null)
             {
                 if (propertyName.Contains('@') || propertyName.Contains('|'))
                 {
-                    switch (reader.TokenType)
+                    switch (value.GetValueKind())
                     {
-                        case JsonTokenType.String:
-                            if (reader.TryGetDateTimeOffset(out var dto))
+                        case JsonValueKind.String:
+                            var vstr = value.Deserialize<string>(options);
+                            if (DateTimeOffset.TryParse(vstr, out var dto))
                             {
                                 entity.SetFacet(propertyName, dto);
                                 break;
                             }
 
-                            entity.SetFacet(propertyName, reader.GetString());
+                            entity.SetFacet(propertyName, vstr);
                             break;
-                        case JsonTokenType.Number:
-                            if (reader.TryGetInt32(out var i))
+                        case JsonValueKind.Number:
+                            var vdouble = value.Deserialize<double>(options);
+
+                            if (int.TryParse(vdouble.ToString(), out var i))
                             {
                                 entity.SetFacet(propertyName, i);
                                 break;
                             }
 
-                            if (reader.TryGetSingle(out var f))
+                            if (float.TryParse(vdouble.ToString(), out var f))
                             {
                                 entity.SetFacet(propertyName, f);
                                 break;
                             }
 
-                            entity.SetFacet(propertyName, reader.GetDouble());
+                            entity.SetFacet(propertyName, vdouble);
                             break;
-                        case JsonTokenType.True:
+                        case JsonValueKind.True:
                             entity.SetFacet(propertyName, true);
                             break;
-                        case JsonTokenType.False:
+                        case JsonValueKind.False:
                             entity.SetFacet(propertyName, false);
                             break;
-                        case JsonTokenType.Null:
-                        case JsonTokenType.None:
+                        case JsonValueKind.Null:
+                        case JsonValueKind.Undefined:
                             entity.SetFacet(propertyName, null!);
                             break;
+                        case JsonValueKind.Array:
+                        case JsonValueKind.Object:
+                            break;
                         default:
-                            entity.SetFacet(propertyName, reader.GetString());
+                            entity.SetFacet(propertyName, value.Deserialize<string>(options));
                             break;
                     }
                 }
 
+                continue;
+            }
+
+            if (predicate.Property.PropertyType == typeof(Vector<float>))
+            {
+                var str = value.ToString();
+                predicate.SetValue(entity, str.DeserializeVector());
+                continue;
+            }
+
+            if (predicate.Property.PropertyType.IsAssignableTo(typeof(IEnumerable<IFacetedValue>)))
+            {
+                var propValueType = predicate.Property.PropertyType.GetInterface("IEnumerable`1")?.GetGenericArguments().FirstOrDefault() ??
+                    throw new InvalidOperationException("Can not find the generic type of the target");
+
+                var valueType = ((IFacetedValue)Activator.CreateInstance(propValueType)).ValueType;
+
+                var facets = objProperties
+                    .Where(x => x.Key.StartsWith(predicate.PredicateName + '|'))
+                    .ToDictionary(x => x.Key.Split('|')[1], x => x.Value.AsObject().ToDictionary());
+
+                var pvalues = value.AsArray().ToArray()
+                    .Select((v, i) => v.GetValueKind() is JsonValueKind.Null or JsonValueKind.Undefined ? (i.ToString(), null) : (i.ToString(), v.Deserialize(valueType, options)))
+                    .Where(v => v.Item2 is not null);
+
+                var instances = new List<IFacetedValue>();
+
+                foreach (var (pos, val) in pvalues)
+                {
+                    var vInstance = (IFacetedValue)Activator.CreateInstance(propValueType) ??
+                        throw new InvalidOperationException("Can not create the instance of the target");
+
+                    vInstance.Value = val;
+
+                    var pfvalues = facets.SelectMany(f =>
+                        f.Value.Select(fv => (f.Key, fv))
+                               .Where(fv => fv.fv.Key == pos)
+                               .Select(fv => (fv.Key, fv.fv.Value)))
+                        .ToDictionary(fv => fv.Key, fv => fv.Value);
+
+                    foreach (var (facetName, fvalue) in pfvalues)
+                    {
+                        if (fvalue.GetValueKind() is JsonValueKind.Null or JsonValueKind.Undefined)
+                            continue;
+
+                        var fstr = fvalue.ToString();
+
+                        object? facetValueInstance = fvalue.GetValueKind() switch
+                        {
+                            JsonValueKind.String when DateTimeOffset.TryParse(fstr, out var dto) => dto,
+                            JsonValueKind.Number when int.TryParse(fstr, out var i) && i.ToString(CultureInfo.InvariantCulture) == fstr => i,
+                            JsonValueKind.Number when float.TryParse(fstr, out var f) && f.ToString(CultureInfo.InvariantCulture) == fstr => f,
+                            JsonValueKind.Number when long.TryParse(fstr, out var l) && l.ToString(CultureInfo.InvariantCulture) == fstr => l,
+                            JsonValueKind.Number => fvalue.Deserialize<double>(options),
+                            JsonValueKind.True => true,
+                            JsonValueKind.False => false,
+                            _ => fstr
+                        };
+
+                        vInstance.SetFacet(facetName, facetValueInstance);
+                    }
+
+                    instances.Add(vInstance);
+                }
+
+                object? propInstance = instances;
+
+                if (predicate.Property.PropertyType.Name is [.., '[', ']'])
+                {
+                    var arr = Array.CreateInstance(propValueType, instances.Count);
+
+                    for (var i = 0; i < instances.Count; i++)
+                        arr.SetValue(instances[i], i);
+
+                    propInstance = arr;
+                }
+                else if (!predicate.Property.PropertyType.IsInterface)
+                {
+                    var collection = (ICollection)Activator.CreateInstance(predicate.Property.PropertyType);
+
+                    var addMethod = predicate.Property.PropertyType.GetMethod("Add");
+
+                    foreach (var instance in instances)
+                        addMethod?.Invoke(collection, [instance]);
+
+                    propInstance = collection;
+                }
+
+                predicate.Property.SetValue(entity, propInstance);
                 continue;
             }
 
@@ -128,7 +251,7 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
 
                     var tpe = gen.LastOrDefault() ?? throw new InvalidOperationException("Can not find the generic type of the prop");
 
-                    var predicateValue = JsonSerializer.Deserialize(ref reader, tpe, options);
+                    var predicateValue = value.Deserialize(tpe, options);
 
                     var facetType = predicate.Property.PropertyType.MakeGenericType(tp, tpe);
                     facet = (IFacetPredicate)(Activator.CreateInstance(facetType, entity, predicate.Property, predicateValue) ??
@@ -145,7 +268,7 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
 
                     var tpe = gen.LastOrDefault() ?? throw new InvalidOperationException("Can not find the generic type of the prop");
 
-                    var predicateValue = JsonSerializer.Deserialize(ref reader, tpe, options);
+                    var predicateValue = value.Deserialize(tpe, options);
 
                     var facetValue = predicate.Property.GetValue(entity);
 
@@ -163,32 +286,119 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
             }
 
             if (predicate.Property.PropertyType.IsAssignableTo(typeof(GeoObject)) &&
-                !JsonSerializerOptions.Default.Converters.Any(x => x.GetType().Name == "GeoObjectConverter"))
+                !options.Converters.Any(x => x.GetType().Name == "GeoObjectConverter"))
             {
                 var convType = Type.GetType("NetGeo.Json.SystemText.GeoObjectConverter, NetGeo.Json")!;
                 var converter = (JsonConverter<GeoObject>)Activator.CreateInstance(convType);
 
-                var geoObject = converter.Read(ref reader, predicate.Property.PropertyType, options);
+                var geoObject = value.Deserialize(predicate.Property.PropertyType, GetGeoOptions(options));
 
                 predicate.Property.SetValue(entity, geoObject);
                 continue;
             }
 
-            var value = JsonSerializer.Deserialize(ref reader, predicate.Property.PropertyType, options);
+            static Utf8JsonReader read(JsonNode item)
+            {
+                var json = Encoding.UTF8.GetBytes(item.ToJsonString());
+                var itemReader = new Utf8JsonReader(json);
+                itemReader.Read();
+                return itemReader;
+            }
 
-            predicate.Property.SetValue(entity, value);
+            if (predicate.Property.PropertyType.IsAssignableTo(typeof(IEntity)))
+            {
+                var newReader = read(value);
+
+                object? entityValue = Read(ref newReader, predicate.Property.PropertyType, options);
+
+                predicate.Property.SetValue(entity, entityValue);
+
+                continue;
+            }
+
+            if (predicate.Property.PropertyType.IsAssignableTo(typeof(IEnumerable<IEntity>)))
+            {
+                object listValue;
+
+                if (predicate.Property.PropertyType.IsInterface)
+                {
+                    var list = new List<IEntity>();
+
+                    foreach (var item in value.AsArray())
+                    {
+                        var newReader = read(item);
+
+                        if (Read(ref newReader, predicate.Property.PropertyType.GetInterfaces().First(p => p.Name == "IEnumerable`1").GetGenericArguments().FirstOrDefault() ?? throw new InvalidOperationException("Can not find the generic type of the target"), options) is not IEntity entityValue)
+                            continue;
+
+                        list.Add(entityValue);
+                    }
+
+                    listValue = list;
+                }
+                else if (predicate.Property.PropertyType.Name is [.., '[', ']'])
+                {
+                    var varr = value.AsArray();
+                    var arr = Array.CreateInstance(predicate.Property.PropertyType.GetInterfaces().First(p => p.Name == "IEnumerable`1").GetGenericArguments().FirstOrDefault() ?? throw new InvalidOperationException("Can not find the generic type of the target"), varr.Count);
+
+                    var index = 0;
+                    foreach (var item in varr)
+                    {
+                        var newReader = read(item);
+
+                        if (Read(ref newReader, predicate.Property.PropertyType.GetInterfaces().First(p => p.Name == "IEnumerable`1").GetGenericArguments().FirstOrDefault() ?? throw new InvalidOperationException("Can not find the generic type of the target"), options) is not IEntity entityValue)
+                            continue;
+
+                        arr.SetValue(entityValue, index++);
+                    }
+
+                    listValue = arr;
+                }
+                else
+                {
+                    ICollection<IEntity> list = Activator.CreateInstance(predicate.Property.PropertyType) as ICollection<IEntity>;
+
+                    foreach (var item in value.AsArray())
+                    {
+                        var newReader = read(item);
+
+                        if (Read(ref newReader, predicate.Property.PropertyType.GetInterfaces().First(p => p.Name == "IEnumerable`1").GetGenericArguments().FirstOrDefault() ?? throw new InvalidOperationException("Can not find the generic type of the target"), options) is not IEntity entityValue)
+                            continue;
+
+                        list.Add(entityValue);
+                    }
+
+                    listValue = list;
+                }
+
+                predicate.Property.SetValue(entity, listValue);
+
+                continue;
+            }
+
+            predicate.Property.SetValue(entity, value.Deserialize(predicate.Property.PropertyType, options));
         }
 
         return entity;
     }
 
+    private static JsonSerializerOptions? s_geoOptions;
+
+    private static JsonSerializerOptions GetGeoOptions(JsonSerializerOptions options)
+    {
+        if (s_geoOptions is not null)
+            return s_geoOptions!;
+
+        var convType = Type.GetType("NetGeo.Json.SystemText.GeoObjectConverter, NetGeo.Json")!;
+        var converter = (JsonConverter<GeoObject>)Activator.CreateInstance(convType);
+
+        return s_geoOptions = new(options) { Converters = { converter } };
+    }
+
     public override void Write(Utf8JsonWriter writer, IEntity value, JsonSerializerOptions options)
     {
         if (value is null)
-        {
-            writer.WriteNullValue();
             return;
-        }
 
         var predicates = GetPredicates(value.GetType());
 
@@ -196,15 +406,221 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
 
         foreach (var predicate in predicates)
         {
-            writer.WritePropertyName(predicate.PredicateName);
+            var pvalue = predicate.Property.GetValue(value);
+
+            if (pvalue is null && IgnoreNulls)
+                continue;
+
+            if (pvalue is null && GetOnlyNulls)
+            {
+                writer.WriteNull(predicate.PredicateName);
+                continue;
+            }
+
+            var defaultValue = predicate.Property.PropertyType.IsValueType ? Activator.CreateInstance(predicate.Property.PropertyType) : default;
+            if (pvalue == defaultValue && ConvertDefaultToNull)
+            {
+                writer.WriteNull(predicate.PredicateName);
+                continue;
+            }
 
             if (predicate.PredicateName == "uid")
             {
-                var uid = predicate.Property.GetValue(value);
-
-                writer.WriteStringValue(uid?.ToString());
+                writer.WriteString("uid", pvalue.ToString());
                 continue;
             }
+
+            if (pvalue is Vector<float> vector)
+            {
+                writer.WriteString(predicate.PredicateName, vector.Serialize());
+                continue;
+            }
+
+            if (predicate.Property.PropertyType.IsAssignableTo(typeof(IFacetPredicate)))
+            {
+                var facet = pvalue as IFacetPredicate;
+
+                if (facet?.PredicateValue is null)
+                {
+                    if (IgnoreNulls || !ConvertDefaultToNull || facet.PredicateValue != defaultValue)
+                        continue;
+
+                    writer.WriteNull(predicate.PredicateName);
+                    continue;
+                }
+
+                writer.WritePropertyName(predicate.PredicateName);
+                JsonSerializer.Serialize(writer, facet.PredicateValue, options);
+                continue;
+            }
+
+            if (predicate.Property.PropertyType.IsAssignableTo(typeof(GeoObject)) &&
+            !JsonSerializerOptions.Default.Converters.Any(x => x.GetType().Name == "GeoObjectConverter"))
+            {
+                if (pvalue is not GeoObject geoObject)
+                {
+                    if (IgnoreNulls || (!GetOnlyNulls && !ConvertDefaultToNull))
+                        continue;
+
+                    writer.WriteNull(predicate.PredicateName);
+                    continue;
+                }
+
+                var convType = Type.GetType("NetGeo.Json.SystemText.GeoObjectConverter, NetGeo.Json")!;
+                var converter = (JsonConverter<GeoObject>)Activator.CreateInstance(convType);
+
+                writer.WritePropertyName(predicate.PredicateName);
+                converter.Write(writer, geoObject, options);
+                continue;
+            }
+
+            if (pvalue is IEnumerable objects and not IEnumerable<IEntity> and not string && predicate.PredicateName != "dgraph.type")
+            {
+                if (pvalue is IEnumerable<byte> bytes)
+                {
+                    writer.WritePropertyName(predicate.PredicateName);
+                    writer.WriteBase64StringValue(bytes.ToArray());
+                    continue;
+                }
+
+                if (pvalue is IEnumerable<IFacetedValue> facetedValues)
+                {
+                    if (!facetedValues.Any())
+                    {
+                        if (GetOnlyNulls || !IgnoreNulls)
+                            writer.WriteNull(predicate.PredicateName);
+
+                        if (!GetOnlyNulls && !IgnoreNulls && ConvertDefaultToNull)
+                        {
+                            writer.WriteStartArray(predicate.PredicateName);
+                            writer.WriteEndArray();
+                        }
+
+                        continue;
+                    }
+
+                    var allValues = new List<object?>();
+                    var allFacetValues = new Dictionary<string, Dictionary<string, object?>>();
+                    var allFacetNames = facetedValues.SelectMany(x => x.Facets.Keys)
+                        .ToHashSet();
+
+                    foreach (var (item, i) in facetedValues.Select((item, i) => (item, i)))
+                    {
+                        allValues.Add(item.Value);
+
+                        foreach (var facetName in allFacetNames)
+                        {
+                            var key = $"{predicate.PredicateName}|{facetName}";
+
+                            if (item.Facets.TryGetValue(facetName, out var facetValue))
+                            {
+                                if (!allFacetValues.ContainsKey(facetName))
+                                    allFacetValues[key] = [];
+
+                                allFacetValues[key][i.ToString()] = facetValue;
+                            }
+                        }
+                    }
+
+                    writer.WritePropertyName(predicate.PredicateName);
+                    JsonSerializer.Serialize(writer, allValues, options);
+
+                    if (allFacetValues.Any(f => f.Value.Count != 0))
+                    {
+                        foreach (var (key, values) in allFacetValues)
+                        {
+                            writer.WritePropertyName(key);
+                            JsonSerializer.Serialize(writer, values, options);
+                        }
+                    }
+
+                    continue;
+                }
+
+                var data = objects.Cast<object?>();
+
+                if (!data.Any())
+                {
+                    if (GetOnlyNulls || !IgnoreNulls)
+                        writer.WriteNull(predicate.PredicateName);
+
+                    if (!GetOnlyNulls && !IgnoreNulls && ConvertDefaultToNull)
+                    {
+                        writer.WriteStartArray(predicate.PredicateName);
+                        writer.WriteEndArray();
+                    }
+
+                    continue;
+                }
+
+                writer.WriteStartArray(predicate.PredicateName);
+
+                foreach (var item in data)
+                {
+                    if (item is null)
+                    {
+                        if (IgnoreNulls && !GetOnlyNulls)
+                            continue;
+
+                        writer.WriteNullValue();
+                    }
+
+                    var defaultItemValue = item.GetType().IsValueType ? Activator.CreateInstance(item.GetType()) : default;
+
+                    if (item is string && defaultItemValue is null)
+                        defaultItemValue = string.Empty;
+
+                    if (item == defaultItemValue && ConvertDefaultToNull)
+                    {
+                        writer.WriteNullValue();
+                        continue;
+                    }
+
+                    JsonSerializer.Serialize(writer, item, options);
+                }
+
+                writer.WriteEndArray();
+                continue;
+            }
+
+            if (pvalue is IEnumerable<IEntity> entities)
+            {
+                writer.WriteStartArray(predicate.PredicateName);
+
+                foreach (var entity in entities)
+                {
+                    if (entity is null)
+                    {
+                        if (!IgnoreNulls || GetOnlyNulls)
+                            writer.WriteNullValue();
+
+                        continue;
+                    }
+
+                    if (entity.Uid.IsEmpty)
+                        entity.Uid.Replace(Uid.NewUid());
+
+                    // prevents circular reference and infinite loops
+                    if (entity.Uid.IsConcrete)
+                    {
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("uid");
+                        writer.WriteStringValue(entity.Uid.ToString());
+                        writer.WriteEndObject();
+                        continue;
+                    }
+
+                    Write(writer, entity, options);
+                }
+
+                writer.WriteEndArray();
+                continue;
+            }
+
+            if (GetOnlyNulls)
+                continue;
+
+            writer.WritePropertyName(predicate.PredicateName);
 
             if (predicate.PredicateName == "dgraph.type")
             {
@@ -217,37 +633,26 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
                 continue;
             }
 
-            if (predicate.Property.PropertyType.IsAssignableTo(typeof(IFacetPredicate)))
+            if (pvalue is IEntity reference)
             {
-                var facet = predicate.Property.GetValue(value) as IFacetPredicate;
+                if (reference.Uid.IsEmpty)
+                    reference.Uid.Replace(Uid.NewUid());
 
-                if (facet?.PredicateValue is null)
+                // prevents circular reference and infinite loops
+                if (reference.Uid.IsConcrete)
                 {
-                    writer.WriteNullValue();
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("uid");
+                    writer.WriteStringValue(reference.Uid.ToString());
+                    writer.WriteEndObject();
                     continue;
                 }
 
-                JsonSerializer.Serialize(writer, facet.PredicateValue, options);
+                Write(writer, reference, options);
                 continue;
             }
 
-            if (predicate.Property.PropertyType.IsAssignableTo(typeof(GeoObject)) &&
-            !JsonSerializerOptions.Default.Converters.Any(x => x.GetType().Name == "GeoObjectConverter"))
-            {
-                if (predicate.Property.GetValue(value) is not GeoObject geoObject)
-                {
-                    writer.WriteNullValue();
-                    continue;
-                }
-
-                var convType = Type.GetType("NetGeo.Json.SystemText.GeoObjectConverter, NetGeo.Json")!;
-                var converter = (JsonConverter<GeoObject>)Activator.CreateInstance(convType);
-
-                converter.Write(writer, geoObject, options);
-                continue;
-            }
-
-            JsonSerializer.Serialize(writer, predicate.Property.GetValue(value), options);
+            JsonSerializer.Serialize(writer, pvalue, options);
         }
 
         foreach (var (info, val) in value.Facets)
@@ -283,5 +688,29 @@ internal sealed class EntityConverter : JsonConverter<IEntity>
         }
 
         writer.WriteEndObject();
+    }
+
+    public T? Deserialize<T>(string json) where T : IEntity
+    {
+        var span = Encoding.UTF8.GetBytes(json).AsSpan();
+        var reader = new Utf8JsonReader(span);
+
+        return (T?)(object?)Read(ref reader, typeof(T), JsonSerializerOptions.Default);
+    }
+
+    public string Serialize<T>(T entity, bool ignoreNulls = true, bool getOnlyNulls = false, bool convertDefaultToNull = false) where T : IEntity
+    {
+        IgnoreNulls = ignoreNulls;
+        GetOnlyNulls = getOnlyNulls;
+        ConvertDefaultToNull = convertDefaultToNull;
+
+        using var writer = new MemoryStream();
+        using var jsonwriter = new Utf8JsonWriter(writer);
+
+        Write(jsonwriter, entity, JsonSerializerOptions.Default);
+
+        writer.Seek(0, SeekOrigin.Begin);
+
+        return Encoding.UTF8.GetString(writer.ToArray());
     }
 }

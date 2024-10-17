@@ -12,7 +12,20 @@ public static class DType<T>
             ? classMap.DgraphType
             : typeof(T).Name;
 
-    public static string Predicate<TProperty>(Expression<Func<T, TProperty>> expression)
+    public static string Predicate<TE>(Expression<Func<T, TE?>> expression)
+    {
+        if (expression.Body is not MemberExpression member)
+            throw new ArgumentException($"Expression '{expression}' refers to a method, not a property.");
+
+        if (member.Member is not PropertyInfo propInfo)
+            throw new ArgumentException($"Expression '{expression}' refers to a field, not a property.");
+
+        return ClassMap.Predicates.TryGetValue(propInfo, out var predicate)
+            ? predicate.PredicateName
+            : propInfo.Name;
+    }
+
+    public static string Predicate(Expression<Func<T, object?>> expression)
     {
         if (expression.Body is not MemberExpression member)
             throw new ArgumentException($"Expression '{expression}' refers to a method, not a property.");
@@ -27,7 +40,7 @@ public static class DType<T>
 
     public static string ExpandAll(int deep = 0)
     {
-        if(!ClassMapping.ClassMappings.TryGetValue(typeof(T), out var classMap))
+        if (!ClassMapping.ClassMappings.TryGetValue(typeof(T), out var classMap))
             throw new NotSupportedException($"The type '{typeof(T).FullName}' is not mapped.");
 
         var predicates = ClassMap.Predicates.Values

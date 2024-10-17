@@ -2,21 +2,10 @@ using System.Reflection;
 
 namespace Dgraph4Net.ActiveRecords;
 
-public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Fulltext, bool Trigram, bool Upsert, StringToken Token, string? Cultures = null) : IPredicate
+public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo Property, string PredicateName, bool Fulltext, bool Trigram, bool Upsert, StringToken Token, bool I18n = false) : IPredicate
 {
     public readonly StringPredicate Merge(StringPredicate spa) =>
-        new(ClassMap, Property, PredicateName, Fulltext || spa.Fulltext, Trigram || spa.Trigram, Upsert || spa.Upsert, (StringToken)Math.Max((int)spa.Token, (int)Token), Concat(GetCultures(), spa.GetCultures()));
-
-    private static string? Concat(string[] strings1, string[] strings2)
-    {
-        if (strings1.Length == 0 && strings2.Length == 0)
-            return null;
-        var strings = strings1.Concat(strings2).Distinct().ToArray();
-        return string.Join(",", strings);
-    }
-
-    public readonly string[] GetCultures() =>
-        Cultures?.Split(",", StringSplitOptions.RemoveEmptyEntries) ?? [];
+        new(ClassMap, Property, PredicateName, Fulltext || spa.Fulltext, Trigram || spa.Trigram, Upsert || spa.Upsert, (StringToken)Math.Max((int)spa.Token, (int)Token), I18n || spa.I18n);
 
     readonly string IPredicate.ToSchemaPredicate() =>
         $"{PredicateName}: string{ToIndex()} .";
@@ -45,14 +34,14 @@ public readonly record struct StringPredicate(IClassMap ClassMap, PropertyInfo P
 
             predicate += !string.IsNullOrEmpty(tk) ? fll : "";
 
-            predicate += GetCultures().Length != 0 ? ") @lang" : ")";
+            predicate += I18n ? ") @lang" : ")";
             predicate += Upsert ? " @upsert" : "";
 
             return predicate;
         }
         else
         {
-            return GetCultures().Length != 0 ? " @lang" : "";
+            return I18n ? " @lang" : "";
         }
     }
 

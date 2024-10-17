@@ -98,6 +98,7 @@ message Result {
   repeated FacetsList facet_matrix = 5;
   repeated LangList lang_matrix = 6;
   bool list = 7;
+  map<string, uint64> vector_metrics = 8;
 }
 
 message Order {
@@ -309,8 +310,8 @@ message RestoreRequest {
 
   // Credentials when using a minio or S3 bucket as the backup location.
   string access_key = 5;
-  string secret_key = 6;
-  string session_token = 7;
+  string secret_key = 6 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
+  string session_token = 7 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
   bool anonymous = 8;
 
   // Info needed to process encrypted backups.
@@ -326,6 +327,8 @@ message RestoreRequest {
   uint64 backup_num = 16;
   uint64 incremental_from = 17;
   bool is_partial = 18;
+  uint64 fromNamespace = 19;
+  bool isNamespaceAwareRestore = 20;
 }
 
 message Proposal {
@@ -380,6 +383,8 @@ message Posting {
     PASSWORD = 8;
     STRING = 9;
     OBJECT = 10;
+    BIGFLOAT = 11;
+    VFLOAT = 12; // Float64 Vector
   }
   ValType val_type = 3;
   enum PostingType {
@@ -480,6 +485,9 @@ message SchemaNode {
   bool upsert = 8;
   bool lang = 9;
   bool no_conflict = 10;
+  bool unique = 11;
+  repeated VectorIndexSpec index_specs = 12;
+
 }
 
 message SchemaResult {
@@ -501,6 +509,7 @@ message SchemaUpdate {
   bool list = 6;
   bool upsert = 8;
   bool lang = 9;
+  bool unique = 14;
 
   // Fields required for type system.
   bool non_nullable = 10;
@@ -515,6 +524,20 @@ message SchemaUpdate {
   // Deleted field:
   reserved 7;
   reserved "explicit";
+
+  repeated VectorIndexSpec index_specs = 15;
+}
+
+message VectorIndexSpec {
+  // This names the kind of Vector Index, e.g.,
+  //    hnsw, lsh, hypertree, ...
+  string name = 1;
+  repeated OptionPair options = 2;
+}
+
+message OptionPair {
+  string key = 1;
+  string value = 2;
 }
 
 message TypeUpdate {
@@ -682,8 +705,8 @@ message BackupRequest {
   string unix_ts = 4;
   string destination = 5;
   string access_key = 6;
-  string secret_key = 7;
-  string session_token = 8;
+  string secret_key = 7 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
+  string session_token = 8 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
 
   // True if no credentials should be used to access the S3 or minio bucket.
   // For example, when using a bucket with a public policy.
@@ -723,8 +746,8 @@ message ExportRequest {
 
   // These credentials are used to access the S3 or minio bucket.
   string access_key = 6;
-  string secret_key = 7;
-  string session_token = 8;
+  string secret_key = 7 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
+  string session_token = 8 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
   bool anonymous = 9;
 
   uint64 namespace = 10;

@@ -88,7 +88,7 @@ public abstract class Migration : AEntity<Migration>, IDgnMigration
         var dgnType = InternalClassMapping.ClassMappings[typeof(DgnMigration)].DgraphType ?? "dgn.migration";
 
         {
-            await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
+            await using var txn = _client.NewTransaction(false, false, cancellationToken);
 
             var migs = await txn.QueryWithVars<DgnMigration>("dgn", @$"query Q($name: string) {{
   dgn(func: type({dgnType}), first: 1) @filter(eq(dgn.name, $name)) {{
@@ -132,7 +132,7 @@ public abstract class Migration : AEntity<Migration>, IDgnMigration
         {
             foreach (var pre in DropPredicates)
             {
-                await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
+                await using var txn = _client.NewTransaction(false, false, cancellationToken);
 
                 try
                 {
@@ -211,7 +211,7 @@ public abstract class Migration : AEntity<Migration>, IDgnMigration
         if (down)
         {
             // remove migration data
-            await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
+            await using var txn = _client.NewTransaction(false, false, cancellationToken);
 
             await txn.Mutate(new Mutation
             {
@@ -224,7 +224,7 @@ public abstract class Migration : AEntity<Migration>, IDgnMigration
             dgnm.AppliedAt = DateTimeOffset.UtcNow;
 
             // add migration data
-            await using var txn = (Txn)_client.NewTransaction(false, false, cancellationToken);
+            await using var txn = _client.NewTransaction(false, false, cancellationToken);
 
             var mutation = new Mutation
             {

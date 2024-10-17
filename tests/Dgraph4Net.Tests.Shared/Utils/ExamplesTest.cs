@@ -7,12 +7,11 @@ using Dgraph4Net.ActiveRecords;
 using dotenv.net;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Xunit;
 
 namespace Dgraph4Net.Tests;
 
 [Collection("Dgraph4Net")]
-public class ExamplesTest : Assert
+public abstract class ExamplesTest : Assert
 {
     private static readonly IReadOnlyDictionary<string, string> s_env;
 
@@ -28,8 +27,9 @@ public class ExamplesTest : Assert
 
     public ExamplesTest()
     {
-        // just to set Newtonsoft manually
+#if NJSON
         ClassMapping.ImplClassMapping = new NJClassMapping();
+#endif
 
         if (GetEnv("GRPC_DNS_RESOLVER") != "native")
         {

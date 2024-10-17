@@ -54,8 +54,10 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     private bool _mutated;
     private bool _bestEffort;
     private bool _disposed;
+    private readonly bool _useNQuads;
 
     private CancellationTokenSource _cancellationTokenSource;
+    public bool UseNQuads => _dgraph.UseNQuads || _useNQuads;
 
     /// <summary>
     /// Creates a new transaction.
@@ -65,8 +67,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <param name="bestEffort"></param>
     /// <param name="cancellationToken"></param>
     /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
-    public Txn(Dgraph4NetClient Dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) : this(Dgraph, cancellationToken)
+    public Txn(Dgraph4NetClient Dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null, bool useNQuads = false) : this(Dgraph, cancellationToken)
     {
+        _useNQuads = useNQuads;
         _dgraphClient = _dgraph.AnyClient();
         _context = new TxnContext();
         _readOnly = readOnly;
@@ -122,9 +125,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <param name="query"></param>
     /// <returns><see cref="Response"/></returns>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
     /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public Task<Response> Query(string query) =>
@@ -138,9 +141,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <param name="vars"></param>
     /// <returns><see cref="Response"/></returns>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
     /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public Task<Response> QueryWithVars(string query, Dictionary<string, string> vars)
@@ -180,9 +183,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <param name="mutation"></param>
     /// <returns><see cref="Response"/></returns>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
     /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public Task<Response> Mutate(Mutation mutation)
@@ -203,9 +206,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <param name="requests"></param>
     /// <returns><see cref="Response"/></returns>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
     /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public async Task<IEnumerable<Response>> Do(IEnumerable<Request> requests)
@@ -228,73 +231,86 @@ public sealed class Txn : IAsyncDisposable, IDisposable
                 throw ErrReadOnly;
 
             foreach (var req in reqs)
+            {
                 req.CommitNow = true;
 
-            _mutated = true;
+                if (req.Mutations.Count > 0)
+                {
+                    foreach (var mutation in req.Mutations)
+                    {
+                        mutation.CommitNow = true;
+                    }
+                }
+            }
         }
+
+        _mutated = reqs.Any(r => r.Mutations.Count != 0);
 
         var co = _dgraph.GetOptions();
 
         foreach (var req in reqs.Where(r => r.StartTs == 0))
             req.StartTs = _context.StartTs;
 
-        var responses = await Task.WhenAll(reqs.Select(async request =>
-        {
-            Response resp = null;
-
-            try
-            {
-                resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
-
-                if (resp.Uids is not null)
-                    TxnExtensions.Resolve(resp.Uids);
-            }
-            catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
-            {
-                await _dgraph.RetryLogin().ConfigureAwait(false);
-
-                resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token);
-
-                if (resp.Uids is not null)
-                    TxnExtensions.Resolve(resp.Uids);
-            }
-            catch
-            {
-                _finished = false;
-                try
-                {
-                    await Abort(resp?.Txn, request, true).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw;
-            }
-            finally
-            {
-                _finished = false;
-            }
-
-            if (reqs.All(r => r.CommitNow))
-            {
-                MergeContext(resp?.Txn ?? _context);
-            }
-            try
-            {
-                await Abort(resp?.Txn, request).ConfigureAwait(false);
-            }
-            catch
-            {
-                // ignore
-            }
-            return resp;
-        })).ConfigureAwait(false);
+        var responses = await Task.WhenAll(reqs.AsParallel().Select(request =>
+            MakeRequest(request, reqs, co)
+        )).ConfigureAwait(false);
 
         if (reqs.All(r => r.CommitNow))
             _finished = true;
 
         return responses;
+    }
+
+    private async Task<Response?> MakeRequest(Request request, Request[] reqs, CallOptions co)
+    {
+        Response resp = null;
+
+        try
+        {
+            resp = await _dgraphClient.QueryAsync(request, co.Headers, cancellationToken: _cancellationTokenSource.Token).ConfigureAwait(false);
+
+            if (resp.Uids is not null)
+                TxnExtensions.Resolve(resp.Uids);
+        }
+        catch (RpcException err) when (Dgraph4NetClient.IsJwtExpired(err))
+        {
+            await _dgraph.RetryLogin().ConfigureAwait(false);
+
+            return await MakeRequest(request, reqs, co);
+        }
+        catch
+        {
+            _finished = false;
+            try
+            {
+                await Abort(resp?.Txn, request, true).ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignore
+            }
+            throw;
+        }
+        finally
+        {
+            _finished = false;
+        }
+
+        if (reqs.All(r => r.CommitNow))
+        {
+            MergeContext(resp?.Txn ?? _context);
+        }
+
+        try
+        {
+            await Abort(resp?.Txn, request).ConfigureAwait(false);
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return resp;
     }
 
     /// <summary>
@@ -303,9 +319,9 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <param name="request"></param>
     /// <returns><see cref="Response"/></returns>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
     /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public async Task<Response> Do(Request request)
@@ -313,7 +329,12 @@ public sealed class Txn : IAsyncDisposable, IDisposable
         var responses = await Do([request])
             .ConfigureAwait(false);
 
-        return responses.First();
+        var resp = new Response();
+
+        foreach (var res in responses)
+            resp.MergeFrom(res);
+
+        return resp;
     }
 
     public Task Abort(Request req)
@@ -361,9 +382,10 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// </para>
     /// </remarks>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public Task Discard(TxnContext txn, Request request)
     {
@@ -391,9 +413,10 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// </para>
     /// </remarks>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     public async Task Commit()
     {
@@ -448,9 +471,10 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// Commit or abort transaction
     /// </summary>
     /// <exception cref="RpcException">If the mutation fails, then the transaction is discarded and all future operations on it will fail.</exception>
-    /// <exception cref="ErrAborted">When an operation is performed on an aborted transaction.</exception>
-    /// <exception cref="ErrFinished">When an operation is performed on already committed or discarded transaction.</exception>
-    /// <exception cref="ErrReadOnly">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="TransactionAbortedException">When an operation is performed on an aborted transaction.</exception>
+    /// <exception cref="TransactionException">When an operation is performed on already committed or discarded transaction.</exception>
+    /// <exception cref="ReadOnlyException">When a write/update is performed on a readonly transaction.</exception>
+    /// <exception cref="ContextMarshalException">If current context StartTs is not equals to source StartTs.</exception>
     /// <exception cref="ObjectDisposedException">If current context is disposed.</exception>
     private async Task CommitOrAbort()
     {

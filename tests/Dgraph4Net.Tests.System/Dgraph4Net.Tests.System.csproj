@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems" Label="Shared" />
   <Import Project="../../versions.props" />
 
   <PropertyGroup>

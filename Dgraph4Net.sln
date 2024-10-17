@@ -50,6 +50,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Newtonsoft.Json"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Tests.System", "tests\Dgraph4Net.Tests.System\Dgraph4Net.Tests.System.csproj", "{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Dgraph4Net.Tests.Shared", "tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.shproj", "{FF9B7782-C8E0-4228-9714-72E8466BEAF3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -156,9 +158,15 @@ Global
 		{CC2AF363-2615-464C-9A02-F5C046690B97} = {A01D6FBE-9ED9-44F4-A45D-BD9C1CC39BD3}
 		{5EB8E144-F7F2-4E43-B51C-96CE9706EC05} = {CE643E3C-6E64-4832-9285-F882377C578F}
 		{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D} = {B58A6CAC-F78E-4D4E-B7D6-CEB4B911B486}
+		{FF9B7782-C8E0-4228-9714-72E8466BEAF3} = {B58A6CAC-F78E-4D4E-B7D6-CEB4B911B486}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B638F473-88B7-4796-80A9-6E0A92B4985A}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems*{7746e9ed-edd3-4520-b8f5-132eca806331}*SharedItemsImports = 5
+		tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems*{d0ab1afe-2a4d-42d1-921d-b19a51b7667d}*SharedItemsImports = 5
+		tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems*{ff9b7782-c8e0-4228-9714-72e8466beaf3}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

@@ -17,24 +17,76 @@ internal interface IClassMapping
     ConcurrentBag<Migration> Migrations { get; set; }
 
     /// <summary>
-    /// Converts the entity to a JSON string.
+    /// Converts the entities to a JSON string.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <param name="entity"></param>
-    /// <param name="deep"></param>
-    /// <param name="doNotPropagateNulls"></param>
+    /// <param name="entities"></param>
     /// <returns></returns>
     string ToJsonString<T>(T entity) where T : IEntity;
+
+    /// <summary>
+    /// Converts the entities to a JSON string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="entities"></param>
+    /// <returns></returns>
+    string ToJsonString<T>(IEnumerable<T> entities) where T : IEntity;
 
     /// <summary>
     /// Converts the entity to a JSON byte string.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="entity"></param>
-    /// <param name="deep"></param>
-    /// <param name="doNotPropagateNulls"></param>
     /// <returns></returns>
     ByteString ToJson<T>(T entity) where T : IEntity;
+
+    /// <summary>
+    /// Converts the entity to a JSON byte string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="entities"></param>
+    /// <returns></returns>
+    ByteString ToJson<T>(IEnumerable<T> entities) where T : IEntity;
+
+    /// <summary>
+    /// Converts the entity to a JSON byte string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="entity"></param>
+    /// <param name="dropIfNull"></param>
+    /// <returns>
+    /// A tuple of two byte strings. The first is the set of json to set, the second is the set of json to delete.
+    /// </returns>
+    (ByteString, ByteString) ToJsonBS<T>(T entity, bool dropIfNull) where T : IEntity;
+
+    /// <summary>
+    /// Converts the entity to a JSON byte string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="entities"></param>
+    /// <param name="dropIfNull"></param>
+    /// <returns>
+    /// A tuple of two byte strings. The first is the set of json to set, the second is the set of json to delete.
+    /// </returns>
+    (ByteString, ByteString) ToJsonBS<T>(IEnumerable<T> entities, bool dropIfNull) where T : IEntity;
+
+    /// <summary>
+    /// Converts the entity to a triples byte string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="entity"></param>
+    /// <param name="dropIfNull"></param>
+    /// <returns></returns>
+    (ByteString, ByteString) ToNQuads<T>(T entity, bool dropIfNull) where T : IEntity;
+
+    /// <summary>
+    /// Converts enities to a triples byte string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="entities"></param>
+    /// <param name="dropIfNull"></param>
+    /// <returns></returns>
+    (ByteString, ByteString) ToNQuads<T>(IEnumerable<T> entities, bool dropIfNull) where T : IEntity;
 
     /// <summary>
     /// Converts the entity to a JSON byte string.
@@ -122,5 +174,28 @@ internal interface IClassMapping
     /// </summary>
     /// <param name="assemblies"></param>
     void Map(params Assembly[] assemblies);
+
+    /// <summary>
+    /// Set the defaults.
+    /// </summary>
     void SetDefaults();
+
+    /// <summary>
+    /// Serializes the object.
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    string Serialize(object obj);
+
+    /// <summary>
+    /// Deserializes the JSON.
+    /// </summary>
+    /// <param name="json"></param>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    object? Deserialize(string json, Type type);
+
+    internal Func<object?, string> JsonSerializer { get; }
+
+    internal Func<string, Type, object?> JsonDeserializer { get; }
 }

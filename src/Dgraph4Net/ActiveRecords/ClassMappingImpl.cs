@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Protobuf;
@@ -9,6 +10,11 @@ namespace Dgraph4Net.ActiveRecords;
 
 internal class ClassMappingImpl : IClassMapping
 {
+    protected static IClassMapping Impl { get; private set; }
+
+    public ClassMappingImpl() =>
+        Impl = this;
+
     public ConcurrentDictionary<Type, IClassMap> ClassMappings => InternalClassMapping.ClassMappings;
 
     public ConcurrentBag<Migration> Migrations
@@ -16,6 +22,12 @@ internal class ClassMappingImpl : IClassMapping
         get => InternalClassMapping.Migrations;
         set => InternalClassMapping.Migrations = value;
     }
+
+    Func<object?, string> IClassMapping.JsonSerializer =>
+        obj => JsonSerializer.Serialize(obj);
+
+    Func<string, Type, object?> IClassMapping.JsonDeserializer =>
+        (str, type) => JsonSerializer.Deserialize(str, type);
 
     public virtual object? FromJson(ByteString bytes, Type type, string param)
     {
@@ -28,9 +40,9 @@ internal class ClassMappingImpl : IClassMapping
             return default;
 
         if (!element.HasValue || !element.Value.TryGetProperty(param ?? "_", out var children))
-            return JsonSerializer.Deserialize(bytes.ToStringUtf8(), type);
+            return Deserialize(bytes.ToStringUtf8(), type);
 
-        return JsonSerializer.Deserialize(children.GetRawText(), type);
+        return Deserialize(children.GetRawText(), type);
     }
 
     public virtual T? FromJson<T>(string bytes) =>
@@ -74,6 +86,12 @@ internal class ClassMappingImpl : IClassMapping
     public virtual string ToJsonString<T>(T entity) where T : IEntity =>
         Serialize(entity);
 
+    public virtual ByteString ToJson<T>(IEnumerable<T> entities) where T : IEntity =>
+        ByteString.CopyFromUtf8(ToJsonString(entities).Trim());
+
+    public virtual string ToJsonString<T>(IEnumerable<T> entities) where T : IEntity =>
+        Serialize(entities);
+
     public virtual bool TryMapJson(Type type, out IClassMap? classMap)
     {
         if (ClassMappings.TryGetValue(type, out classMap))
@@ -95,14 +113,17 @@ internal class ClassMappingImpl : IClassMapping
         return false;
     }
 
-    public virtual string Serialize(object obj) =>
-        JsonSerializer.Serialize(obj);
+    protected virtual IIEntityConverter GetConverter(bool ignoreNulls, bool getOnlyNulls, bool convertDefaultToNull) =>
+        new EntityConverter(ignoreNulls, getOnlyNulls, convertDefaultToNull);
+
+    public string Serialize(object obj) =>
+        Impl.JsonSerializer(obj);
+
+    public object? Deserialize(string json, Type type) =>
+        Impl.JsonDeserializer(json, type);
 
     public T? Deserialize<T>(string json) =>
         (T)Deserialize(json, typeof(T));
-
-    public virtual object? Deserialize(string json, Type type) =>
-        JsonSerializer.Deserialize(json, type);
 
     public virtual void SetDefaults() =>
         GeoExtensions.SetDefaults();
@@ -110,13 +131,50 @@ internal class ClassMappingImpl : IClassMapping
     private static JsonElement? GetData(ByteString bytes)
     {
         // get data content from json as json
-        var json = JsonSerializer.Deserialize<JsonElement?>(bytes.Span);
+        var json = Impl.Deserialize(bytes.ToStringUtf8(), typeof(JsonElement)) as JsonElement?;
 
         if (!json.HasValue || !json.Value.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
             return json;
 
         return data;
     }
+
+    public (ByteString, ByteString) ToJsonBS<T>(T entity, bool dropIfDefault) where T : IEntity
+    {
+        var set = GetConverter(true, false, false);
+        var del = GetConverter(false, true, dropIfDefault);
+
+        var setted = ByteString.CopyFromUtf8(set.Serialize(entity));
+        var deleted = ByteString.CopyFromUtf8(del.Serialize(entity));
+
+        return (setted, deleted);
+    }
+
+    public (ByteString, ByteString) ToJsonBS<T>(IEnumerable<T> entities, bool dropIfDefault) where T : IEntity
+    {
+        var set = GetConverter(true, false, false);
+        var del = GetConverter(false, true, dropIfDefault);
+
+        var sbSet = new StringBuilder();
+        var sbDel = new StringBuilder();
+
+        foreach (var entity in entities)
+        {
+            sbSet.Append(set.Serialize(entity));
+            sbDel.Append(del.Serialize(entity));
+        }
+
+        var setted = ByteString.CopyFromUtf8(sbSet.ToString());
+        var deleted = ByteString.CopyFromUtf8(sbDel.ToString());
+
+        return (setted, deleted);
+    }
+
+    public (ByteString, ByteString) ToNQuads<T>(T entity, bool dropIfNull) where T : IEntity =>
+        NQuadsConverter.ToNQuads(entity, dropIfNull);
+
+    public (ByteString, ByteString) ToNQuads<T>(IEnumerable<T> entities, bool dropIfNull) where T : IEntity =>
+        NQuadsConverter.ToNQuads(entities, dropIfNull);
 
     private class JsonClassMap<T> : ClassMap<T> where T : AEntity<T>
     {
@@ -140,7 +198,7 @@ internal class ClassMappingImpl : IClassMapping
                     }
                     else
                     {
-                        String(prop, attr.Name, false, false, false, StringToken.Exact, null);
+                        String(prop, attr.Name, false, false, false, StringToken.Exact, false);
                     }
                 }
                 else
@@ -154,7 +212,7 @@ internal class ClassMappingImpl : IClassMapping
                                 break;
 
                             case "string":
-                                String(prop, attr.Name, false, false, false, StringToken.Term, null);
+                                String(prop, attr.Name, false, false, false, StringToken.Term, false);
                                 break;
 
                             case "int":

@@ -54,7 +54,10 @@ namespace Dgraph4Net
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Mutex _mtx;
         private readonly DgraphClient[] _dgraphClients;
+        private readonly bool _useNQuads;
         private Jwt _jwt;
+
+        public bool UseNQuads => _useNQuads;
 
         private Dgraph4NetClient()
         {
@@ -86,6 +89,12 @@ namespace Dgraph4Net
         /// <para>A single Dgraph (client) is thread safe for sharing with multiple routines.</para>
         /// <param name="channels"></param>
         public Dgraph4NetClient(params ChannelBase[] channels) : this(channels.Select(channel => new DgraphClient(channel)).ToArray()) { }
+
+        public Dgraph4NetClient(ChannelBase[] channels, bool useNQuads) : this(channels) =>
+            _useNQuads = useNQuads;
+
+        public Dgraph4NetClient(DgraphClient[] dgraphClients, bool useNQuads) : this(dgraphClients) =>
+            _useNQuads = useNQuads;
 
         /// <summary>
         /// Auth userid & password to retrieve Jwt
@@ -317,8 +326,8 @@ namespace Dgraph4Net
         /// <param name="cancellationToken"></param>
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
         /// <returns cref="Txn">Transaction</returns>
-        public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) =>
-            new(this, readOnly, bestEffort, cancellationToken);
+        public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null, bool useNQuads = false) =>
+            new(this, readOnly, bestEffort, cancellationToken, useNQuads);
 
         public async Task<object> Alter(object operation) =>
             await Alter(operation as Operation);

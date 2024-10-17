@@ -2,104 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Api;
 using Dgraph4Net.ActiveRecords;
 using Google.Protobuf;
 using LateApexEarlySpeed.Xunit.Assertion.Json;
-using NetGeo.Json;
+using Xunit;
 
 namespace Dgraph4Net.Tests;
 
 [Collection("Dgraph4Net")]
 public class ObjectTest : ExamplesTest
 {
-    #region bootstrap
-    private class School : AEntity<School>
-    {
-        public string Name { get; set; }
-
-        [Facet<Person>("since", nameof(Person.Schools))]
-        public DateTime Since { get; set; }
-    }
-
-    private class SchoolMap : ClassMap<School>
-    {
-        protected override void Map()
-        {
-            SetType("Institution");
-            String(x => x.Name, "name");
-        }
-    }
-
-    private class NameFacet(Person instance, string value = null) : FacetPredicate<Person, string>(instance, p => p.Name, value)
-    {
-        public string Origin
-        {
-            get => GetFacet("origin", string.Empty);
-            set => SetFacet("origin", value);
-        }
-
-        public static implicit operator string(NameFacet facet) => facet.PredicateValue;
-
-        public static NameFacet operator +(NameFacet facet, string value)
-        {
-            facet.PredicateValue = value;
-            return facet;
-        }
-    }
-
-    private class Person : AEntity<Person>
-    {
-        public NameFacet Name { get; set; }
-
-        public int Age { get; set; }
-
-        public DateTimeOffset Dob { get; set; }
-
-        public bool Married { get; set; }
-
-        public byte[] Raw { get; set; }
-
-        public Person[] Friends { get; set; }
-
-        public Point Location { get; set; }
-
-        public School[] Schools { get; set; }
-
-        public DateTimeOffset Since { get; set; }
-
-        public string Family { get; set; }
-
-        public bool Close { get; set; }
-
-        public Person()
-        {
-            Name = new NameFacet(this);
-        }
-    }
-
-    private class PersonMap : ClassMap<Person>
-    {
-        protected override void Map()
-        {
-            SetType("Person");
-            String(x => x.Name, "name");
-            Integer(x => x.Age, "age");
-            DateTime(x => x.Dob, "dob");
-            Boolean(x => x.Married, "married");
-            String(x => x.Raw, "raw_bytes");
-            HasMany(x => x.Friends, "friend");
-            Geo(x => x.Location, "loc");
-            HasMany(x => x.Schools, "school");
-            DateTime(x => x.Since, "since");
-            String(x => x.Family, "family");
-            Boolean(x => x.Close, "close");
-        }
-    }
-    #endregion
-
     [Fact]
     public async Task SetObjectTest()
     {
@@ -185,9 +99,7 @@ public class ObjectTest : ExamplesTest
                 CommitNow = true,
             };
 
-            var json = JsonSerializer.Serialize(alice);
-
-            mu.SetJson = ByteString.CopyFromUtf8(json);
+            mu.SetJson = alice.ToJson();
 
             var response = await dg.NewTransaction().Mutate(mu);
 
@@ -220,7 +132,7 @@ public class ObjectTest : ExamplesTest
 
             var expected = @"{""me"":[{""name"":""Alice"",""dob"":""1980-01-01T23:00:00Z"",""age"":26,""married"":true,""raw_bytes"":""cmF3X2J5dGVz"",""friend"":[{""name"":""Bob"",""age"":24,""dgraph.type"":[""Person""]}],""loc"":{""type"":""Point"",""coordinates"":[1.1,2]},""school"":[{""name"":""Crown Public School"",""dgraph.type"":[""Institution""]}],""dgraph.type"":[""Person""]}]}";
 
-            var actual = resp.Json.ToStringUtf8();
+            var actual = resp.Json.ToStringUtf8().Trim();
 
             JsonAssertion.Equivalent(expected, actual);
         }
@@ -276,9 +188,8 @@ public class ObjectTest : ExamplesTest
             p.Name += "Alice";
 
             var mu = new Mutation { CommitNow = true };
-            var pb = JsonSerializer.Serialize(p);
 
-            mu.SetJson = ByteString.CopyFromUtf8(pb);
+            mu.SetJson = p.ToJson();
 
             await dg.NewTransaction().Mutate(mu);
 
@@ -374,9 +285,8 @@ public class ObjectTest : ExamplesTest
             await dg.Alter(op);
 
             var mu = new Mutation { CommitNow = true, };
-            var pb = JsonSerializer.Serialize(p);
+            mu.SetJson = p.ToJson();
 
-            mu.SetJson = ByteString.CopyFromUtf8(pb);
             var response = await dg.NewTransaction().Mutate(mu);
 
             // Assigned uids for nodes which were created would be returned in the response.Uids map.
@@ -456,9 +366,7 @@ public class ObjectTest : ExamplesTest
 
             p.Name += "Alice-new";
 
-            var pb = JsonSerializer.Serialize(p);
-
-            var mu = new Mutation { CommitNow = true, SetJson = ByteString.CopyFromUtf8(pb) };
+            var mu = new Mutation { CommitNow = true, SetJson = p.ToJson() };
             await dg.NewTransaction().Mutate(mu);
 
             const string q = @"
@@ -545,10 +453,12 @@ public class ObjectTest : ExamplesTest
             p.Friends[1].Name += "Charlie";
 
             var txn = dg.NewTransaction();
-            var mu = new Mutation();
-            var pb = JsonSerializer.Serialize(p);
-            mu.SetJson = ByteString.CopyFromUtf8(pb);
-            mu.CommitNow = true;
+            var mu = new Mutation
+            {
+                SetJson = p.ToJson(),
+                CommitNow = true
+            };
+
             var response = await txn.Mutate(mu);
 
             // Assigned uids for nodes which were created would be returned in the response.Uids map.
@@ -694,50 +604,38 @@ public class ObjectTest : ExamplesTest
             p.Name += "Alice";
             p.Name.Origin = "Indonesia";
 
-            var serialized = JsonSerializer.Serialize(p);
+            var mu = new Mutation { SetJson = p.ToJson(), CommitNow = true };
 
-            try
-            {
-                var mu = new Mutation { SetJson = ByteString.CopyFromUtf8(serialized), CommitNow = true };
+            Response response = await dg.NewTransaction().Mutate(mu);
 
-                Response response = await dg.NewTransaction().Mutate(mu);
+            var auid = "Alice";
 
-                var auid = "Alice";
+            var variables = new Dictionary<string, string> { { "$id", auid } };
 
-                var variables = new Dictionary<string, string> { { "$id", auid } };
-
-                const string q = @"
-                        query Me($id: string) {
-                            me(func: eq(name, $id)) {
-                                name @facets
+            const string q = @"
+                    query Me($id: string) {
+                        me(func: eq(name, $id)) {
+                            name @facets
+                            dgraph.type
+                            friend @filter(eq(name, ""Bob"")) @facets {
+                                name
                                 dgraph.type
-                                friend @filter(eq(name, ""Bob"")) @facets {
-                                    name
-                                    dgraph.type
-                                }
-                                school @facets {
-                                    name
-                                    dgraph.type
-                                }
+                            }
+                            school @facets {
+                                name
+                                dgraph.type
                             }
                         }
-                    ";
+                    }
+                ";
 
-                var resp = await dg.NewTransaction().QueryWithVars(q, variables);
+            var resp = await dg.NewTransaction().QueryWithVars(q, variables);
 
-                var me = resp.Json.ToStringUtf8();
+            var me = resp.Json.ToStringUtf8();
 
-                var expected = @"{""me"":[{""name|origin"":""Indonesia"",""name"":""Alice"",""dgraph.type"":[""Person""],""friend"":[{""name"":""Bob"",""dgraph.type"":[""Person""],""friend|age"": 13,""friend|close"": true,""friend|family"": ""yes""}],""school"":[{""name"":""Wellington School"",""dgraph.type"":[""Institution""],""school|since"":""2009-11-10T23:00:00Z""}]}]}";
+            var expected = @"{""me"":[{""name|origin"":""Indonesia"",""name"":""Alice"",""dgraph.type"":[""Person""],""friend"":[{""name"":""Bob"",""dgraph.type"":[""Person""],""friend|age"": 13,""friend|close"": true,""friend|family"": ""yes""}],""school"":[{""name"":""Wellington School"",""dgraph.type"":[""Institution""],""school|since"":""2009-11-10T23:00:00Z""}]}]}";
 
-                JsonAssertion.Equivalent(expected, me);
-            }
-            catch
-            {
-                Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.Error.WriteLine(serialized);
-                Console.ResetColor();
-                throw;
-            }
+            JsonAssertion.Equivalent(expected, me);
         }
         finally
         {
@@ -802,10 +700,12 @@ public class ObjectTest : ExamplesTest
 
             await dg.Alter(op);
 
-            var mu = new Mutation { CommitNow = true, };
-            var pb = JsonSerializer.Serialize(p);
+            var mu = new Mutation
+            {
+                CommitNow = true,
+                SetJson = p.ToJson()
+            };
 
-            mu.SetJson = ByteString.CopyFromUtf8(pb);
             var response = await dg.NewTransaction().Mutate(mu);
 
             // Assigned uids for nodes which were created would be returned in the response.Uids map.
@@ -841,7 +741,7 @@ public class ObjectTest : ExamplesTest
 
             resp = await dg.NewTransaction().Query(q);
 
-            var charlie = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>[]>>(resp.Json.ToStringUtf8())["charlie"][0]["uid"];
+            var charlie = resp.Json.FromJson<Dictionary<string, Dictionary<string, string>[]>>()["charlie"][0]["uid"];
 
             const string nq = "uid(a) <friend> uid(c) .";
 

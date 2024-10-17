@@ -15,12 +15,21 @@ public abstract class AEntity<T> : IEntity where T : AEntity<T>
         set => SetFacet(index, value);
     }
 
-    public virtual Uid Uid { get; set; } = Uid.NewUid();
+    public virtual Uid Uid { get; set; }
 
-    public virtual string[] DgraphType { get; set; } = [];
+    public virtual string[] DgraphType { get; set; }
 
     [IgnoreMapping]
-    public IDictionary<FacetInfo, object?> Facets { get; } = new Dictionary<FacetInfo, object?>();
+    public IDictionary<FacetInfo, object?> Facets { get; }
+
+    public AEntity()
+    {
+        Uid = Uid.NewUid();
+
+        Facets = new Dictionary<FacetInfo, object?>();
+
+        DgraphType = [DType<T>.Name];
+    }
 
     public void SetFacet<TE>(Expression<Func<TE, object?>> predicate, string name, object? value) where TE : IEntity
     {

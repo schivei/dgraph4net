@@ -9,16 +9,18 @@ using UidConverter = Dgraph4Net.Newtonsoft.Json.UidConverter;
 
 namespace Dgraph4Net.ActiveRecords;
 
-internal class NJClassMapping : ClassMappingImpl
+internal class NJClassMapping : ClassMappingImpl, IClassMapping
 {
-    public override string Serialize(object obj) =>
-        JsonConvert.SerializeObject(obj);
+    Func<object?, string> IClassMapping.JsonSerializer =>
+        JsonConvert.SerializeObject;
 
-    public override object? Deserialize(string json, Type type) =>
-        JsonConvert.DeserializeObject(json, type);
+    Func<string, Type, object?> IClassMapping.JsonDeserializer =>
+        JsonConvert.DeserializeObject;
 
     public override void SetDefaults()
     {
+        IIEntityConverter.Instance = typeof(IEntityConverter);
+
         GeoExtensions.SetDefaults();
 
         var settings = JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings();
@@ -45,12 +47,12 @@ internal class NJClassMapping : ClassMappingImpl
     private static JObject? GetData(ByteString bytes)
     {
         // get data content from json as json
-        var element = JsonConvert.DeserializeObject<JObject?>(bytes.ToStringUtf8());
+        var element = Impl.Deserialize(bytes.ToStringUtf8(), typeof(JObject)) as JObject;
 
         if (element is null || element.TryGetValue("data", out var data) || data is null || data.Type != JTokenType.Object)
             return element;
 
-        return (JObject)data;
+        return data as JObject;
     }
 
     private class JsonClassMap<T> : ClassMap<T> where T : AEntity<T>
@@ -75,7 +77,7 @@ internal class NJClassMapping : ClassMappingImpl
                     }
                     else
                     {
-                        String(prop, attr.PropertyName, false, false, false, StringToken.Exact, null);
+                        String(prop, attr.PropertyName, false, false, false, StringToken.Exact, false);
                     }
                 }
                 else
@@ -89,7 +91,7 @@ internal class NJClassMapping : ClassMappingImpl
                                 break;
 
                             case "string":
-                                String(prop, attr.PropertyName, false, false, false, StringToken.Term, null);
+                                String(prop, attr.PropertyName, false, false, false, StringToken.Term, false);
                                 break;
 
                             case "int":
@@ -143,9 +145,9 @@ internal class NJClassMapping : ClassMappingImpl
             return default;
 
         if (!element.HasValues || !element.TryGetValue(param ?? "_", out var children) || children is null)
-            return JsonConvert.DeserializeObject(element.ToString(), type);
+            return Deserialize(element.ToString(), type);
 
-        return JsonConvert.DeserializeObject(children.ToString(), type);
+        return Deserialize(children.ToString(), type);
     }
 
     public override bool TryMapJson(Type type, out IClassMap? classMap)
@@ -168,4 +170,7 @@ internal class NJClassMapping : ClassMappingImpl
 
         return false;
     }
+
+    protected override IIEntityConverter GetConverter(bool ignoreNulls, bool getOnlyNulls, bool convertDefaultToNull) =>
+        new IEntityConverter(ignoreNulls, getOnlyNulls, convertDefaultToNull);
 }
