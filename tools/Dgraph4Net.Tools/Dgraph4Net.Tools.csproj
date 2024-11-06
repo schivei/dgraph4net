@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="Grpc.Net.ClientFactory" Version="2.57.0" />
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
     <PackageReference Include="System.CommandLine.Rendering" Version="0.4.0-alpha.22272.1" />
   </ItemGroup>
