@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using Api;
 using Google.Protobuf;
 using Grpc.Core;
-using Xunit;
 
 // generate tests to full coverage of Dgraph4Net.Core
 namespace Dgraph4Net.Tests;
@@ -32,7 +27,7 @@ public class CoreTests : ExamplesTest
 
             var mu = new Mutation
             {
-                SetNquads = ByteString.CopyFromUtf8(@"_:user1 <email> ""test@test.com"" ")
+                SetNquads = ByteString.CopyFromUtf8("""_:user1 <email> "test@test.com" """)
             };
 
             await Assert.ThrowsAsync<RpcException>(() => txn.Mutate(mu));
@@ -41,7 +36,7 @@ public class CoreTests : ExamplesTest
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 }

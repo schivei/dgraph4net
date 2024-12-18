@@ -1,10 +1,5 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal sealed class UpdateOption : Option<bool>
-{
-    public UpdateOption() : base(["--update", "-u"], "Update the database")
-    {
-    }
-}
+internal sealed class UpdateOption() : Option<bool>(["--update", "-u"], "Update the database");

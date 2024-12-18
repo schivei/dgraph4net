@@ -7,12 +7,11 @@ namespace Dgraph4Net.Tools.Commands.Migration;
 
 internal sealed class ServerOption(ILogger<ServerOption> logger) : Option<Dgraph4NetClient>(["--server", "-s"], Parse(logger), false, "The server address")
 {
-    private static Dgraph4NetClient s_client;
+    private static Dgraph4NetClient? s_client;
     private static readonly object s_lock = new();
 
-    private static ParseArgument<Dgraph4NetClient> Parse(ILogger logger)
-    {
-        return (result) =>
+    private static ParseArgument<Dgraph4NetClient> Parse(ILogger logger) =>
+        result =>
         {
             if (s_client is not null)
                 return s_client;
@@ -33,7 +32,7 @@ internal sealed class ServerOption(ILogger<ServerOption> logger) : Option<Dgraph
                 {
                     logger.LogInformation("Authenticating in server {server}", address);
 
-                    channel = new Channel(address, ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
+                    channel = new(address, ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
                     {
                         metadata.Add("authorization", apk);
 
@@ -61,5 +60,4 @@ internal sealed class ServerOption(ILogger<ServerOption> logger) : Option<Dgraph
 
             return s_client;
         };
-    }
 }

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+
 using Dgraph4Net.ActiveRecords;
+
+using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tests;
 
@@ -29,22 +32,22 @@ public class NQuadsTests : ExamplesTest
             test.Ways[1].SetFacet("facet", 123);
 
             string[] expected = [
-                @"<0x1> <ways> ""1"" .",
-                @"<0x1> <ways> ""2"" (facet=123) .",
-                @"<0x1> <dgraph.type> ""Testing"" .",
-                @"_:0 <dgraph.type> ""Testing"" .",
-                @"<0x1> <parent> _:0 .",
-                @"<0x1> <name> ""test"" ."
+                """<0x1> <ways> "1" .""",
+                """<0x1> <ways> "2" (facet=123) .""",
+                """<0x1> <dgraph.type> "Testing" .""",
+                """_:0 <dgraph.type> "Testing" .""",
+                "<0x1> <parent> _:0 .",
+                """<0x1> <name> "test" ."""
             ];
 
-            var (bs, del) = test.ToNQuads();
+            var (bs, _) = test.ToNQuads();
             var me = bs.ToStringUtf8().Replace("\r\n", "\n").Split("\n");
 
             Equivalent(expected, me);
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 
@@ -53,23 +56,8 @@ public class NQuadsTests : ExamplesTest
     {
         var client = GetDgraphClient();
 
-        var expressed = ExpressedFilterFunctions.Parse(func => func.Has<Testing>(x => x.Name) && (func.Has<Person>(p => p.Age) || func.Eq<Person, string>(x => x.Family, "teste")));
-
-        var expectedExpression = $"has(name) and (has(age) or eq(family, {expressed.Variables["family"].Name}))";
-
-        var vars = expressed.Variables.ToQueryString();
-
-        var expectedVars = $"{expressed.Variables["family"].Name}: string";
-
-        var ex = expressed.ToString();
-
-        Equal(expectedExpression, ex);
-
         try
         {
-            Uid id = "0x1";
-            Uid refs = "_:0";
-
             var test = new Testing
             {
                 Name = "test",
@@ -79,11 +67,9 @@ public class NQuadsTests : ExamplesTest
 
             test.Ways[1].SetFacet("facet", 123);
 
-            ClassMapping.ClassMappings.TryGetValue(typeof(Testing), out var map);
+            var migrations = ICM.Migrations;
 
-            var migrations = InternalClassMapping.Migrations;
-
-            await InternalClassMapping.EnsureAsync(client);
+            await ICM.EnsureAsync(client);
 
             foreach (var mig in migrations)
             {
@@ -102,20 +88,22 @@ public class NQuadsTests : ExamplesTest
 
             await using var qtx = client.NewTransaction(true, true);
 
-            var query = @$"query {{
-    testing(func: uid({test.Uid})) {{
+            var query = $$"""
+query {
+    testing(func: uid({{test.Uid}})) {
         uid
         name
-        parent @facets {{
+        parent @facets {
             uid
             name
             ways @facets
             dgraph.type
-        }}
+        }
         ways @facets
         dgraph.type
-    }}
-}}";
+    }
+}
+""";
 
             List<Testing> res;
 
@@ -131,7 +119,7 @@ public class NQuadsTests : ExamplesTest
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 }

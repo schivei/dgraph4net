@@ -11,7 +11,7 @@ public class AclTest : ExamplesTest
     [Fact]
     public async Task ExpTest()
     {
-        const string expected = @"{ ""uid"": ""0x1"",""dgraph.type"": [""Testing""],""name"": ""test"",""parent"": { ""uid"": ""_:0"",""dgraph.type"": [""Testing""] } }";
+        const string expected = """{ "uid": "0x1","dgraph.type": ["Testing"],"name": "test","parent": { "uid": "_:0","dgraph.type": ["Testing"] } }""";
 
         try
         {
@@ -39,7 +39,7 @@ public class AclTest : ExamplesTest
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 }

@@ -5,13 +5,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.Tools;
 
-internal sealed class Application
+internal sealed class Application(ILogger<Application> logger, ApplicationCommand appCommand)
 {
-    private readonly ILogger _logger;
-    private readonly ApplicationCommand _cmd;
-
-    public Application(ILogger<Application> logger, ApplicationCommand appCommand) =>
-        (_logger, _cmd) = (logger, appCommand);
+    private readonly ILogger _logger = logger;
 
     /// <summary>
     /// Execute the command
@@ -21,7 +17,7 @@ internal sealed class Application
     {
         try
         {
-            await _cmd.InvokeAsync(args);
+            await appCommand.InvokeAsync(args);
         }
         catch (Exception ex)
         {
@@ -46,23 +42,19 @@ internal sealed class Application
         var projectLocation = Directory.GetCurrentDirectory();
         var projectFiles = Directory.GetFiles(projectLocation, "*.csproj");
 
-        if (projectFiles.Length == 0)
+        return projectFiles.Length switch
         {
-            throw new InvalidOperationException("No project found");
-        }
-
-        if (projectFiles.Length > 1)
-        {
-            throw new InvalidOperationException("Multiple projects found");
-        }
-
-        return projectFiles[0];
+            0 => throw new InvalidOperationException("No project found"),
+            > 1 => throw new InvalidOperationException("Multiple projects found"),
+            _ => projectFiles[0]
+        };
     }
 
     /// <summary>
     /// Build a project at runtime and return the assembly
     /// </summary>
     /// <param name="projectLocation"></param>
+    /// <param name="logger"></param>
     /// <returns><see cref="Assembly"/></returns>
     /// <exception cref="InvalidOperationException"></exception>
     internal static Assembly BuildProject(string projectLocation, ILogger logger)

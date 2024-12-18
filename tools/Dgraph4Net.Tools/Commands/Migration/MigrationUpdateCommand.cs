@@ -1,8 +1,12 @@
 using System.Collections.Immutable;
 using System.CommandLine;
 using System.Reflection;
+
 using Dgraph4Net.ActiveRecords;
+
 using Microsoft.Extensions.Logging;
+
+using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
@@ -51,37 +55,39 @@ internal sealed class MigrationUpdateCommand : Command
             var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(InternalClassMapping).Assembly
+                typeof(ICM).Assembly
             };
 
-            InternalClassMapping.SetDefaults([.. mergedAssemblies]);
+            ICM.SetDefaults([.. mergedAssemblies]);
 
-            InternalClassMapping.Map([.. mergedAssemblies]);
+            ICM.Map([.. mergedAssemblies]);
 
-            if (!InternalClassMapping.ClassMappings.Any())
+            if (!ICM.ClassMappings.Any())
             {
                 _logger.LogWarning("No mapping class found");
                 return;
             }
 
-            var migrations = InternalClassMapping.Migrations;
+            var migrations = ICM.Migrations;
 
-            await InternalClassMapping.EnsureAsync(client);
+            await ICM.EnsureAsync(client);
 
             await using var txn = client.NewTransaction(false, false);
 
-            var dgnType = InternalClassMapping.GetDgraphType(typeof(DgnMigration));
+            var dgnType = ICM.GetDgraphType(typeof(DgnMigration));
 
             _logger.LogInformation("Get last migration");
-            var migs = await txn.Query<DgnMigration>("dgn", @$"{{
-  dgn(func: type({dgnType}), orderdesc: dgn.generated_at, first: 1) {{
-    uid
-    dgraph.type
-    dgn.name
-    dgn.generated_at
-    dgn.applied_at
-  }}
-}}");
+            var migs = await txn.Query<DgnMigration>("dgn", $$"""
+                                                              {
+                                                                dgn(func: type({{dgnType}}), orderdesc: dgn.generated_at, first: 1) {
+                                                                  uid
+                                                                  dgraph.type
+                                                                  dgn.name
+                                                                  dgn.generated_at
+                                                                  dgn.applied_at
+                                                                }
+                                                              }
+                                                              """);
 
             var lastMigration = migs.SingleOrDefault();
 

@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
-using Api;
 using Dgraph4Net.ActiveRecords;
 using dotenv.net;
 using Grpc.Core;
@@ -23,14 +21,14 @@ public abstract class ExamplesTest : Assert
     {
         DotEnv.Load();
         s_env = DotEnv.Read().AsReadOnly();
+
+#if NJSON
+        ClassMapping.ImplClassMapping = new NjClassMapping();
+#endif
     }
 
-    public ExamplesTest()
+    protected ExamplesTest()
     {
-#if NJSON
-        ClassMapping.ImplClassMapping = new NJClassMapping();
-#endif
-
         if (GetEnv("GRPC_DNS_RESOLVER") != "native")
         {
             Environment.SetEnvironmentVariable("GRPC_DNS_RESOLVER", "native");
@@ -52,9 +50,9 @@ public abstract class ExamplesTest : Assert
     {
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-        var host = GetEnv("DGRAPH_HOST", "http://localhost:9080");
+        var host = GetEnv("DGRAPH_HOST", "http://localhost:9080")!;
 
-        var channel = GrpcChannel.ForAddress(host, new GrpcChannelOptions
+        var channel = GrpcChannel.ForAddress(host, new()
         {
             Credentials = ChannelCredentials.Insecure
         });
@@ -64,13 +62,13 @@ public abstract class ExamplesTest : Assert
         return dg;
     }
 
-    protected static async Task ClearDB()
+    protected static async Task ClearDb()
     {
         try
         {
             var dg = GetDgraphClient();
 
-            await dg.Alter(new Operation { DropAll = true, AlsoDropDgraphSchema = true, RunInBackground = false });
+            await dg.Alter(new() { DropAll = true, AlsoDropDgraphSchema = true, RunInBackground = false });
         }
         catch
         {

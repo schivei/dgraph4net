@@ -1,8 +1,11 @@
 using System.CommandLine;
-using Dgraph4Net.ActiveRecords;
 using System.Reflection;
+
+using Dgraph4Net.ActiveRecords;
+
 using Microsoft.Extensions.Logging;
-using System.Data;
+
+using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
@@ -41,11 +44,11 @@ internal sealed class MigrationRemoveCommand : Command
 
         // check if migration exists
         if (!outputs.Exists)
-            throw new Exception("Migration not found");
+            throw new("Migration not found");
 
         var files = outputs.GetFiles($"{name}_*.cs");
         if (!files.Any())
-            throw new Exception("Migration not found");
+            throw new("Migration not found");
 
         var file = files[0];
 
@@ -66,46 +69,48 @@ internal sealed class MigrationRemoveCommand : Command
         var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(InternalClassMapping).Assembly
+                typeof(ICM).Assembly
             };
 
-        InternalClassMapping.SetDefaults([.. mergedAssemblies]);
+        ICM.SetDefaults([.. mergedAssemblies]);
 
-        InternalClassMapping.Map([.. mergedAssemblies]);
+        ICM.Map([.. mergedAssemblies]);
 
-        if (!InternalClassMapping.ClassMappings.Any())
+        if (!ICM.ClassMappings.Any())
         {
             _logger.LogWarning("No mapping class found");
             return;
         }
 
-        var migration = InternalClassMapping.Migrations.FirstOrDefault(x => x.Name == name) ?? throw new Exception("Migration not found");
+        var migration = ICM.Migrations.FirstOrDefault(x => x.Name == name) ?? throw new("Migration not found");
 
         // check if have more migrations after this
-        var migrations = InternalClassMapping.Migrations.Where(x => x.GeneratedAt > migration.GeneratedAt).ToList();
+        var migrations = ICM.Migrations.Where(x => x.GeneratedAt > migration.GeneratedAt).ToList();
 
         migrations.Add(migration);
 
-        await InternalClassMapping.EnsureAsync(client);
+        await ICM.EnsureAsync(client);
 
         // get previous migration
 
         await using var txn = client.NewTransaction(false, false);
 
-        var dgnType = InternalClassMapping.GetDgraphType(typeof(DgnMigration));
+        var dgnType = ICM.GetDgraphType(typeof(DgnMigration));
 
-        var migs = await txn.QueryWithVars<DgnMigration>("dgn", @$"query Q($date: string) {{
-  dgn(func: type({dgnType}), orderdesc: dgn.generated_at, first: 1) @filter(lt(dgn.generated_at, $date)) {{
-    uid
-    dgraph.type
-    dgn.name
-    dgn.generated_at
-    dgn.applied_at
-  }}
-}}", new(){ ["date"] = migration.GeneratedAt.ToString("O") });
+        var migs = await txn.QueryWithVars<DgnMigration>("dgn", $$"""
+                                                                  query Q($date: string) {
+                                                                    dgn(func: type({{dgnType}}), orderdesc: dgn.generated_at, first: 1) @filter(lt(dgn.generated_at, $date)) {
+                                                                      uid
+                                                                      dgraph.type
+                                                                      dgn.name
+                                                                      dgn.generated_at
+                                                                      dgn.applied_at
+                                                                    }
+                                                                  }
+                                                                  """, new(){ ["date"] = migration.GeneratedAt.ToString("O") });
 
         // get previous ClassMapping.Migrations from migs[0]
-        var previousMigration = migs.Any() ? InternalClassMapping.Migrations.FirstOrDefault(x => x.Name == migs[0].Name) : null;
+        var previousMigration = migs.Any() ? ICM.Migrations.FirstOrDefault(x => x.Name == migs[0].Name) : null;
         if (previousMigration is not null)
         {
             _logger.LogInformation("Set previous '{Migration}' migration as current", previousMigration.Name);

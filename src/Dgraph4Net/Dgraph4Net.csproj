@@ -4,19 +4,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.57.0" />
-    <PackageReference Include="Grpc.Core" Version="2.46.6" />
-    <PackageReference Include="Grpc.Tools" Version="2.59.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <ProjectReference Include="..\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <Protobuf Include="protos\badger.proto" />
     <Protobuf Include="protos\dgo.proto" />
     <Protobuf Include="protos\dgraph.proto" />
@@ -25,13 +12,13 @@
     <Content Include="build\Dgraph4Net.props" PackagePath="build\">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
-    <PackageReference Include="Google.Protobuf" Version="3.28.2" />
-    <PackageReference Update="Grpc.Net.ClientFactory" Version="2.66.0" />
-    <PackageReference Update="Grpc.Tools" Version="2.66.0">
+
+    <PackageReference Include="Google.Protobuf" Version="3.29.1" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.67.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.68.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Update="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
   </ItemGroup>
 </Project>

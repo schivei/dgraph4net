@@ -8,10 +8,86 @@
   <PropertyGroup Label="Configuration">
     <Import_RootNamespace>Dgraph4Net.SharedCode</Import_RootNamespace>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\Dgraph4Net.SharedCode\Linq\QueryExtensions.cs" />
+    <Content Include="$(MSBuildThisFileDirectory)build\Dgraph4Net.props" PackagePath="build\">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)Linq\oai.txt" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\AEntity.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\BooleanPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\ClassMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\ClassMapping.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\ClassMappingImpl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\ClassMap`1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\DateTimePredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\DgnMigration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\DgnMigrationMapping.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\EdgePredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FacetAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FacetedFloat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FacetedInt.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FacetedString.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FacetedValue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FacetPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\Float32VectorPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\Float32VetorMetrics.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\FloatPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\GeoPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\IClassMapping.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\IDgnMigration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\IEdgePredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\IgnoreMappingAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\IntegerPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\InternalClassMapping.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\ListPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\Migration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\NQuadsConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\PasswordPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\StringPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\TypePredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\UidPredicate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)extensions\Defer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\InternalCollectionExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GlobalSuppressions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IIEntityConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\CountableFunction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\ExpressedFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\FilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\Functions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\GraphQueryable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IConditionalFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IConditionalFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\ICountableFunction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IGeoFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IGeoFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IGraphQueryable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\INodeFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\INodeFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IPaginationFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\ISortingFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IStringFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IStringFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\ISummarizeFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IValueFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IVectorFilterFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\IVectorFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\QueryGraph.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\SortingType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\DType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\TypeExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\VarTriple.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\VarTriples.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\VarTriplesExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\VarType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TxnExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Usings.cs" />
   </ItemGroup>
 </Project>

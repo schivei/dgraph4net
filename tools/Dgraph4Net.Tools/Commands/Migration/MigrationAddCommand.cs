@@ -4,6 +4,7 @@ using System.CommandLine.Parsing;
 using System.Reflection;
 using Dgraph4Net.ActiveRecords;
 using Microsoft.Extensions.Logging;
+using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
@@ -55,7 +56,7 @@ internal sealed class MigrationAddCommand : Command
                 var files = outputs.GetFiles($"{name}_*.cs");
                 if (files.Any())
                 {
-                    throw new Exception("Migration already exists");
+                    throw new("Migration already exists");
                 }
             }
             else
@@ -85,14 +86,14 @@ internal sealed class MigrationAddCommand : Command
             var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(InternalClassMapping).Assembly
+                typeof(ICM).Assembly
             };
 
-            InternalClassMapping.SetDefaults([.. mergedAssemblies]);
+            ICM.SetDefaults([.. mergedAssemblies]);
 
-            InternalClassMapping.Map([.. mergedAssemblies]);
+            ICM.Map([.. mergedAssemblies]);
 
-            if (!InternalClassMapping.ClassMappings.Any())
+            if (!ICM.ClassMappings.Any())
             {
                 _logger.LogWarning("No mapping class found");
                 return;
@@ -104,14 +105,14 @@ internal sealed class MigrationAddCommand : Command
             var migrationFile = new FileInfo(Path.Combine(outputs.FullName, fileName));
             var scriptFile = new FileInfo(Path.Combine(outputs.FullName, $"{fileName}.schema"));
 
-            var migrations = InternalClassMapping.Migrations.OrderByDescending(x => x.GeneratedAt);
+            var migrations = ICM.Migrations.OrderByDescending(x => x.GeneratedAt);
 
-            var mappings = InternalClassMapping.ClassMappings.Values
+            var mappings = ICM.ClassMappings.Values
                 .Where(x => !x.Type.IsAssignableTo(typeof(DgnMigration)))
                 .OrderBy(x => x.Type.FullName)
                 .ToArray();
 
-            var script = InternalClassMapping.CreateScript();
+            var script = ICM.CreateScript();
 
             if (!migrations.Any())
             {
@@ -141,7 +142,7 @@ internal sealed class MigrationAddCommand : Command
 
                     // get predicates mappings
                     mappings = newPredicates
-                        .Select(x => InternalClassMapping.ClassMappings[x.Key.DeclaringType])
+                        .Select(x => ICM.ClassMappings[x.Key.DeclaringType])
                         .GroupBy(x => x.Type.FullName)
                         .Select(x => x.First())
                         .ToArray();

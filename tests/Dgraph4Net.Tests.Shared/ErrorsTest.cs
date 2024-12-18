@@ -6,10 +6,6 @@ using Api;
 
 using Google.Protobuf;
 
-using Xunit;
-
-using Assert = Dgraph4Net.Tests.Assert;
-
 namespace Dgraph4Net.Tests;
 
 [Collection("Dgraph4Net")]
@@ -43,7 +39,7 @@ public class ErrorsTest : ExamplesTest
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 
@@ -67,7 +63,7 @@ public class ErrorsTest : ExamplesTest
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 
@@ -92,13 +88,15 @@ public class ErrorsTest : ExamplesTest
             await using (var txnInsert = dg.NewTransaction())
                 await txnInsert.Mutate(mu);
 
-            const string q = @"{
-                    v as var(func: eq(email, ""user1@company1.io""))
-                }";
+            const string q = """
+                             {
+                                                 v as var(func: eq(email, "user1@company1.io"))
+                                             }
+                             """;
 
-            mu = new Mutation
+            mu = new()
             {
-                SetNquads = ByteString.CopyFromUtf8(@"uid(v) <email> ""updated1@company1.io""."),
+                SetNquads = ByteString.CopyFromUtf8("""uid(v) <email> "updated1@company1.io"."""),
                 CommitNow = false
             };
 
@@ -117,7 +115,7 @@ public class ErrorsTest : ExamplesTest
         }
         finally
         {
-            await ClearDB();
+            await ClearDb();
         }
     }
 }

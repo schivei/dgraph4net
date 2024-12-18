@@ -22,14 +22,14 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.66.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.67.0" />
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="System.CommandLine.Rendering" Version="0.4.0-alpha.22272.1" />
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Dgraph4Net\Dgraph4Net.csproj" />
+    <ProjectReference Include="..\..\src\Dgraph4Net.System.Text.Json\Dgraph4Net.System.Text.Json.csproj" />
   </ItemGroup>
 </Project>

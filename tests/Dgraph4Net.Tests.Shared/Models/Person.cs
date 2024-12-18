@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Dgraph4Net.ActiveRecords;
 using NetGeo.Json;
 
@@ -30,6 +30,6 @@ public class Person : AEntity<Person>
 
     public Person()
     {
-        Name = new NameFacet(this, GetType().GetProperty(nameof(Name)));
+        Name = new(this, GetType().GetProperty(nameof(Name)));
     }
 }

@@ -1,10 +1,7 @@
 using System.Data;
 using System.Transactions;
-
 using Api;
-
 using Grpc.Core;
-
 using static Api.Dgraph;
 
 namespace Dgraph4Net;
@@ -62,25 +59,25 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// <summary>
     /// Creates a new transaction.
     /// </summary>
-    /// <param name="Dgraph"></param>
+    /// <param name="dgraph"></param>
     /// <param name="readOnly"></param>
     /// <param name="bestEffort"></param>
     /// <param name="cancellationToken"></param>
     /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
-    public Txn(Dgraph4NetClient Dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null, bool useNQuads = false) : this(Dgraph, cancellationToken)
+    public Txn(Dgraph4NetClient dgraph, bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null, bool useNQuads = false) : this(dgraph, cancellationToken)
     {
         _useNQuads = useNQuads;
         _dgraphClient = _dgraph.AnyClient();
-        _context = new TxnContext();
+        _context = new();
         _readOnly = readOnly;
         if (bestEffort)
             BestEffort();
     }
 
-    public Txn(Dgraph4NetClient Dgraph, CancellationToken? cancellationToken)
+    public Txn(Dgraph4NetClient dgraph, CancellationToken? cancellationToken)
     {
-        _dgraph = Dgraph;
-        LinkTokens(Dgraph.GetTokenSource());
+        _dgraph = dgraph;
+        LinkTokens(dgraph.GetTokenSource());
 
         if (cancellationToken is null)
             return;
@@ -92,7 +89,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
     /// Link the cancellation tokens
     /// </summary>
     internal void LinkTokens(CancellationTokenSource _) =>
-        _cancellationTokenSource = /*tokenSource ??*/ new CancellationTokenSource();
+        _cancellationTokenSource = /*tokenSource ??*/ new();
 
     /// <summary>
     /// Enables best effort in read-only queries.
@@ -222,7 +219,7 @@ public sealed class Txn : IAsyncDisposable, IDisposable
         if (reqs.Length == 0)
         {
             _finished = true;
-            return [new Response { Txn = _context, Latency = new Latency() }];
+            return [new() { Txn = _context, Latency = new() }];
         }
 
         if (reqs.Any(x => x.CommitNow))

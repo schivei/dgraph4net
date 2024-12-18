@@ -4,12 +4,11 @@ using Google.Protobuf;
 using NetGeo.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using IEntityConverter = Dgraph4Net.Newtonsoft.Json.EntityConverter;
-using UidConverter = Dgraph4Net.Newtonsoft.Json.UidConverter;
+using Dgraph4Net.ActiveRecords;
 
-namespace Dgraph4Net.ActiveRecords;
+namespace Dgraph4Net;
 
-internal class NJClassMapping : ClassMappingImpl, IClassMapping
+internal class NjClassMapping : ClassMappingImpl, IClassMapping
 {
     Func<object?, string> IClassMapping.JsonSerializer =>
         JsonConvert.SerializeObject;
@@ -19,19 +18,19 @@ internal class NJClassMapping : ClassMappingImpl, IClassMapping
 
     public override void SetDefaults()
     {
-        IIEntityConverter.Instance = typeof(IEntityConverter);
+        IIEntityConverter.Instance = typeof(EntityConverter);
 
         GeoExtensions.SetDefaults();
 
         var settings = JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings();
 
-        if (settings.Converters.Any(x => x is UidConverter or IEntityConverter))
+        if (settings.Converters.Any(x => x is UidConverter or EntityConverter))
             return;
 
         settings.Converters = new List<JsonConverter>(settings.Converters)
         {
             new UidConverter(),
-            new IEntityConverter()
+            new EntityConverter()
         };
 
         settings.Culture = CultureInfo.InvariantCulture;
@@ -46,7 +45,6 @@ internal class NJClassMapping : ClassMappingImpl, IClassMapping
 
     private static JObject? GetData(ByteString bytes)
     {
-        // get data content from json as json
         var element = Impl.Deserialize(bytes.ToStringUtf8(), typeof(JObject)) as JObject;
 
         if (element is null || element.TryGetValue("data", out var data) || data is null || data.Type != JTokenType.Object)
@@ -172,5 +170,5 @@ internal class NJClassMapping : ClassMappingImpl, IClassMapping
     }
 
     protected override IIEntityConverter GetConverter(bool ignoreNulls, bool getOnlyNulls, bool convertDefaultToNull) =>
-        new IEntityConverter(ignoreNulls, getOnlyNulls, convertDefaultToNull);
+        new EntityConverter(ignoreNulls, getOnlyNulls, convertDefaultToNull);
 }
