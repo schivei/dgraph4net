@@ -49,7 +49,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\TypePredicate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ActiveRecords\UidPredicate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AssemblyInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)extensions\Defer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\Defer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\InternalCollectionExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GlobalSuppressions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IIEntityConverter.cs" />
