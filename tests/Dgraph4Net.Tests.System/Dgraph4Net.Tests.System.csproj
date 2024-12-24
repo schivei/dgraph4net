@@ -23,14 +23,13 @@
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
     <PackageReference Include="LateApexEarlySpeed.Xunit.Assertion.Json" Version="1.0.6" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="NetGeo.System.Text.Json" Version="2023.3.157.13" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.7.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.7.0" />
   </ItemGroup>
 
   <ItemGroup>
