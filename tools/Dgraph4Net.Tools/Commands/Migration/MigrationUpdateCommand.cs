@@ -10,10 +10,22 @@ using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
+/// <summary>
+/// Command to update the database schema.
+/// </summary>
 internal sealed class MigrationUpdateCommand : Command
 {
     private readonly ILogger _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MigrationUpdateCommand"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="projectLocation">The project location option.</param>
+    /// <param name="serverOption">The server option.</param>
+    /// <param name="userIdOption">The user ID option.</param>
+    /// <param name="passwordOption">The password option.</param>
+    /// <param name="apiKeyOption">The API key option.</param>
     public MigrationUpdateCommand(ILogger<MigrationUpdateCommand> logger, ProjectOption projectLocation,
         ServerOption serverOption, UserIdOption userIdOption, PasswordOption passwordOption,
         ApiKeyOption apiKeyOption) : base("update", "Update database schema")
@@ -32,6 +44,11 @@ internal sealed class MigrationUpdateCommand : Command
         this.SetHandler(Exec, projectLocation, serverOption);
     }
 
+    /// <summary>
+    /// Executes the update command.
+    /// </summary>
+    /// <param name="projectLocation">The project location.</param>
+    /// <param name="client">The Dgraph client.</param>
     internal async Task Exec(string projectLocation, Dgraph4NetClient client)
     {
         try
@@ -62,7 +79,7 @@ internal sealed class MigrationUpdateCommand : Command
 
             ICM.Map([.. mergedAssemblies]);
 
-            if (!ICM.ClassMappings.Any())
+            if (ICM.ClassMappings.IsEmpty)
             {
                 _logger.LogWarning("No mapping class found");
                 return;
@@ -91,7 +108,6 @@ internal sealed class MigrationUpdateCommand : Command
 
             var lastMigration = migs.SingleOrDefault();
 
-            // get migrations after last migration
             var newMigrations = (lastMigration is null
                 ? migrations :
                 migrations.Where(x => x.GeneratedAt > lastMigration.GeneratedAt))

@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Globalization;
+using System.Numerics;
+using System.Text;
 
 namespace Dgraph4Net;
 
@@ -41,9 +43,6 @@ public readonly struct VarTriple
             _ => VarType.String
         };
 
-    private static bool GetVarTypeString(object value) =>
-        value is ushort or byte or long or int or short or sbyte or bool;
-
     internal static string Cast(object value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -62,10 +61,23 @@ public readonly struct VarTriple
         if (value is DateOnly d)
             return d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
+        if (value is Vector<float> v)
+            return v.Serialize();
+
         if (value is IEnumerable enumerable and not string)
         {
-            return '[' + string.Join(',', enumerable.Cast<object>().Select(o => (GetVarTypeString(o), Cast(o)))
-                .Select(t => t.Item1 ? $"\"{t.Item2}\"" : t.Item2)) + ']';
+            var str = new StringBuilder();
+            str.Append('[');
+
+            foreach (var item in enumerable)
+            {
+                str.Append(Cast(item));
+                str.Append(',');
+            }
+
+            str[^1] = ']';
+
+            return str.ToString();
         }
 
         if (value is true)

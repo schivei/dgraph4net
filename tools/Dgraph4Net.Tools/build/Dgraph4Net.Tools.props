@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup>
+    <None Remove="**\*.cs.schema" />
+    
+    <EmbeddedResource Include="**\*.cs.schema" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+</Project>

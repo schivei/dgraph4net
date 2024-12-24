@@ -1,3 +1,5 @@
+using System.Collections;
+
 internal static class InternalCollectionExtensions
 {
     public static bool Exists<T>(this IEnumerable<T> collection, Predicate<T> predicate)

@@ -8,7 +8,7 @@ public static class VectorSerializer
 {
     public static float[] ToArray(this Vector<float> vector)
     {
-        var items = new Span<float>();
+        Span<float> items = new float[Vector<float>.Count];
 
         vector.CopyTo(items);
 

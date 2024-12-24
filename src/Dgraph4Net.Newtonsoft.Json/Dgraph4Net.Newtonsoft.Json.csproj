@@ -1,10 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.projitems" Label="Shared" />
   <Import Project="../../pack.props" />
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);NJ</DefineConstants>
     <RootNamespace>Dgraph4Net</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Include="build\Dgraph4Net.Newtonsoft.Json.props">
+      <PackagePath>build\</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
     <PackageReference Include="NetGeo.Newtonsoft.Json" Version="2024.4.281.23" />
@@ -20,4 +25,5 @@
     </PackageReference>
     <PackageReference Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
   </ItemGroup>
+  <Import Project="..\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.projitems" Label="Shared" />
 </Project>

@@ -5,6 +5,12 @@
     <RootNamespace>Dgraph4Net</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="build\Dgraph4Net.System.Text.Json.props">
+      <PackagePath>build\</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
     <PackageReference Include="NetGeo.Json" Version="2024.4.281.23" />
   </ItemGroup>

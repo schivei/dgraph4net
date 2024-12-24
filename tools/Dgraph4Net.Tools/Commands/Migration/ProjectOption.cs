@@ -1,7 +1,10 @@
 using System.CommandLine;
 
-// ReSharper disable once CheckNamespace
-namespace Dgraph4Net.Tools.Commands;
+namespace Dgraph4Net.Tools.Commands.Migration;
 
+/// <summary>
+/// Represents an option for specifying the project location.
+/// </summary>
 internal sealed class ProjectOption()
-    : Option<string>(["--project", "-p"], Application.ResolveProjectLocation, "The project location");
+    : Option<string>(["--project", "-p"], Application.ResolveProjectLocation, "The project location")
+{ }

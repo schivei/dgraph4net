@@ -15,7 +15,7 @@ if (arguments.Count <= 1)
 {
     arguments.Add("migration");
     arguments.Add("up");
-    arguments.Add("-s 192.168.15.8:9080");
+    arguments.Add("-s 127.0.0.1:9080");
     arguments.Add("--project");
     arguments.Add(Path.Combine("src", "Dgraph4Net.Core", "Dgraph4Net.Core.csproj"));
 }

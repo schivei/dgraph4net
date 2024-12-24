@@ -12,3 +12,13 @@ public sealed class TestingMap : ClassMap<Testing>
         ListString(x => x.Ways, "ways");
     }
 }
+
+public sealed class Testing2Map : ClassMap<Testing2>
+{
+    protected override void Map()
+    {
+        SetType("Testing2");
+        Vector(x => x.Vector, "t2.vector");
+        Geo(x => x.MultiPoint, "t2.multiPoint");
+    }
+}

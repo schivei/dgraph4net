@@ -7,7 +7,6 @@
     <Protobuf Include="protos\badger.proto" />
     <Protobuf Include="protos\dgo.proto" />
     <Protobuf Include="protos\dgraph.proto" />
-    <Protobuf Include="protos\gogo.proto" />
 
     <Content Include="build\Dgraph4Net.props" PackagePath="build\">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

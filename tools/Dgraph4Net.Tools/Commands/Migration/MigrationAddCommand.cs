@@ -2,17 +2,36 @@ using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Reflection;
+
 using Dgraph4Net.ActiveRecords;
+
 using Microsoft.Extensions.Logging;
+
 using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
+/// <summary>
+/// Represents a command to add a new migration.
+/// </summary>
 internal sealed class MigrationAddCommand : Command
 {
     private readonly ILogger _logger;
     private readonly MigrationUpdateCommand _updateCommand;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MigrationAddCommand"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="projectLocation">The project location option.</param>
+    /// <param name="outputDirectory">The output directory option.</param>
+    /// <param name="migrationName">The migration name argument.</param>
+    /// <param name="serverOption">The server option.</param>
+    /// <param name="userIdOption">The user ID option.</param>
+    /// <param name="passwordOption">The password option.</param>
+    /// <param name="updateOption">The update option.</param>
+    /// <param name="apiKeyOption">The API key option.</param>
+    /// <param name="updateCommand">The update command instance.</param>
     public MigrationAddCommand(ILogger<MigrationAddCommand> logger, ProjectOption projectLocation,
         OutputOption outputDirectory, MigrationNameArgument migrationName, ServerOption serverOption,
         UserIdOption userIdOption, PasswordOption passwordOption, UpdateOption updateOption,
@@ -40,6 +59,16 @@ internal sealed class MigrationAddCommand : Command
         this.SetHandler(Exec, migrationName, projectLocation, outputDirectory, updateOption, serverOption, userIdOption, passwordOption);
     }
 
+    /// <summary>
+    /// Executes the migration add command.
+    /// </summary>
+    /// <param name="name">The name of the migration.</param>
+    /// <param name="projectLocation">The project location.</param>
+    /// <param name="outputDirectory">The output directory.</param>
+    /// <param name="update">Indicates whether to update the schema.</param>
+    /// <param name="serverOption">The server option.</param>
+    /// <param name="userIdOption">The user ID option.</param>
+    /// <param name="passwordOption">The password option.</param>
     private async Task Exec(string name, string projectLocation, string outputDirectory, bool update, Dgraph4NetClient serverOption, string userIdOption, string passwordOption)
     {
         try
@@ -50,11 +79,10 @@ internal sealed class MigrationAddCommand : Command
 
             var outputs = new DirectoryInfo(Path.Combine(fifo.Directory.FullName, outputDirectory));
 
-            // check if already has a file starting with same name
             if (outputs.Exists)
             {
                 var files = outputs.GetFiles($"{name}_*.cs");
-                if (files.Any())
+                if (files.Length != 0)
                 {
                     throw new("Migration already exists");
                 }
@@ -70,7 +98,6 @@ internal sealed class MigrationAddCommand : Command
 
             var assembly = Application.BuildProject(projectLocation, _logger);
 
-            // get all dependencies and sub dependencies assemblies
             var assemblies = assembly.GetReferencedAssemblies().Select(a =>
             {
                 try
@@ -93,7 +120,7 @@ internal sealed class MigrationAddCommand : Command
 
             ICM.Map([.. mergedAssemblies]);
 
-            if (!ICM.ClassMappings.Any())
+            if (ICM.ClassMappings.IsEmpty)
             {
                 _logger.LogWarning("No mapping class found");
                 return;
@@ -120,7 +147,6 @@ internal sealed class MigrationAddCommand : Command
             }
             else
             {
-                // check if script is different from last migration and apply differences only
                 var lastMigration = migrations.First();
 
                 lastMigration.Load();
@@ -134,13 +160,11 @@ internal sealed class MigrationAddCommand : Command
                         .GroupBy(x => x.Value.ToSchemaPredicate())
                         .ToArray();
 
-                    // get predicates not in lastScript
                     var newPredicates = allSchemaPredicates
                         .Where(x => !lastScript.Contains(x.Key))
                         .SelectMany(x => x)
                         .ToArray();
 
-                    // get predicates mappings
                     mappings = newPredicates
                         .Select(x => ICM.ClassMappings[x.Key.DeclaringType])
                         .GroupBy(x => x.Type.FullName)
@@ -155,7 +179,6 @@ internal sealed class MigrationAddCommand : Command
                         .Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                         .Select(x => x.Split(':')[0]);
 
-                    // get lastPredicates not in currentPredicates
                     var removedPredicates = lastPredicates
                         .Where(x => !currentPredicates.Contains(x))
                         .ToImmutableHashSet();
@@ -197,6 +220,17 @@ internal sealed class MigrationAddCommand : Command
         }
     }
 
+    /// <summary>
+    /// Creates the migration files.
+    /// </summary>
+    /// <param name="migrationFile">The migration file.</param>
+    /// <param name="scriptFile">The script file.</param>
+    /// <param name="projectName">The project name.</param>
+    /// <param name="output">The output directory.</param>
+    /// <param name="script">The migration script.</param>
+    /// <param name="mappings">The class mappings.</param>
+    /// <param name="predicatesToRemove">The predicates to remove.</param>
+    /// <param name="typesToRemove">The types to remove.</param>
     private async Task CreateAsync(FileInfo migrationFile, FileInfo scriptFile, string projectName, string output, string script, IClassMap[] mappings, ImmutableHashSet<string>? predicatesToRemove = null, ImmutableHashSet<string>? typesToRemove = null)
     {
         mappings ??= [];
@@ -216,7 +250,6 @@ internal sealed class MigrationAddCommand : Command
 
         await mwt.WriteLineAsync("using Dgraph4Net.ActiveRecords;");
 
-        // write usings of entities
         foreach (var @namespace in mappings.GroupBy(x => x.Type.Namespace).Select(x => x.Key))
         {
             await mwt.WriteLineAsync($"using {@namespace};");
@@ -226,7 +259,6 @@ internal sealed class MigrationAddCommand : Command
 
         var ns = string.Join(".", Path.Combine(projectName, output).Split(Path.DirectorySeparatorChar) ?? []);
 
-        // normalize ns name to C# namespace conventions
         ns = ns?.Replace(" ", ".").Replace("-", ".");
 
         await mwt.WriteLineAsync($"namespace {ns};");
@@ -241,19 +273,16 @@ internal sealed class MigrationAddCommand : Command
         await mwt.WriteLineAsync("    protected override void Up()");
         await mwt.WriteLineAsync("    {");
 
-        // write sets
         foreach (var entity in mappings)
         {
             await mwt.WriteLineAsync($"        SetType<{entity.Type.Name}>();");
         }
 
-        // DropPredicates
         foreach (var predicate in predicatesToRemove)
         {
             await mwt.WriteLineAsync($"        DropPredicate(\"{predicate}\");");
         }
 
-        // DropTypes
         foreach (var type in typesToRemove)
         {
             await mwt.WriteLineAsync($"        DropType(\"{type}\");");
@@ -270,7 +299,6 @@ internal sealed class MigrationAddCommand : Command
         await mwt.WriteLineAsync("    protected override void Down()");
         await mwt.WriteLineAsync("    {");
 
-        // write drops on DgraphType of entities
         foreach (var entity in mappings)
         {
             await mwt.WriteLineAsync($"        DropType(\"{entity.DgraphType}\");");
@@ -281,7 +309,10 @@ internal sealed class MigrationAddCommand : Command
         await mwt.WriteLineAsync();
     }
 
-    // check if password is not null if userId is provided
+    /// <summary>
+    /// Validates the command options.
+    /// </summary>
+    /// <param name="symbolResult">The command result.</param>
     private void Validate(CommandResult symbolResult)
     {
         var update = symbolResult.GetValueForOption(Options.OfType<UpdateOption>().Single());

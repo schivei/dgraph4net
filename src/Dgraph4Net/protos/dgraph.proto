@@ -25,11 +25,11 @@ package pb;
 
 import "protos/dgo.proto";
 import "protos/badger.proto";
-import "protos/gogo.proto";
+import "google/protobuf/descriptor.proto";
+
 /*
-import "api.proto";
+import "github.com/dgraph-io/dgo/v240/protos/api.proto";
 import "github.com/dgraph-io/badger/v4/pb/pb.proto";
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 */
 
 /* import "gogoproto/gogo.proto"; */
@@ -133,16 +133,15 @@ message RaftContext {
 // have one RAFT node per server serving that group.
 message Member {
   fixed64 id = 1;
-  uint32 group_id = 2 [(gogoproto.jsontag) = "groupId,omitempty"];
+  uint32 groupId = 2 ;
   string addr = 3;
   bool leader = 4;
-  bool am_dead = 5 [(gogoproto.jsontag) = "amDead,omitempty"];
-  uint64 last_update = 6 [(gogoproto.jsontag) = "lastUpdate,omitempty"];
+	bool amDead = 5;
+	uint64 lastUpdate = 6;
   bool learner = 7;
 
-  bool cluster_info_only = 13
-      [(gogoproto.jsontag) = "clusterInfoOnly,omitempty"];
-  bool force_group_id = 14 [(gogoproto.jsontag) = "forceGroupId,omitempty"];
+	bool clusterInfoOnly = 13;
+	bool forceGroupId = 14;
 }
 
 message Group {
@@ -217,18 +216,14 @@ message HealthInfo {
 }
 
 message Tablet {
-  uint32 group_id = 1
-      [(gogoproto.jsontag) = "groupId,omitempty"];  // Served by which group.
+  uint32 groupId = 1; // Served by which group.
   string predicate = 2;
   bool force = 3;  // Used while moving predicate.
   int64 on_disk_bytes = 7;
   bool remove = 8;
-  bool read_only = 9 [
-    (gogoproto.jsontag) = "readOnly,omitempty"
-  ];  // If true, do not ask zero to serve any tablets.
-  uint64 move_ts = 10 [(gogoproto.jsontag) = "moveTs,omitempty"];
-  int64 uncompressed_bytes =
-      11;  // Estimated uncompressed size of tablet in bytes
+  bool readOnly = 9; // If true, do not ask zero to serve any tablets.
+  uint64 moveTs = 10;
+  int64 uncompressed_bytes = 11; // Estimated uncompressed size of tablet in bytes
 }
 
 message DirectedEdge {
@@ -242,6 +237,7 @@ message DirectedEdge {
   enum Op {
     SET = 0;
     DEL = 1;
+    OVR = 2;
   }
   Op op = 8;
   repeated api.Facet facets = 9;
@@ -310,8 +306,8 @@ message RestoreRequest {
 
   // Credentials when using a minio or S3 bucket as the backup location.
   string access_key = 5;
-  string secret_key = 6 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
-  string session_token = 7 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
+  string secret_key = 6;
+  string session_token = 7;
   bool anonymous = 8;
 
   // Info needed to process encrypted backups.
@@ -632,7 +628,7 @@ message TabletResponse {
 }
 message TabletRequest {
   repeated Tablet tablets = 1;
-  uint32 group_id = 2 [(gogoproto.jsontag) = "groupId,omitempty"];  // Served by which group.
+  uint32 group_id = 2;
 }
 
 message SubscriptionRequest {
@@ -705,8 +701,8 @@ message BackupRequest {
   string unix_ts = 4;
   string destination = 5;
   string access_key = 6;
-  string secret_key = 7 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
-  string session_token = 8 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
+  string secret_key = 7;
+  string session_token = 8;
 
   // True if no credentials should be used to access the S3 or minio bucket.
   // For example, when using a bucket with a public policy.
@@ -746,8 +742,8 @@ message ExportRequest {
 
   // These credentials are used to access the S3 or minio bucket.
   string access_key = 6;
-  string secret_key = 7 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
-  string session_token = 8 [(gogoproto.customtype) = "Sensitive", (gogoproto.nullable) = false];
+  string secret_key = 7;
+  string session_token = 8;
   bool anonymous = 9;
 
   uint64 namespace = 10;
@@ -777,7 +773,7 @@ message BackupKey {
   string attr = 2;
   uint64 uid = 3;
   uint64 start_uid = 4;
-  string term = 5;
+  bytes term = 5;
   uint32 count = 6;
   uint64 namespace = 7;
 }

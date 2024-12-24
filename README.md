@@ -48,15 +48,27 @@ and understand how to run and work with Dgraph.
 
 Install using nuget:
 
+To use the Newtonsoft.Json serializer, install the package `Dgraph4Net.Newtonsoft.Json`.
 ```sh
 dotnet add package Dgraph4Net.Newtonsoft.Json
+```
+
+To use the System.Text.Json serializer, install the package `Dgraph4Net.System.Text.Json`.
+```sh
+dotnet add package Dgraph4Net.System.Text.Json
+```
+
+The old Dgraph4Net.Core package has been discontinued, and the new Dgraph4Net package is the new Core package.
+```sh
 dotnet add package Dgraph4Net
-dotnet add package Dgraph4Net.Core
-dotnet tool install Dgraph4Net.Tools
+```
+
+To use the tools, install the package `Dgraph4Net.Tools`.
+```sh
+dotnet tool install --global Dgraph4Net.Tools
 ```
 
 > The json packages already references Dgraph4Net.\
-> The package Dgraph4Net already references Dgraph4Net.Core.\
 > The package tool Dgraph4Net.Tools references Dgraph4Net for code generation.
 
 ## Supported Versions
@@ -481,10 +493,6 @@ dgn migration remove MyMigrationName -o Migrations --server server:port --projec
 ```
 
 The remove will update the database schema to the previous migration and remove the migration and schema files.
-
-## In Development
-
-* LINQ for dgraph
 
 ## Notes
 

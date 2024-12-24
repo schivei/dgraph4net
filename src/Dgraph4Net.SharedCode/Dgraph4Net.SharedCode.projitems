@@ -12,9 +12,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)build\Dgraph4Net.props" PackagePath="build\">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
@@ -56,31 +53,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\InternalCollectionExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GlobalSuppressions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IIEntityConverter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\CountableFunction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\ExpressedFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\FilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\Functions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\GraphQueryable.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IConditionalFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IConditionalFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\ICountableFunction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IGeoFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IGeoFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IGraphQueryable.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\INodeFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\INodeFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IPaginationFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\ISortingFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IStringFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IStringFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\ISummarizeFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IValueFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IVectorFilterFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\IVectorFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\QueryGraph.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\SortingType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\DType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\TypeExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryBuilder\VarTriple.cs" />

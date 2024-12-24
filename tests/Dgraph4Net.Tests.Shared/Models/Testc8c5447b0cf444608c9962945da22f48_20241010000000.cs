@@ -9,6 +9,7 @@ internal sealed class Testc8c5447b0cf444608c9962945da22f48_20241010000000 : Migr
         SetType<Person>();
         SetType<School>();
         SetType<Testing>();
+        SetType<Testing2>();
     }
 
     protected override void Down()
@@ -16,5 +17,6 @@ internal sealed class Testc8c5447b0cf444608c9962945da22f48_20241010000000 : Migr
         DropType("Person");
         DropType("Institution");
         DropType("Testing");
+        DropType("Testing2");
     }
 }
