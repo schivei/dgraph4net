@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems" Label="Shared" />
   <Import Project="../../versions.props" />
 
   <PropertyGroup>
@@ -13,30 +14,27 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;NJSON</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="dotenv.net" Version="3.2.1" />
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.66.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.67.0" />
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
     <PackageReference Include="LateApexEarlySpeed.Xunit.Assertion.Json" Version="1.0.6" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="NetGeo.Newtonsoft.Json" Version="2024.4.281.23" />
     <PackageReference Include="xunit" Version="2.9.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MSTest.TestAdapter" Version="3.6.1" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.6.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.7.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.7.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Dgraph4Net.Core\Dgraph4Net.Core.csproj" />
     <ProjectReference Include="..\..\src\Dgraph4Net.Newtonsoft.Json\Dgraph4Net.Newtonsoft.Json.csproj" />
-    <ProjectReference Include="..\..\src\Dgraph4Net\Dgraph4Net.csproj" />
-    <ProjectReference Include="..\..\tools\Dgraph4Net.Tools\Dgraph4Net.Tools.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,6 @@
 # Dgraph4Net
 
-This client are based on [Dgraph Go client](https://github.com/dgraph-io/dgo).\
+This client is based on [Dgraph Go client](https://github.com/dgraph-io/dgo).\
 This README is based on [Dgraph.net README](https://github.com/dgraph-io/dgraph.net).
 
 Before using this client, we highly recommend that you go through [docs.dgraph.io](https://docs.dgraph.io),
@@ -23,7 +23,7 @@ and understand how to run and work with Dgraph.
     - [Creating a Transaction](#creating-a-transaction)
     - [Running a Mutation](#running-a-mutation)
     - [Running a Query](#running-a-query)
-    - [Running an Upsert: Query + Mutation](#running-an-upsert-query-mutation)
+    - [Running an Upsert: Query + Mutation](#running-an-upsert-query--mutation)
     - [Committing a Transaction](#committing-a-transaction)
     - [Uid propagation after Mutation](#uid-propagation-after-mutation)
   - [Migrations](#migrations)
@@ -48,27 +48,39 @@ and understand how to run and work with Dgraph.
 
 Install using nuget:
 
+To use the Newtonsoft.Json serializer, install the package `Dgraph4Net.Newtonsoft.Json`.
 ```sh
 dotnet add package Dgraph4Net.Newtonsoft.Json
+```
+
+To use the System.Text.Json serializer, install the package `Dgraph4Net.System.Text.Json`.
+```sh
+dotnet add package Dgraph4Net.System.Text.Json
+```
+
+The old Dgraph4Net.Core package has been discontinued, and the new Dgraph4Net package is the new Core package.
+```sh
 dotnet add package Dgraph4Net
-dotnet add package Dgraph4Net.Core
-dotnet tool install Dgraph4Net.Tools
+```
+
+To use the tools, install the package `Dgraph4Net.Tools`.
+```sh
+dotnet tool install --global Dgraph4Net.Tools
 ```
 
 > The json packages already references Dgraph4Net.\
-> The package Dgraph4Net already references Dgraph4Net.Core.\
 > The package tool Dgraph4Net.Tools references Dgraph4Net for code generation.
 
 ## Supported Versions
 
-Dgraph version   | Dgraph4Net version | dotnet Version
----------------  | ------------------ | --------------
-  1.1.Y          |  0.3.Y             | Standard 2.1
-  20.03.Y        |  1.X.Y             | .NET5
-  21.2.Y         |  2022.X.Y          | .NET6
-  22.0.Y         |  2023.2.<145X.Z    | .NET7
-  23.0.Y         |  2023.2.>145X.Z    | .NET7
-  24.0.Y         |  2023.2.>145X.Z    | .NET8
+| Dgraph version | Dgraph4Net version | dotnet Version |
+|----------------|--------------------|----------------|
+| 1.1.Y          | 0.3.Y              | Standard 2.1   |
+| 20.03.Y        | 1.X.Y              | .NET5          |
+| 21.2.Y         | 2022.X.Y           | .NET6          |
+| 22.0.Y         | 2023.2.<145X.Y     | .NET7          |
+| 23.0.Y         | 2023.2.>145X.Y     | .NET7          |
+| 24.0.Y         | 2024.X.Y           | .NET8          |
 
 ## Using a Client
 
@@ -85,7 +97,7 @@ var client = new Dgraph4NetClient(channel);
 
 You can use DI to create a client, as seen below:
 
-Add the following line to your appsettings.json file:
+Add the following line to your `appsettings.json` file:
 ```json
 {
   "ConnectionStrings": {
@@ -275,7 +287,7 @@ var mutation = new Mutation
     CommitNow = true,
     DeleteJson = ByteString.CopyFromUtf8(json)
 };
-    
+
 var response = await txn.Mutate(mutation);
 ```
 
@@ -291,7 +303,7 @@ var mutation = new Mutation
 var response = await txn.Mutate(mutation);
 ```
 
-Check out the tests as example in [`tests/DGraph4Net.Tests`](tests/DGraph4Net.Tests).
+Check out the tests as example in [`tests`](tests) or [`examples`](examples) folders.
 
 ### Running a Query
 
@@ -369,7 +381,7 @@ It is useful to prevent predicate and types typos, and also to help with refacto
 
 ### Running an Upsert: Query + Mutation
 
-The `Transaction.Mutate` function allows you to run upserts consisting of one query and one mutation. 
+The `Transaction.Mutate` function allows you to run update inserts consisting of one query and one mutation.
 
 To know more about upsert, we highly recommend going through the docs at https://docs.dgraph.io/mutations/#upsert-block.
 
@@ -435,10 +447,10 @@ class MyClass {
 await client.Mutate(mutation);
 ```
 
-When mutation occurs, all instances of Uid returned by dgraph mutation are updated with the real Uid, 
-it is useful for deep id propagation when you send many objects to dgraph and 
-reduces the async calling to check an object propagation to database or making new queries 
-to retieve the last inserted data or navigating to Uids property returned from mutation.
+When mutation occurs, all instances of Uid returned by dgraph mutation are updated with the real Uid,
+it is useful for deep id propagation when you send many objects to dgraph and
+reduces the async calling to check an object propagation to database or making new queries
+to retrieve the last inserted data or navigating to Uid property returned from mutation.
 
 ## Migrations
 
@@ -454,7 +466,7 @@ To create a migration, you need to create a class that inherits from `Migration`
 dotnet tool install --global Dgraph4Net.Tools
 ```
 
-To immediately run database update you can user the `-u` or `--update` option.
+To immediately run database update you can use the `-u` or `--update` option.
 
 ```bash
 dgn migration add MyMigrationName -o Migrations --server server:port --project MyProject.csproj [--uid <user_id>] [--pwd <password>] [-u]
@@ -481,10 +493,6 @@ dgn migration remove MyMigrationName -o Migrations --server server:port --projec
 ```
 
 The remove will update the database schema to the previous migration and remove the migration and schema files.
-
-## In Development
-
-* LINQ for dgraph
 
 ## Notes
 

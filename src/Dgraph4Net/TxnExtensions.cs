@@ -1,5 +1,4 @@
 using Api;
-using Dgraph4Net.ActiveRecords;
 using Google.Protobuf.Collections;
 
 namespace Dgraph4Net;
@@ -17,20 +16,6 @@ public static class TxnExtensions
         req.Mutations.Add(mutation);
 
         return txn.Do(req);
-    }
-
-    public static async Task<List<T>> QueryWithVars<T>(this Txn txn, string param, string query, Dictionary<string, string> vars) where T : class, IEntity, new()
-    {
-        var resp = await txn.QueryWithVars(query, vars).ConfigureAwait(false);
-
-        return resp.Json.FromJson<List<T>>(param);
-    }
-
-    public static async Task<List<T>> Query<T>(this Txn txn, string param, string query) where T : class, IEntity, new()
-    {
-        var resp = await txn.Query(query).ConfigureAwait(false);
-
-        return resp.Json.FromJson<List<T>>(param);
     }
 
     internal static void Resolve(this Uid.UidResolver resolver, MapField<string, string> uids)

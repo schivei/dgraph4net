@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>ff9b7782-c8e0-4228-9714-72e8466beaf3</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Dgraph4Net.Tests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AclTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Assert.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CoreTests.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ErrorsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\NameFacet.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\Person.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\PersonMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\School.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\SchoolMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\Testc8c5447b0cf444608c9962945da22f48_20241010000000.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NQuadsTests.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Usings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\ExamplesTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\Testing.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\TestingMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ObjectTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SchemaTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Utils\" />
+  </ItemGroup>
+</Project>

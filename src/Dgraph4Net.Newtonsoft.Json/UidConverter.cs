@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Dgraph4Net.Newtonsoft.Json;
+namespace Dgraph4Net;
 
 internal class UidConverter : JsonConverter<Uid>
 {
@@ -22,40 +22,39 @@ internal class UidConverter : JsonConverter<Uid>
         public void Dispose() => _serializer.Converters.Insert(_index, _converter);
     }
 
-    private Setter setter(JsonSerializer serializer) =>
+    private Setter GetSetter(JsonSerializer serializer) =>
         new(serializer, this);
 
     public override Uid ReadJson(JsonReader reader, Type objectType, Uid existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
         string? value;
-        using (setter(serializer))
+        using (GetSetter(serializer))
             value = reader.ReadAsString();
 
         if (value is null)
             return existingValue;
 
         if (reader.TokenType == JsonToken.String)
-            return new Uid(value);
+            return new(value);
 
         if (reader.TokenType == JsonToken.Integer)
-            return new Uid(ulong.Parse(value));
+            return new(ulong.Parse(value));
 
-        if (reader.TokenType == JsonToken.StartObject)
-        {
-            reader.Read();
-            if (reader.TokenType == JsonToken.PropertyName && (string)reader.Value == "uid")
-            {
-                reader.Read();
+        if (reader.TokenType != JsonToken.StartObject)
+            return existingValue;
+        
+        reader.Read();
+        if (reader.TokenType != JsonToken.PropertyName || (string)reader.Value != "uid")
+            return existingValue;
+            
+        reader.Read();
 
-                if (reader.TokenType == JsonToken.String)
-                    return new Uid(reader.Value.ToString());
+        if (reader.TokenType == JsonToken.String)
+            return new(reader.Value.ToString());
 
-                if (reader.TokenType == JsonToken.Integer)
-                    return new Uid(ulong.Parse(reader.Value.ToString()));
-            }
-        }
-
-        return existingValue;
+        return reader.TokenType == JsonToken.Integer ?
+            new(ulong.Parse(reader.Value.ToString())) :
+            existingValue;
     }
 
     public override void WriteJson(JsonWriter writer, Uid value, JsonSerializer serializer)

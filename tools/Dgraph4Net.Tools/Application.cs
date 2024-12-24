@@ -5,23 +5,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.Tools;
 
-internal sealed class Application
+/// <summary>
+/// Represents the main application class for the Dgraph4Net migration tool.
+/// </summary>
+internal sealed class Application(ILogger<Application> logger, ApplicationCommand appCommand)
 {
-    private readonly ILogger _logger;
-    private readonly ApplicationCommand _cmd;
-
-    public Application(ILogger<Application> logger, ApplicationCommand appCommand) =>
-        (_logger, _cmd) = (logger, appCommand);
+    private readonly ILogger _logger = logger;
 
     /// <summary>
-    /// Execute the command
+    /// Executes the application with the specified arguments.
     /// </summary>
-    /// <param name="args"></param>
+    /// <param name="args">The command-line arguments.</param>
     public async Task ExecuteAsync(string[] args)
     {
         try
         {
-            await _cmd.InvokeAsync(args);
+            await appCommand.InvokeAsync(args);
         }
         catch (Exception ex)
         {
@@ -30,48 +29,42 @@ internal sealed class Application
     }
 
     /// <summary>
-    /// Get output directory if not provided
+    /// Resolves the output directory for migrations.
     /// </summary>
-    /// <returns>The output directory</returns>
-    /// <exception cref="InvalidOperationException"/>
+    /// <returns>The output directory path.</returns>
     internal static string ResolveOutputDirectory() => "Migrations";
 
     /// <summary>
-    /// Get current project location if not provided
+    /// Resolves the project location by finding the .csproj file in the current directory.
     /// </summary>
-    /// <returns>.csproj location</returns>
-    /// <exception cref="InvalidOperationException"/>
+    /// <returns>The path to the .csproj file.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no project or multiple projects are found.</exception>
     internal static string ResolveProjectLocation()
     {
         var projectLocation = Directory.GetCurrentDirectory();
         var projectFiles = Directory.GetFiles(projectLocation, "*.csproj");
 
-        if (projectFiles.Length == 0)
+        return projectFiles.Length switch
         {
-            throw new InvalidOperationException("No project found");
-        }
-
-        if (projectFiles.Length > 1)
-        {
-            throw new InvalidOperationException("Multiple projects found");
-        }
-
-        return projectFiles[0];
+            0 => throw new InvalidOperationException("No project found"),
+            > 1 => throw new InvalidOperationException("Multiple projects found"),
+            _ => projectFiles[0]
+        };
     }
 
     /// <summary>
-    /// Build a project at runtime and return the assembly
+    /// Builds the project located at the specified path.
     /// </summary>
-    /// <param name="projectLocation"></param>
-    /// <returns><see cref="Assembly"/></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="projectLocation">The path to the .csproj file.</param>
+    /// <param name="logger">The logger instance.</param>
+    /// <returns>The built assembly.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the build process fails or the assembly is not found.</exception>
     internal static Assembly BuildProject(string projectLocation, ILogger logger)
     {
         var fullPath = Path.GetFullPath(projectLocation);
 
         logger.LogInformation("Build project {projectLocation}", fullPath);
 
-        // compile using dotnet cli and gets std outputs and throw errors
         var process = Process.Start(new ProcessStartInfo
         {
             FileName = "dotnet",
@@ -82,7 +75,6 @@ internal sealed class Application
         }) ?? throw new InvalidOperationException("Process not found");
 
         var output = process.StandardOutput.ReadToEnd();
-
         var error = process.StandardError.ReadToEnd();
 
         process.WaitForExit();
@@ -93,11 +85,8 @@ internal sealed class Application
         }
 
         var csprojName = Path.GetFileNameWithoutExtension(projectLocation);
-
-        // get output path from std output
         var outputPath = Array.Find(output.Split('\n'), x => x.Contains(csprojName + " ->"))?.Split("->")[1].Trim();
 
-        // get assembly from result
         var assembly = Assembly.LoadFrom(outputPath);
         return assembly ?? throw new InvalidOperationException("Assembly not found");
     }
