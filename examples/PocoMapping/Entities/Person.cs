@@ -1,17 +1,22 @@
-using Dgraph4Net;
+using System.Numerics;
+using Dgraph4Net.ActiveRecords;
 
 namespace PocoMapping.Entities;
 
-public class Person : IEntity
+public class Person : AEntity<Person>
 {
-    public Uid Uid { get; set; } = Uid.NewUid();
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
-
     public string Name { get; set; }
-    public ICollection<Person> BossOf { get; set; } = new List<Person>();
     public Company WorksFor { get; set; }
-
     public Person? MyBoss { get; set; }
+    public SalaryFacet Salary { get; set; }
+    public ICollection<Person> BossOf { get; set; } = [];
+    public ICollection<Company> WorkedAt { get; set; } = [];
+    public Vector<float> Embedding { get; set; }
 
-    public ICollection<Company> WorkedAt { get; set; } = new List<Company>();
+    [Facet<Person>("amiable", nameof(Amiable))]
+    public bool Amiable
+    {
+        get => GetFacet(false);
+        set => SetFacet<bool>(value);
+    }
 }

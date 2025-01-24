@@ -2,7 +2,7 @@
 
 public enum CompanyIndustry
 {
-    IT,
+    It,
     Finance,
     Health,
     Education,

@@ -1,51 +1,8 @@
-using System.Text.Json.Serialization;
-
 using Api;
 
 using Grpc.Core;
 
 using static Api.Dgraph;
-
-namespace Api
-{
-    public sealed partial class Operation
-    {
-        public bool AlsoDropDgraphSchema { get; set; }
-    }
-}
-
-namespace Dgraph4Net.SchemaReader
-{
-    internal class Schema
-    {
-        [JsonPropertyName("predicate")]
-        internal string Predicate { get; set; }
-    }
-
-    internal class Field
-    {
-        [JsonPropertyName("name")]
-        internal string Name { get; set; }
-    }
-
-    internal class Type
-    {
-        [JsonPropertyName("fields")]
-        internal List<Field> Fields { get; set; }
-
-        [JsonPropertyName("name")]
-        internal string Name { get; set; }
-    }
-
-    internal class Root
-    {
-        [JsonPropertyName("schema")]
-        internal List<Schema> Schema { get; set; }
-
-        [JsonPropertyName("types")]
-        internal List<Type> Types { get; set; }
-    }
-}
 
 namespace Dgraph4Net
 {
@@ -54,12 +11,15 @@ namespace Dgraph4Net
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Mutex _mtx;
         private readonly DgraphClient[] _dgraphClients;
+        private readonly bool _useNQuads;
         private Jwt _jwt;
+
+        public bool UseNQuads => _useNQuads;
 
         private Dgraph4NetClient()
         {
-            _cancellationTokenSource = new CancellationTokenSource();
-            _mtx = new Mutex();
+            _cancellationTokenSource = new();
+            _mtx = new();
         }
 
         /// <summary>
@@ -86,6 +46,12 @@ namespace Dgraph4Net
         /// <para>A single Dgraph (client) is thread safe for sharing with multiple routines.</para>
         /// <param name="channels"></param>
         public Dgraph4NetClient(params ChannelBase[] channels) : this(channels.Select(channel => new DgraphClient(channel)).ToArray()) { }
+
+        public Dgraph4NetClient(ChannelBase[] channels, bool useNQuads) : this(channels) =>
+            _useNQuads = useNQuads;
+
+        public Dgraph4NetClient(DgraphClient[] dgraphClients, bool useNQuads) : this(dgraphClients) =>
+            _useNQuads = useNQuads;
 
         /// <summary>
         /// Auth userid & password to retrieve Jwt
@@ -197,7 +163,7 @@ namespace Dgraph4Net
         }
 
         public Task Alter(string schema, bool dropAll = false) =>
-            Alter(new Operation { DropAll = dropAll, Schema = schema });
+            Alter(new() { DropAll = dropAll, Schema = schema });
 
         /// <summary>
         /// DeleteEdges sets the edges corresponding to predicates
@@ -222,7 +188,7 @@ namespace Dgraph4Net
                 {
                     Subject = uid,
                     Predicate = predicate,
-                    ObjectValue = new Value
+                    ObjectValue = new()
                     {
                         DefaultVal = "_STAR_ALL"
                     }
@@ -253,11 +219,11 @@ namespace Dgraph4Net
             try
             {
                 if (string.IsNullOrEmpty(_jwt?.AccessJwt?.Trim()))
-                    return new CallOptions();
+                    return new();
 
                 var md = new Metadata { { "accessJwt", _jwt.AccessJwt } };
 
-                return new CallOptions(md);
+                return new(md);
             }
             finally
             {
@@ -317,8 +283,8 @@ namespace Dgraph4Net
         /// <param name="cancellationToken"></param>
         /// <exception cref="InvalidOperationException">If best effort is true and the transaction is not read-only.</exception>
         /// <returns cref="Txn">Transaction</returns>
-        public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null) =>
-            new(this, readOnly, bestEffort, cancellationToken);
+        public Txn NewTransaction(bool readOnly = false, bool bestEffort = false, CancellationToken? cancellationToken = null, bool useNQuads = false) =>
+            new(this, readOnly, bestEffort, cancellationToken, useNQuads);
 
         public async Task<object> Alter(object operation) =>
             await Alter(operation as Operation);

@@ -1,15 +1,31 @@
 using System.Collections.Immutable;
 using System.CommandLine;
 using System.Reflection;
+
 using Dgraph4Net.ActiveRecords;
+
 using Microsoft.Extensions.Logging;
+
+using ICM = Dgraph4Net.ActiveRecords.InternalClassMapping;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
+/// <summary>
+/// Command to update the database schema.
+/// </summary>
 internal sealed class MigrationUpdateCommand : Command
 {
     private readonly ILogger _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MigrationUpdateCommand"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="projectLocation">The project location option.</param>
+    /// <param name="serverOption">The server option.</param>
+    /// <param name="userIdOption">The user ID option.</param>
+    /// <param name="passwordOption">The password option.</param>
+    /// <param name="apiKeyOption">The API key option.</param>
     public MigrationUpdateCommand(ILogger<MigrationUpdateCommand> logger, ProjectOption projectLocation,
         ServerOption serverOption, UserIdOption userIdOption, PasswordOption passwordOption,
         ApiKeyOption apiKeyOption) : base("update", "Update database schema")
@@ -28,6 +44,11 @@ internal sealed class MigrationUpdateCommand : Command
         this.SetHandler(Exec, projectLocation, serverOption);
     }
 
+    /// <summary>
+    /// Executes the update command.
+    /// </summary>
+    /// <param name="projectLocation">The project location.</param>
+    /// <param name="client">The Dgraph client.</param>
     internal async Task Exec(string projectLocation, Dgraph4NetClient client)
     {
         try
@@ -51,41 +72,42 @@ internal sealed class MigrationUpdateCommand : Command
             var mergedAssemblies = new HashSet<Assembly>(assemblies)
             {
                 assembly,
-                typeof(InternalClassMapping).Assembly
+                typeof(ICM).Assembly
             };
 
-            InternalClassMapping.SetDefaults(mergedAssemblies.ToArray());
+            ICM.SetDefaults([.. mergedAssemblies]);
 
-            InternalClassMapping.Map(mergedAssemblies.ToArray());
+            ICM.Map([.. mergedAssemblies]);
 
-            if (!InternalClassMapping.ClassMappings.Any())
+            if (ICM.ClassMappings.IsEmpty)
             {
                 _logger.LogWarning("No mapping class found");
                 return;
             }
 
-            var migrations = InternalClassMapping.Migrations;
+            var migrations = ICM.Migrations;
 
-            await InternalClassMapping.EnsureAsync(client);
+            await ICM.EnsureAsync(client);
 
             await using var txn = client.NewTransaction(false, false);
 
-            var dgnType = InternalClassMapping.GetDgraphType(typeof(DgnMigration));
+            var dgnType = ICM.GetDgraphType(typeof(DgnMigration));
 
             _logger.LogInformation("Get last migration");
-            var migs = await txn.Query<DgnMigration>("dgn", @$"{{
-  dgn(func: type({dgnType}), orderdesc: dgn.generated_at, first: 1) {{
-    uid
-    dgraph.type
-    dgn.name
-    dgn.generated_at
-    dgn.applied_at
-  }}
-}}");
+            var migs = await txn.Query<DgnMigration>("dgn", $$"""
+                                                              {
+                                                                dgn(func: type({{dgnType}}), orderdesc: dgn.generated_at, first: 1) {
+                                                                  uid
+                                                                  dgraph.type
+                                                                  dgn.name
+                                                                  dgn.generated_at
+                                                                  dgn.applied_at
+                                                                }
+                                                              }
+                                                              """);
 
             var lastMigration = migs.SingleOrDefault();
 
-            // get migrations after last migration
             var newMigrations = (lastMigration is null
                 ? migrations :
                 migrations.Where(x => x.GeneratedAt > lastMigration.GeneratedAt))
