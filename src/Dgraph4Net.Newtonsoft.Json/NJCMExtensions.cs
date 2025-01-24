@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dgraph4Net.ActiveRecords;
 
-namespace Dgraph4Net.ActiveRecords;
+namespace Dgraph4Net;
 
-public static class NJCMExtensions
+public static class NjcmExtensions
 {
     public static IServiceCollection AddDgraphNewtonsoft(this IServiceCollection services) =>
         services.AddDgraphNewtonsoft("DefaultConnection");
@@ -13,7 +14,7 @@ public static class NJCMExtensions
 
     public static IServiceCollection AddDgraphNewtonsoft(this IServiceCollection services, Func<IServiceProvider, string> getConnectionString)
     {
-        ClassMapping.ImplClassMapping = new NJClassMapping();
+        ClassMapping.ImplClassMapping = new NjClassMapping();
 
         return services.AddDgraph(getConnectionString);
     }

@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../pack.props" />
-
-  <ItemGroup>
-    <PackageReference Include="NetGeo.Json" Version="2023.3.167.14" />
-  </ItemGroup>
-</Project>

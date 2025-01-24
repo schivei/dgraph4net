@@ -5,18 +5,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Dgraph4Net.Tools.Commands.Migration;
 
-internal sealed class ServerOption : Option<Dgraph4NetClient>
+/// <summary>
+/// Represents the server option for the migration command.
+/// </summary>
+internal sealed class ServerOption(ILogger<ServerOption> logger) : Option<Dgraph4NetClient>(["--server", "-s"], Parse(logger), false, "The server address")
 {
-    private static Dgraph4NetClient s_client;
+    private static Dgraph4NetClient? s_client;
     private static readonly object s_lock = new();
 
-    public ServerOption(ILogger<ServerOption> logger) : base(new[] { "--server", "-s" }, Parse(logger), false, "The server address")
-    {
-    }
-
-    private static ParseArgument<Dgraph4NetClient> Parse(ILogger logger)
-    {
-        return (result) =>
+    /// <summary>
+    /// Parses the server address and establishes a connection to the Dgraph server.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <returns>A delegate that parses the server address and returns a Dgraph4NetClient instance.</returns>
+    private static ParseArgument<Dgraph4NetClient> Parse(ILogger logger) =>
+        result =>
         {
             if (s_client is not null)
                 return s_client;
@@ -37,7 +40,7 @@ internal sealed class ServerOption : Option<Dgraph4NetClient>
                 {
                     logger.LogInformation("Authenticating in server {server}", address);
 
-                    channel = new Channel(address, ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
+                    channel = new(address, ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((_, metadata) =>
                     {
                         metadata.Add("authorization", apk);
 
@@ -65,5 +68,4 @@ internal sealed class ServerOption : Option<Dgraph4NetClient>
 
             return s_client;
         };
-    }
 }

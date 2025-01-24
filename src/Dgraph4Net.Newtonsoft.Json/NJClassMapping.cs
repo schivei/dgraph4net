@@ -1,159 +1,59 @@
-using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using Google.Protobuf;
 using NetGeo.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UidConverter = Dgraph4Net.Newtonsoft.Json.UidConverter;
+using Dgraph4Net.ActiveRecords;
 
-namespace Dgraph4Net.ActiveRecords;
+namespace Dgraph4Net;
 
-internal class NJClassMapping : ClassMappingImpl
+internal class NjClassMapping : ClassMappingImpl, IClassMapping
 {
-    public override string Serialize(object obj) =>
-        JsonConvert.SerializeObject(obj);
+    Func<object?, string> IClassMapping.JsonSerializer =>
+        JsonConvert.SerializeObject;
 
-    public override object? Deserialize(string json, Type type) =>
-        JsonConvert.DeserializeObject(json, type);
+    Func<string, Type, object?> IClassMapping.JsonDeserializer =>
+        JsonConvert.DeserializeObject;
 
     public override void SetDefaults()
     {
+        IIEntityConverter.Instance = typeof(EntityConverter);
+
         GeoExtensions.SetDefaults();
 
         var settings = JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings();
 
-        if (settings.Converters.Any(x => x is UidConverter))
+        if (settings.Converters.Any(x => x is UidConverter or EntityConverter))
             return;
 
         settings.Converters = new List<JsonConverter>(settings.Converters)
         {
-            new UidConverter()
+            new UidConverter(),
+            new EntityConverter()
         };
 
         settings.Culture = CultureInfo.InvariantCulture;
+        settings.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
+        settings.ReferenceLoopHandling = ReferenceLoopHandling.Serialize;
+        settings.TypeNameHandling = TypeNameHandling.Auto;
+        settings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
+        settings.NullValueHandling = NullValueHandling.Ignore;
 
         JsonConvert.DefaultSettings = () => settings;
     }
 
     private static JObject? GetData(ByteString bytes)
     {
-        // get data content from json as json
-        var element = JsonConvert.DeserializeObject<JObject?>(bytes.ToStringUtf8());
+        var element = Impl.Deserialize(bytes.ToStringUtf8(), typeof(JObject)) as JObject;
 
         if (element is null || element.TryGetValue("data", out var data) || data is null || data.Type != JTokenType.Object)
             return element;
 
-        return (JObject)data;
+        return data as JObject;
     }
 
-    private object? DeserializeFromJsonBS(ByteString bytes, string param, Type dataType, IList? list = null, Dictionary<Uid, object> loaded = default!, Type? type = null)
-    {
-        loaded ??= new();
-
-        var element = GetData(bytes);
-
-        if (element is null || element.Property(param ?? "_") is not JProperty parameter || parameter.Type != JTokenType.Array)
-        {
-            if (string.IsNullOrEmpty(param))
-            {
-                return FromJson(bytes, type, loaded);
-            }
-            else
-            {
-                return list;
-            }
-        }
-
-        return parameter.ToList().ConvertAll(e => e.ToObject(dataType));
-    }
-
-    private object? DeserializeFromJson(ByteString bytes, Type dataType, IList list, Dictionary<Uid, object> loaded)
-    {
-        var element = Deserialize<JArray?>(bytes.ToStringUtf8());
-
-        if (element is null || element.Count == 0)
-            return list;
-
-        foreach (var el in element.AsJEnumerable())
-        {
-            if (el is not JObject child)
-                continue;
-
-            Uid uid = child.Property("uid").ToString();
-
-            if (uid.IsEmpty)
-                continue;
-
-            if (loaded.ContainsKey(uid))
-            {
-                list.Add(loaded[uid]);
-                continue;
-            }
-
-            var entity = (IEntity)Activator.CreateInstance(dataType);
-
-            dataType.GetProperty(nameof(IEntity.Uid))
-                .SetValue(entity, uid);
-            list.Add(entity);
-
-            foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))
-            {
-                if (child.Property(predicate.Value.PredicateName) is not null and { } value)
-                    predicate.Value.SetValue(value.ToObject(predicate.Key.PropertyType), entity);
-            }
-        }
-
-        return list;
-    }
-
-    private object? DeserializeFromJson(ByteString bytes, Type dataType, Dictionary<Uid, object> loaded)
-    {
-        var element = JsonConvert.DeserializeObject<JObject>(bytes.ToStringUtf8());
-
-        Uid uid = element.Property("uid").Value.ToString();
-
-        if (uid.IsEmpty)
-            return null;
-
-        if (loaded.ContainsKey(uid))
-        {
-            return loaded[uid];
-        }
-
-        var entity = (IEntity)Activator.CreateInstance(dataType);
-
-        dataType.GetProperty(nameof(IEntity.Uid))
-            .SetValue(entity, uid);
-
-        foreach (var predicate in ClassMap.Predicates.Where(x => x.Key.DeclaringType == dataType))
-        {
-            if (element.Property(predicate.Value.PredicateName) is not null and JProperty value)
-            {
-                if (predicate.Key.PropertyType == typeof(Uid))
-                {
-                    Uid id = value.Value.ToString();
-                    predicate.Value.SetValue(id, entity);
-                }
-                else
-                {
-                    var js = JsonConvert.SerializeObject(value.Value);
-                    if (value.Value.Type == JTokenType.Object && predicate.Key.PropertyType.IsAssignableTo(typeof(IEntity)))
-                    {
-                        predicate.Value.SetValue(FromJson(ByteString.CopyFromUtf8(js), predicate.Key.PropertyType, loaded), entity);
-                    }
-                    else
-                    {
-                        predicate.Value.SetValue(JsonConvert.DeserializeObject(js, predicate.Key.PropertyType), entity);
-                    }
-                }
-            }
-        }
-
-        return entity;
-    }
-
-    private class JsonClassMap<T> : ClassMap<T> where T : IEntity
+    private class JsonClassMap<T> : ClassMap<T> where T : AEntity<T>
     {
         protected override void Map()
         {
@@ -175,7 +75,7 @@ internal class NJClassMapping : ClassMappingImpl
                     }
                     else
                     {
-                        String(prop, attr.PropertyName, false, false, false, StringToken.Exact, null);
+                        String(prop, attr.PropertyName, false, false, false, StringToken.Exact, false);
                     }
                 }
                 else
@@ -185,11 +85,11 @@ internal class NJClassMapping : ClassMappingImpl
                         switch (dataType)
                         {
                             case "uid":
-                                HasOne(prop, attr.PropertyName.Replace("~", ""), attr.PropertyName.StartsWith("~"), false);
+                                HasOne(prop, attr.PropertyName.Replace("~", ""), attr.PropertyName is ['~', ..], false);
                                 break;
 
                             case "string":
-                                String(prop, attr.PropertyName, false, false, false, StringToken.Term, null);
+                                String(prop, attr.PropertyName, false, false, false, StringToken.Term, false);
                                 break;
 
                             case "int":
@@ -209,7 +109,7 @@ internal class NJClassMapping : ClassMappingImpl
                                 break;
                         }
                     }
-                    else if (dataType.StartsWith("["))
+                    else if (dataType is ['[', ..])
                     {
                         switch (dataType)
                         {
@@ -232,77 +132,20 @@ internal class NJClassMapping : ClassMappingImpl
         }
     }
 
-    /// <summary>
-    /// Inverse of <see cref="ToJson{T}(T, Dictionary{Uid, object}, bool, bool)"/>
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="bytes"></param>
-    /// <param name="loaded"></param>
-    /// <returns>DB Result</returns>
-    public override object? FromJsonBS(ByteString bytes, Type type, string param)
+    public override object? FromJson(ByteString bytes, Type type, string param)
     {
         if (bytes.IsEmpty)
             return default;
 
-        if (type.IsAssignableTo(typeof(Dictionary<string, object>)))
-            return Deserialize<Dictionary<string, object>>(bytes.ToStringUtf8());
+        var element = GetData(bytes);
 
-        Type dataType;
-
-        var loaded = new Dictionary<Uid, object>();
-
-        if (type.IsAssignableTo(typeof(IEnumerable)))
-        {
-            dataType = type.GetGenericArguments()[0];
-        }
-        else
-        {
-            dataType = type;
-        }
-
-        if (dataType.IsAssignableTo(typeof(IEntity)))
-        {
-            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(dataType));
-
-            return DeserializeFromJsonBS(bytes, param, dataType, list, loaded, type);
-        }
-        else
-        {
-            return Deserialize(bytes.ToStringUtf8(), type);
-        }
-    }
-
-    public override object? FromJson(ByteString bytes, Type type, Dictionary<Uid, object> loaded)
-    {
-        if (bytes.IsEmpty)
+        if (element is null)
             return default;
 
-        if (type.IsAssignableTo(typeof(Dictionary<string, object>)))
-            return Deserialize<Dictionary<string, object>>(bytes.ToStringUtf8());
+        if (!element.HasValues || !element.TryGetValue(param ?? "_", out var children) || children is null)
+            return Deserialize(element.ToString(), type);
 
-        Type dataType;
-
-        if (type.IsAssignableTo(typeof(IEnumerable)))
-        {
-            dataType = type.GetGenericArguments()[0];
-        }
-        else
-        {
-            dataType = type;
-        }
-
-        if (dataType.IsAssignableTo(typeof(IEntity)) && type != dataType)
-        {
-            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(dataType));
-
-            return DeserializeFromJson(bytes, dataType, list, loaded);
-        }
-        else if (dataType.IsAssignableTo(typeof(IEntity)))
-        {
-            return DeserializeFromJson(bytes, dataType, loaded);
-        }
-
-        return null;
+        return Deserialize(children.ToString(), type);
     }
 
     public override bool TryMapJson(Type type, out IClassMap? classMap)
@@ -326,15 +169,6 @@ internal class NJClassMapping : ClassMappingImpl
         return false;
     }
 
-    public override void Map()
-    {
-        SetDefaults();
-        base.Map();
-    }
-
-    public override void Map(params Assembly[] assemblies)
-    {
-        SetDefaults();
-        base.Map(assemblies);
-    }
+    protected override IIEntityConverter GetConverter(bool ignoreNulls, bool getOnlyNulls, bool convertDefaultToNull) =>
+        new EntityConverter(ignoreNulls, getOnlyNulls, convertDefaultToNull);
 }

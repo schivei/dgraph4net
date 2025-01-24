@@ -1,13 +1,14 @@
-using Dgraph4Net;
+using Dgraph4Net.ActiveRecords;
 
 namespace PocoMapping.Entities;
 
-public class Company : IEntity
+public class Company : AEntity<Company>
 {
-    public Uid Uid { get; set; } = Uid.NewUid();
-    public string[] DgraphType { get; set; } = Array.Empty<string>();
     public string Name { get; set; }
     public CompanyIndustry Industry { get; set; }
-    public ICollection<Person> WorksHere { get; set; } = new List<Person>();
-    public ICollection<Person> WorkedHere { get; set; } = new List<Person>();
+    public ICollection<Person> WorksHere { get; set; } = [];
+    public ICollection<Person> WorkedHere { get; set; } = [];
+
+    [Facet<Person>("since", nameof(Person.WorksFor))]
+    public DateTimeOffset Since => GetFacet(DateTimeOffset.MinValue);
 }

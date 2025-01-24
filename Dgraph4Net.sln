@@ -31,8 +31,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0 - Solution Items", "0 - S
 		versions.props = versions.props
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Core", "src\Dgraph4Net.Core\Dgraph4Net.Core.csproj", "{1486ACB6-CA74-4895-906F-50DC46B586E5}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3 - tools", "3 - tools", "{AD9D9EB8-8BC9-4E04-BC0B-8A334C0F06FF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Tools", "tools\Dgraph4Net.Tools\Dgraph4Net.Tools.csproj", "{FF41321A-DFFA-4AAD-90CD-74AC7D243F39}"
@@ -41,7 +39,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1 - examples", "1 - example
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PocoMapping", "examples\PocoMapping\PocoMapping.csproj", "{CC2AF363-2615-464C-9A02-F5C046690B97}"
 	ProjectSection(ProjectDependencies) = postProject
-		{1486ACB6-CA74-4895-906F-50DC46B586E5} = {1486ACB6-CA74-4895-906F-50DC46B586E5}
 		{B8CAAA93-A3B2-4F15-8A8A-6D705923404B} = {B8CAAA93-A3B2-4F15-8A8A-6D705923404B}
 		{FF41321A-DFFA-4AAD-90CD-74AC7D243F39} = {FF41321A-DFFA-4AAD-90CD-74AC7D243F39}
 	EndProjectSection
@@ -49,6 +46,12 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Newtonsoft.Json", "src\Dgraph4Net.Newtonsoft.Json\Dgraph4Net.Newtonsoft.Json.csproj", "{5EB8E144-F7F2-4E43-B51C-96CE9706EC05}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.Tests.System", "tests\Dgraph4Net.Tests.System\Dgraph4Net.Tests.System.csproj", "{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Dgraph4Net.Tests.Shared", "tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.shproj", "{FF9B7782-C8E0-4228-9714-72E8466BEAF3}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Dgraph4Net.SharedCode", "src\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.shproj", "{B51DB908-B462-4DF1-BEF7-B00FFC29648E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dgraph4Net.System.Text.Json", "src\Dgraph4Net.System.Text.Json\Dgraph4Net.System.Text.Json.csproj", "{7FDB9B9A-6667-445E-91B0-42D32EED96E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -84,18 +87,6 @@ Global
 		{7746E9ED-EDD3-4520-B8F5-132ECA806331}.Release|x64.Build.0 = Release|Any CPU
 		{7746E9ED-EDD3-4520-B8F5-132ECA806331}.Release|x86.ActiveCfg = Release|Any CPU
 		{7746E9ED-EDD3-4520-B8F5-132ECA806331}.Release|x86.Build.0 = Release|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Debug|x64.Build.0 = Debug|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Debug|x86.Build.0 = Debug|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Release|x64.ActiveCfg = Release|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Release|x64.Build.0 = Release|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Release|x86.ActiveCfg = Release|Any CPU
-		{1486ACB6-CA74-4895-906F-50DC46B586E5}.Release|x86.Build.0 = Release|Any CPU
 		{FF41321A-DFFA-4AAD-90CD-74AC7D243F39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FF41321A-DFFA-4AAD-90CD-74AC7D243F39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF41321A-DFFA-4AAD-90CD-74AC7D243F39}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -144,6 +135,18 @@ Global
 		{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D}.Release|x64.Build.0 = Release|Any CPU
 		{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D}.Release|x86.ActiveCfg = Release|Any CPU
 		{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D}.Release|x86.Build.0 = Release|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Debug|x64.Build.0 = Debug|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Debug|x86.Build.0 = Debug|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Release|x64.ActiveCfg = Release|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Release|x64.Build.0 = Release|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Release|x86.ActiveCfg = Release|Any CPU
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -151,14 +154,24 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B8CAAA93-A3B2-4F15-8A8A-6D705923404B} = {CE643E3C-6E64-4832-9285-F882377C578F}
 		{7746E9ED-EDD3-4520-B8F5-132ECA806331} = {B58A6CAC-F78E-4D4E-B7D6-CEB4B911B486}
-		{1486ACB6-CA74-4895-906F-50DC46B586E5} = {CE643E3C-6E64-4832-9285-F882377C578F}
 		{FF41321A-DFFA-4AAD-90CD-74AC7D243F39} = {AD9D9EB8-8BC9-4E04-BC0B-8A334C0F06FF}
 		{CC2AF363-2615-464C-9A02-F5C046690B97} = {A01D6FBE-9ED9-44F4-A45D-BD9C1CC39BD3}
 		{5EB8E144-F7F2-4E43-B51C-96CE9706EC05} = {CE643E3C-6E64-4832-9285-F882377C578F}
 		{D0AB1AFE-2A4D-42D1-921D-B19A51B7667D} = {B58A6CAC-F78E-4D4E-B7D6-CEB4B911B486}
+		{FF9B7782-C8E0-4228-9714-72E8466BEAF3} = {B58A6CAC-F78E-4D4E-B7D6-CEB4B911B486}
+		{B51DB908-B462-4DF1-BEF7-B00FFC29648E} = {CE643E3C-6E64-4832-9285-F882377C578F}
+		{7FDB9B9A-6667-445E-91B0-42D32EED96E8} = {CE643E3C-6E64-4832-9285-F882377C578F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B638F473-88B7-4796-80A9-6E0A92B4985A}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.projitems*{5eb8e144-f7f2-4e43-b51c-96ce9706ec05}*SharedItemsImports = 5
+		tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems*{7746e9ed-edd3-4520-b8f5-132eca806331}*SharedItemsImports = 5
+		src\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.projitems*{7fdb9b9a-6667-445e-91b0-42d32eed96e8}*SharedItemsImports = 5
+		src\Dgraph4Net.SharedCode\Dgraph4Net.SharedCode.projitems*{b51db908-b462-4df1-bef7-b00ffc29648e}*SharedItemsImports = 13
+		tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems*{d0ab1afe-2a4d-42d1-921d-b19a51b7667d}*SharedItemsImports = 5
+		tests\Dgraph4Net.Tests.Shared\Dgraph4Net.Tests.Shared.projitems*{ff9b7782-c8e0-4228-9714-72e8466beaf3}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
