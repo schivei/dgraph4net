@@ -46,7 +46,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
 
@@ -68,7 +68,7 @@ jobs:
         dotnet test tests/Dgraph4Net.Tests.System/Dgraph4Net.Tests.System.csproj --no-build --no-restore
     
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
       with:
         category: "/language:${{matrix.language}}"
 
@@ -147,6 +147,8 @@ jobs:
     - name: Create Release
       run: |
         version=$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+\.\d+).nupkg' | grep -oP '(\d+\.\d+\.\d+\.\d+)') &&
+        git config user.email "${{ github.actor }}@users.noreply.github.com" &&
+        git config user.name "${{ github.actor }}" &&
         git tag -a v$version -m "Release v$version [${{ github.run_number }}]" &&
         git push origin v${{ github.run_number }} &&
         gh release create v${{ github.run_number }} ./build-packages/*.nupkg --title "Release v$version [${{ github.run_number }}]" --notes "New release v$version [${{ github.run_number }}] available on NuGet at https://www.nuget.org/packages/Dgraph4Net/$version and GitHub Packages https://github.com/schivei?tab=packages&repo_name=dgraph4net"
