@@ -21,6 +21,7 @@ jobs:
       pull-requests: write
       issues: write
       repository-projects: write
+      packages: write
 
     services:
       dgraph:
@@ -137,4 +138,15 @@ jobs:
         dotnet pack -c Release -o ./build-packages -p:IncludeSymbols=false ./tools/Dgraph4Net.Tools/Dgraph4Net.Tools.csproj
 
     - name: Publish
-      run: dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: |
+        dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate &&
+        dotnet nuget add source --username schivei --password ${{ secrets.GITHUB_TOKEN }} --name "github" "https://nuget.pkg.github.com/schivei/index.json" &&
+        dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source "github" --skip-duplicate
+
+    # publish *.nupkg to release and a new tag
+    - name: Create Release
+      run: |
+        version=$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+\.\d+).nupkg' | grep -oP '(\d+\.\d+\.\d+\.\d+)') &&
+        git tag -a v$version -m "Release v$version [${{ github.run_number }}]" &&
+        git push origin v${{ github.run_number }} &&
+        gh release create v${{ github.run_number }} ./build-packages/*.nupkg --title "Release v$version [${{ github.run_number }}]" --notes "New release v$version [${{ github.run_number }}] available on NuGet at https://www.nuget.org/packages/Dgraph4Net/$version and GitHub Packages https://github.com/schivei?tab=packages&repo_name=dgraph4net"
