@@ -150,7 +150,7 @@ jobs:
 
     - name: Set env
       run: |
-        echo "TAG=v$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+\.\d+).nupkg' | grep -oP '(\d+\.\d+\.\d+\.\d+)')" >> $GITHUB_ENV
+        echo "TAG=v$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+)(\.([1-9]|1[0-9]|2[0-3]))?.nupkg' | grep -oP '(\d+\.\d+\.\d+)(\.([1-9]|1[0-9]|2[0-3]))?' | sed -n '1p')" >> $GITHUB_ENV
     
     - name: Create Release
       run: |
