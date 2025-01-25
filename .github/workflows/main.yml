@@ -143,12 +143,17 @@ jobs:
         dotnet nuget add source --username schivei --password ${{ secrets.GITHUB_TOKEN }} --name "github" "https://nuget.pkg.github.com/schivei/index.json" --store-password-in-clear-text &&
         dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source "github" --skip-duplicate
 
-    # publish *.nupkg to release and a new tag
+    - name: Set up Git
+      run: |
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com" &&
+        git config --global user.name "${{ github.actor }}"
+
+    - name: Set env
+      run: |
+        echo "TAG=v$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+\.\d+).nupkg' | grep -oP '(\d+\.\d+\.\d+\.\d+)')" >> $GITHUB_ENV
+    
     - name: Create Release
       run: |
-        version=$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+\.\d+).nupkg' | grep -oP '(\d+\.\d+\.\d+\.\d+)') &&
-        git config user.email "${{ github.actor }}@users.noreply.github.com" &&
-        git config user.name "${{ github.actor }}" &&
-        git tag -a v$version -m "Release v$version [${{ github.run_number }}]" &&
-        git push origin v${{ github.run_number }} &&
-        gh release create v${{ github.run_number }} ./build-packages/*.nupkg --title "Release v$version [${{ github.run_number }}]" --notes "New release v$version [${{ github.run_number }}] available on NuGet at https://www.nuget.org/packages/Dgraph4Net/$version and GitHub Packages https://github.com/schivei?tab=packages&repo_name=dgraph4net"
+        git tag -a ${{ env.TAG }} -m "Release ${{ env.TAG }} [${{ github.run_number }}]" &&
+        git push origin ${{ env.TAG }} &&
+        gh release create ${{ env.TAG }} ./build-packages/*.nupkg --title "Release ${{ env.TAG }} [${{ github.run_number }}]" --notes "New release ${{ env.TAG }} [${{ github.run_number }}] available on NuGet at https://www.nuget.org/packages?q=Dgraph4Net&frameworks=net&includeComputedFrameworks=true&frameworkFilterMode=all&prerel=false&sortby=created-desc and GitHub Packages https://github.com/schivei?tab=packages&repo_name=dgraph4net"
