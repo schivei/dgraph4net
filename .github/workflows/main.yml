@@ -140,7 +140,7 @@ jobs:
     - name: Publish
       run: |
         dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate &&
-        dotnet nuget add source --username schivei --password ${{ secrets.GITHUB_TOKEN }} --name "github" "https://nuget.pkg.github.com/schivei/index.json" &&
+        dotnet nuget add source --username schivei --password ${{ secrets.GITHUB_TOKEN }} --name "github" "https://nuget.pkg.github.com/schivei/index.json" --store-password-in-clear-text &&
         dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source "github" --skip-duplicate
 
     # publish *.nupkg to release and a new tag
