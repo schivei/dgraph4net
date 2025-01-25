@@ -157,3 +157,7 @@ jobs:
         git tag -a ${{ env.TAG }} -m "Release ${{ env.TAG }} [${{ github.run_number }}]" &&
         git push origin ${{ env.TAG }} &&
         gh release create ${{ env.TAG }} ./build-packages/*.nupkg --title "Release ${{ env.TAG }} [${{ github.run_number }}]" --notes "New release ${{ env.TAG }} [${{ github.run_number }}] available on NuGet at https://www.nuget.org/packages?q=Dgraph4Net&frameworks=net&includeComputedFrameworks=true&frameworkFilterMode=all&prerel=false&sortby=created-desc and GitHub Packages https://github.com/schivei?tab=packages&repo_name=dgraph4net"
+      env:
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        github-token: "${{secrets.GITHUB_TOKEN}}"
