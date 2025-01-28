@@ -21,6 +21,7 @@ jobs:
       pull-requests: write
       issues: write
       repository-projects: write
+      packages: write
 
     services:
       dgraph:
@@ -45,7 +46,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
 
@@ -67,7 +68,7 @@ jobs:
         dotnet test tests/Dgraph4Net.Tests.System/Dgraph4Net.Tests.System.csproj --no-build --no-restore
     
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
       with:
         category: "/language:${{matrix.language}}"
 
@@ -137,4 +138,26 @@ jobs:
         dotnet pack -c Release -o ./build-packages -p:IncludeSymbols=false ./tools/Dgraph4Net.Tools/Dgraph4Net.Tools.csproj
 
     - name: Publish
-      run: dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: |
+        dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.NUGETKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate &&
+        dotnet nuget add source --username schivei --password ${{ secrets.GITHUB_TOKEN }} --name "github" "https://nuget.pkg.github.com/schivei/index.json" --store-password-in-clear-text &&
+        dotnet nuget push ./build-packages/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source "github" --skip-duplicate
+
+    - name: Set up Git
+      run: |
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com" &&
+        git config --global user.name "${{ github.actor }}"
+
+    - name: Set env
+      run: |
+        echo "TAG=v$(ls ./build-packages/*.nupkg | grep -oP 'Dgraph4Net.(\d+\.\d+\.\d+)(\.([1-9]|1[0-9]|2[0-3]))?.nupkg' | grep -oP '(\d+\.\d+\.\d+)(\.([1-9]|1[0-9]|2[0-3]))?' | sed -n '1p')" >> $GITHUB_ENV
+    
+    - name: Create Release
+      run: |
+        git tag -a ${{ env.TAG }} -m "Release ${{ env.TAG }} [${{ github.run_number }}]" &&
+        git push origin ${{ env.TAG }} &&
+        gh release create ${{ env.TAG }} ./build-packages/*.nupkg --title "Release ${{ env.TAG }} [${{ github.run_number }}]" --notes "New release ${{ env.TAG }} [${{ github.run_number }}] available on NuGet at https://www.nuget.org/packages?q=Dgraph4Net&frameworks=net&includeComputedFrameworks=true&frameworkFilterMode=all&prerel=false&sortby=created-desc and GitHub Packages https://github.com/schivei?tab=packages&repo_name=dgraph4net"
+      env:
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        github-token: "${{secrets.GITHUB_TOKEN}}"
