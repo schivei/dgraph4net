@@ -36,7 +36,7 @@ and understand how to run and work with Dgraph.
 ## Packages
 - **Dgraph4Net.Newtonsoft.Json**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Newtonsoft.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Newtonsoft.Json/)
 - **Dgraph4Net**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net?style=flat)](https://www.nuget.org/packages/Dgraph4Net/)
-- **Dgraph4Net.Core**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.Core?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Core/)
+- **Dgraph4Net.System.Text.Json**: [![NuGet](https://img.shields.io/nuget/v/Dgraph4Net.System.Text.Json?style=flat)](https://www.nuget.org/packages/Dgraph4Net.System.Text.Json/)
 
 ### Tools
 - **Dgraph4Net.Tools**: [![NuGet](https://img.shields.io/nuget/v/DGraph4Net.Tools?style=flat)](https://www.nuget.org/packages/Dgraph4Net.Tools/)
