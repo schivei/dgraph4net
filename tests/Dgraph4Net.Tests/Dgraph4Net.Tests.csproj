@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="dotenv.net" Version="3.2.1" />
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.67.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.70.0" />
     <PackageReference Include="Grpc.Core" Version="2.46.6" />
     <PackageReference Include="LateApexEarlySpeed.Xunit.Assertion.Json" Version="1.0.6" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
