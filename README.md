@@ -1,5 +1,9 @@
 # Dgraph4Net
 
+**NOTE**: This project is no longer maintained. It is recommended to use the [Dgraph.net](https://github.com/hypermodeinc/dgraph.net).
+
+***
+
 This client is based on [Dgraph Go client](https://github.com/dgraph-io/dgo).\
 This README is based on [Dgraph.net README](https://github.com/dgraph-io/dgraph.net).
 
